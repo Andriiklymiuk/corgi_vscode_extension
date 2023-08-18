@@ -8,28 +8,27 @@
       "items": {
         "type": "object",
         "properties": {
-          "ServiceName": { "type": "string" },
-          "Driver": { "type": "string" },
-          "Host": { "type": "string" },
-          "User": { "type": "string" },
-          "Password": { "type": "string" },
-          "DatabaseName": { "type": "string" },
-          "Port": { "type": "integer" },
-          "SeedFromDbEnvPath": { "type": "string" },
-          "SeedFromFilePath": { "type": "string" },
-          "SeedFromDb": {
+          "driver": { "type": "string" },
+          "host": { "type": "string" },
+          "user": { "type": "string" },
+          "password": { "type": "string" },
+          "databaseName": { "type": "string" },
+          "port": { "type": "integer" },
+          "seedFromDbEnvPath": { "type": "string" },
+          "seedFromFilePath": { "type": "string" },
+          "seedFromDb": {
             "type": "object",
             "properties": {
-              "Host": { "type": "string" },
-              "DatabaseName": { "type": "string" },
-              "User": { "type": "string" },
-              "Password": { "type": "string" },
-              "Port": { "type": "integer" }
+              "host": { "type": "string" },
+              "databaseName": { "type": "string" },
+              "user": { "type": "string" },
+              "password": { "type": "string" },
+              "port": { "type": "integer" }
             },
-            "required": ["Host", "DatabaseName", "User", "Password", "Port"]
+            "required": ["host", "databaseName", "user", "password", "port"]
           }
         },
-        "required": ["ServiceName", "Driver", "Host", "User", "Password", "DatabaseName", "Port"]
+        "required": ["ServiceName", "driver", "host", "user", "password", "databaseName", "port"]
       }
     },
     "Services": {
@@ -37,55 +36,74 @@
       "items": {
         "type": "object",
         "properties": {
-          "ServiceName": { "type": "string" },
-          "Path": { "type": "string" },
-          "GoCode": {
-            "type": "object",
-            "properties": {
-              "package": {
-                "type": "string"
-              },
-              "imports": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "functions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string"
-                    },
-                    "returns": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": ["name", "returns"]
-                }
-              }
-            },
-            "required": ["package", "imports", "functions"]
+          "path": { "type": "string" },
+          "ignore_env": { "type": "boolean" },
+          "manualRun": { "type": "boolean" },
+          "cloneFrom": { "type": "string" },
+          "branch": { "type": "string" },
+          "environment": {
+            "type": "array",
+            "items": { "type": "string" }
           },
-          // ... (continue for other fields of Service)
+          "envPath": { "type": "string" },
+          "copyEnvFromFilePath": { "type": "string" },
+          "port": { "type": "integer" },
+          "depends_on_services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "envAlias": { "type": "string" },
+                "suffix": { "type": "string" }
+              },
+              "required": ["name", "envAlias"]
+            }
+          },
+          "depends_on_db": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "envAlias": { "type": "string" }
+              },
+              "required": ["name", "envAlias"]
+            }
+          },
+          "beforeStart": { "type": "array", "items": { "type": "string" } },
+          "start": { "type": "array", "items": { "type": "string" } },
+          "afterStart": { "type": "array", "items": { "type": "string" } },
+          "test": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "manualRun": { "type": "boolean" },
+                "command": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              },
+              "required": ["name", "command"]
+            }
+          }
         },
+        "required": ["ServiceName", "path"]
+      }
+    },
     "Required": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "Name": { "type": "string" },
-          "Why": { "type": "array", "items": { "type": "string" } },
-          "Install": { "type": "array", "items": { "type": "string" } },
-          "Optional": { "type": "boolean" },
-          "CheckCmd": { "type": "string" }
+          "why": { "type": "array", "items": { "type": "string" } },
+          "install": { "type": "array", "items": { "type": "string" } },
+          "optional": { "type": "boolean" },
+          "checkCmd": { "type": "string" }
         },
-        "required": ["Name", "Why", "Install"]
+        "required": ["Name", "why", "install"]
       }
     }
   },

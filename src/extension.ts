@@ -173,12 +173,35 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
     try {
         const jsonContent = yaml.load(yamlContent);
         const valid = ajv.validate(corgiSchema, jsonContent);
-        console.log('here');
         if (!valid && ajv.errors) {
             const diagnosticErrors = ajv.errors.map(error => {
-                console.log('here 1');
-                const message = `Validation error at ${error.instancePath}: ${error.message}`;
-                const range = new vscode.Range(0, 0, document.lineCount, 0); // This can be improved to highlight the specific line of the error.
+                // Extract more info about the property causing the error
+                const propertyPath = error.instancePath.split('/').slice(1); // removed the first empty string
+                const invalidProperty = propertyPath[propertyPath.length - 1] || "unknown property";
+
+                let searchProperty = invalidProperty;  // default to the invalid property
+                let additionalPropertyInfo = "";
+
+                if (error.params && error.params.additionalProperty) {
+                    additionalPropertyInfo = ` Not valid: ${error.params.additionalProperty}.`;
+                    searchProperty = error.params.additionalProperty;  // Update search term
+                }
+
+                const message = error.message?.includes("must NOT have additional properties")
+                    ? `Validation error at ${error.instancePath}: Property "${searchProperty}" is not allowed.`
+                    : `Validation error at ${error.instancePath}:${additionalPropertyInfo} Property "${invalidProperty}" ${error.message}`;
+
+                // Try to find the line number of the error property in the YAML
+                const lines = yamlContent.split('\n');
+                let lineNumber = 0;
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].trim().startsWith(searchProperty)) {
+                        lineNumber = i;
+                        break;
+                    }
+                }
+
+                const range = new vscode.Range(lineNumber, 0, lineNumber, lines[lineNumber].length);
                 return new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Error);
             });
             diagnostics.set(document.uri, diagnosticErrors);
@@ -186,8 +209,11 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
             diagnostics.delete(document.uri);
         }
     } catch (err) {
-        vscode.window.showInformationMessage('Corgi extension b!');
-        // handle any YAML parsing errors
+        vscode.window.showInformationMessage('Error parsing YAML in Corgi extension!');
         console.error("Failed to parse YAML:", err);
     }
 }
+
+
+
+
