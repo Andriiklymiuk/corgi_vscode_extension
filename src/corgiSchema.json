@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CorgiCompose",
+  "type": "object",
+  "properties": {
+    "DatabaseServices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ServiceName": { "type": "string" },
+          "Driver": { "type": "string" },
+          "Host": { "type": "string" },
+          "User": { "type": "string" },
+          "Password": { "type": "string" },
+          "DatabaseName": { "type": "string" },
+          "Port": { "type": "integer" },
+          "SeedFromDbEnvPath": { "type": "string" },
+          "SeedFromFilePath": { "type": "string" },
+          "SeedFromDb": {
+            "type": "object",
+            "properties": {
+              "Host": { "type": "string" },
+              "DatabaseName": { "type": "string" },
+              "User": { "type": "string" },
+              "Password": { "type": "string" },
+              "Port": { "type": "integer" }
+            },
+            "required": ["Host", "DatabaseName", "User", "Password", "Port"]
+          }
+        },
+        "required": ["ServiceName", "Driver", "Host", "User", "Password", "DatabaseName", "Port"]
+      }
+    },
+    "Services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ServiceName": { "type": "string" },
+          "Path": { "type": "string" },
+          "GoCode": {
+            "type": "object",
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "imports": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "returns": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["name", "returns"]
+                }
+              }
+            },
+            "required": ["package", "imports", "functions"]
+          },
+          // ... (continue for other fields of Service)
+        },
+    "Required": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": { "type": "string" },
+          "Why": { "type": "array", "items": { "type": "string" } },
+          "Install": { "type": "array", "items": { "type": "string" } },
+          "Optional": { "type": "boolean" },
+          "CheckCmd": { "type": "string" }
+        },
+        "required": ["Name", "Why", "Install"]
+      }
+    }
+  },
+  "required": ["DatabaseServices", "Services", "Required"]
+}
