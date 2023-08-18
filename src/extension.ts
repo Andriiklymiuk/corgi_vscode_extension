@@ -84,7 +84,7 @@ const corgiSchema = {
                                     "name": { "type": "string" },
                                     "envAlias": { "type": "string" }
                                 },
-                                "required": ["name", "envAlias"],
+                                "required": ["name"],
                                 "additionalProperties": false
                             }
                         },
@@ -175,7 +175,6 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
         const valid = ajv.validate(corgiSchema, jsonContent);
         if (!valid && ajv.errors) {
             const diagnosticErrors = ajv.errors.map(error => {
-                // Extract more info about the property causing the error
                 const propertyPath = error.instancePath.split('/').slice(1); // removed the first empty string
                 const invalidProperty = propertyPath[propertyPath.length - 1] || "unknown property";
 
@@ -194,9 +193,19 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
                 // Try to find the line number of the error property in the YAML
                 const lines = yamlContent.split('\n');
                 let lineNumber = 0;
+
+                // Get the parent context (e.g., services -> products) to narrow down the error location
+                const parentContext = propertyPath.slice(0, -1).join('.');
+
                 for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].trim().startsWith(searchProperty)) {
-                        lineNumber = i;
+                    if (lines[i].trim().startsWith(parentContext)) {
+                        // start searching for the property from this line onwards
+                        for (let j = i + 1; j < lines.length; j++) {
+                            if (lines[j].trim().startsWith(searchProperty)) {
+                                lineNumber = j;
+                                break;
+                            }
+                        }
                         break;
                     }
                 }
@@ -213,6 +222,7 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
         console.error("Failed to parse YAML:", err);
     }
 }
+
 
 
 
