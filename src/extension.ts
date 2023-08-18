@@ -72,7 +72,7 @@ const corgiSchema = {
                                     "envAlias": { "type": "string" },
                                     "suffix": { "type": "string" }
                                 },
-                                "required": ["name", "envAlias"],
+                                "required": ["name"],
                                 "additionalProperties": false
                             }
                         },
