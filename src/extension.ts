@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 import Ajv from 'ajv';
 // import corgiSchema from './corgiSchema.json';  // Import the schema
 import * as path from 'path';
@@ -171,42 +171,67 @@ export function deactivate() { }
 function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode.TextDocument) {
     const yamlContent = document.getText();
     try {
-        const jsonContent = yaml.load(yamlContent);
+        const jsonContent = yaml.parse(yamlContent);
         const valid = ajv.validate(corgiSchema, jsonContent);
         if (!valid && ajv.errors) {
             const diagnosticErrors = ajv.errors.map(error => {
-                const propertyPath = error.instancePath.split('/').slice(1); // removed the first empty string
-                const invalidProperty = propertyPath[propertyPath.length - 1] || "unknown property";
-
-                let searchProperty = invalidProperty;  // default to the invalid property
+                const propertyPath = error.instancePath.split('/').slice(1);
+                let invalidProperty = propertyPath[propertyPath.length - 1] || "unknown property";
+                let searchProperty = invalidProperty;
                 let additionalPropertyInfo = "";
+                let isArrayItem = !isNaN(Number(invalidProperty));
 
                 if (error.params && error.params.additionalProperty) {
                     additionalPropertyInfo = ` Not valid: ${error.params.additionalProperty}.`;
-                    searchProperty = error.params.additionalProperty;  // Update search term
+                    searchProperty = error.params.additionalProperty;
                 }
 
                 const message = error.message?.includes("must NOT have additional properties")
                     ? `Validation error at ${error.instancePath}: Property "${searchProperty}" is not allowed.`
                     : `Validation error at ${error.instancePath}:${additionalPropertyInfo} Property "${invalidProperty}" ${error.message}`;
 
-                // Try to find the line number of the error property in the YAML
                 const lines = yamlContent.split('\n');
                 let lineNumber = 0;
 
-                // Get the parent context (e.g., services -> products) to narrow down the error location
-                const parentContext = propertyPath.slice(0, -1).join('.');
-
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].trim().startsWith(parentContext)) {
-                        // start searching for the property from this line onwards
-                        for (let j = i + 1; j < lines.length; j++) {
-                            if (lines[j].trim().startsWith(searchProperty)) {
-                                lineNumber = j;
-                                break;
+                if (isArrayItem || error.message?.includes("must be array")) {
+                    const parentContext = propertyPath.slice(0, -3).join('.');
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].trim().startsWith(parentContext)) {
+                            // start searching for the property from this line onwards
+                            for (let j = i + 1; j < lines.length; j++) {
+                                if (lines[j].trim().startsWith(propertyPath[propertyPath.length - 3] + ':')) {
+                                    for (let k = j + 1; k < lines.length; k++) {
+                                        if (lines[k].trim().startsWith(propertyPath[propertyPath.length - 2] + ':')) {
+                                            lineNumber = k;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
                             }
+                            break;
                         }
-                        break;
+                    }
+                } else if (propertyPath.length === 1) {
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].trim().startsWith(searchProperty + ':')) {
+                            lineNumber = i;
+                            break;
+                        }
+                    }
+                } else {
+                    const parentContext = propertyPath.slice(0, -1).join('.');
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].trim().startsWith(parentContext)) {
+                            // start searching for the property from this line onwards
+                            for (let j = i + 1; j < lines.length; j++) {
+                                if (lines[j].trim().startsWith(searchProperty + ':')) {
+                                    lineNumber = j;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
 
@@ -222,8 +247,4 @@ function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode
         console.error("Failed to parse YAML:", err);
     }
 }
-
-
-
-
 
