@@ -12,7 +12,7 @@ const corgiSchema = {
     "title": "CorgiCompose schema",
     "type": "object",
     "properties": {
-        "db_service": {
+        "db_services": {
             "type": "object",
             "patternProperties": {
                 ".*": {
