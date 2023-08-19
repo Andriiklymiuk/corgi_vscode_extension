@@ -25,10 +25,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "corgi.helloWorld",
-        "title": "Hello World from corgi"
-      },
-      {
         "command": "corgi.run",
         "title": "Corgi run (run instructions from corgi compose files)"
       },
@@ -68,7 +64,24 @@
         "command": "corgi.initFromRoot",
         "title": "Corgi init from Workspace Root"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "corgi",
+          "title": "Corgi",
+          "icon": "resources/activityBarIcon.png"
+        }
+      ]
+    },
+    "views": {
+      "corgi": [
+        {
+          "id": "corgiTreeView",
+          "name": "Corgi Tree"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",

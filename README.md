@@ -13,3 +13,8 @@ Install [Corgi](https://github.com/Andriiklymiuk/corgi) with [Homebrew](https://
 brew tap andriiklymiuk/homebrew-tools
 brew install corgi
 ```
+
+## Attribution
+
+Icons used:
+<a href="https://www.freepik.com/icon/pawprint_1076928#fromView=keyword&term=Dog&page=1&position=1">Icon by Freepik</a>

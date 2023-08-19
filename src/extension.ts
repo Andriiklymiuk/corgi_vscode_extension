@@ -4,6 +4,7 @@ import * as path from 'path';
 import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
 import { executeCorgiCommand } from './corgiCommands';
+import { CorgiTreeProvider } from './corgiTreeProvider';
 
 const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
 
@@ -14,9 +15,6 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "corgi" is now active!');
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('corgi.helloWorld', () => {
-            vscode.window.showInformationMessage('Hello World from corgi!');
-        }),
         vscode.workspace.onDidSaveTextDocument((document) => {
             if (corgiPattern.test(path.basename(document.fileName))) {
                 validateYaml(diagnostics, document);
@@ -63,6 +61,9 @@ export function activate(context: vscode.ExtensionContext) {
             executeCorgiCommand('doctor', true);
         }),
     );
+    const corgiTreeProvider = new CorgiTreeProvider();
+    vscode.window.registerTreeDataProvider('corgiTreeView', corgiTreeProvider);
+
 }
 
 export function deactivate() { }

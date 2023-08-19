@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as path from 'path';
 
@@ -31,7 +32,7 @@ export async function executeCorgiCommand(command: string, fromRoot: boolean = f
 
   let fileItems = files.map(file => ({
     label: path.basename(file.fsPath),
-    description: file.fsPath
+    description: getLastFoldersFromPath(file.fsPath)
   }));
 
   let selectedFile = await vscode.window.showQuickPick(fileItems, {
@@ -39,10 +40,20 @@ export async function executeCorgiCommand(command: string, fromRoot: boolean = f
   });
 
   if (selectedFile) {
-    runInTerminal(command, path.dirname(selectedFile.description), selectedFile.description);
+    const fullFilePath = files.find(file => file.fsPath.endsWith(selectedFile!.description))?.fsPath;
+    if (fullFilePath) {
+      runInTerminal(command, path.dirname(fullFilePath), fullFilePath);
+    }
+  } else {
+    // Handle the case where no file was selected, if needed.
+    vscode.window.showInformationMessage('No corgi-compose file was selected.');
   }
 }
 
+function getLastFoldersFromPath(filePath: string, count: number = 3): string {
+  const segments = filePath.split(path.sep);
+  return segments.slice(-count).join(path.sep);
+}
 
 function runInTerminal(command: string, directoryPath: string, filePath?: string) {
   let terminal = vscode.window.createTerminal({
