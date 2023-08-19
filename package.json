@@ -3,9 +3,9 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
-  "repository":"https://github.com/Andriiklymiuk/corgi_vscode_extension",
+  "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.81.0"
@@ -14,12 +14,12 @@
     "Other"
   ],
   "activationEvents": [
-      "onLanguage:yml",
-      "onLanguage:yaml",
-      "workspaceContains:corgi-compose*.yml",
-      "workspaceContains:corgi-compose*.yaml",
-      "workspaceContains:corgi-*.yml",
-      "workspaceContains:corgi-*.yaml"
+    "onLanguage:yml",
+    "onLanguage:yaml",
+    "workspaceContains:corgi-compose*.yml",
+    "workspaceContains:corgi-compose*.yaml",
+    "workspaceContains:corgi-*.yml",
+    "workspaceContains:corgi-*.yaml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -27,6 +27,46 @@
       {
         "command": "corgi.helloWorld",
         "title": "Hello World from corgi"
+      },
+      {
+        "command": "corgi.run",
+        "title": "Corgi run (run instructions from corgi compose files)"
+      },
+      {
+        "command": "corgi.init",
+        "title": "Corgi init (do cloning, if needed, folder creations, etc)"
+      },
+      {
+        "command": "corgi.pull",
+        "title": "Corgi pull (pull changes from all repos)"
+      },
+      {
+        "command": "corgi.docs",
+        "title": "Show corgi docs"
+      },
+      {
+        "command": "corgi.help",
+        "title": "Show corgi help"
+      },
+      {
+        "command": "corgi.doctor",
+        "title": "Doctor corgi, check for required (if all programs installed, etc)"
+      },
+      {
+        "command": "corgi.doctorFromRoot",
+        "title": "Doctor corgi, check for required from Workspace Root"
+      },
+      {
+        "command": "corgi.runFromRoot",
+        "title": "Corgi run from Workspace Root"
+      },
+      {
+        "command": "corgi.pullFromRoot",
+        "title": "Corgi pull from Workspace Root"
+      },
+      {
+        "command": "corgi.initFromRoot",
+        "title": "Corgi init from Workspace Root"
       }
     ]
   },
@@ -40,7 +80,7 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build:vsce":"vsce package --no-dependencies"
+    "build:vsce": "vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
