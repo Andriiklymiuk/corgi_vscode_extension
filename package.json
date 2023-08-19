@@ -13,10 +13,12 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:yml",
-    "onLanguage:yaml",
-    "workspaceContains:*corgi*.yml",
-    "workspaceContains:*corgi*.yaml"
+      "onLanguage:yml",
+      "onLanguage:yaml",
+      "workspaceContains:corgi-compose*.yml",
+      "workspaceContains:corgi-compose*.yaml",
+      "workspaceContains:corgi-*.yml",
+      "workspaceContains:corgi-*.yaml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
