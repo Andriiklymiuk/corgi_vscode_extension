@@ -55,7 +55,7 @@
       },
       {
         "command": "corgi.stop",
-        "title": "Stop",
+        "title": "Corgi stop",
         "icon": "$(stop-circle)"
       },
       {
@@ -68,7 +68,7 @@
       },
       {
         "command": "corgi.runFromRoot",
-        "title": "Run",
+        "title": "Corgi run from root",
         "icon": "$(play-circle)"
       },
       {
