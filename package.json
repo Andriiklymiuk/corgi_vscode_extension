@@ -19,14 +19,23 @@
     "workspaceContains:corgi-compose*.yml",
     "workspaceContains:corgi-compose*.yaml",
     "workspaceContains:corgi-*.yml",
-    "workspaceContains:corgi-*.yaml"
+    "workspaceContains:corgi-*.yaml",
+    "onView:corgiTreeView"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "key": "ctrl+c",
+        "command": "corgi.stop",
+        "when": "terminalFocus"
+      }
+    ],
     "commands": [
       {
         "command": "corgi.run",
-        "title": "Corgi run (run instructions from corgi compose files)"
+        "title": "Corgi run",
+        "icon": "$(play-circle)"
       },
       {
         "command": "corgi.init",
@@ -45,6 +54,11 @@
         "title": "Show corgi help"
       },
       {
+        "command": "corgi.stop",
+        "title": "Stop",
+        "icon": "$(stop-circle)"
+      },
+      {
         "command": "corgi.doctor",
         "title": "Doctor corgi, check for required (if all programs installed, etc)"
       },
@@ -54,7 +68,8 @@
       },
       {
         "command": "corgi.runFromRoot",
-        "title": "Corgi run from Workspace Root"
+        "title": "Run",
+        "icon": "$(play-circle)"
       },
       {
         "command": "corgi.pullFromRoot",
@@ -78,7 +93,28 @@
       "corgi": [
         {
           "id": "corgiTreeView",
-          "name": "Corgi Tree"
+          "name": "Woof"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "corgi.run",
+          "group": "navigation",
+          "when": "resourceFilename =~ /corgi-*.*\\.y(a)?ml/"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "corgi.runFromRoot",
+          "when": "view == corgiTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "corgi.stop",
+          "when": "view == corgiTreeView",
+          "group": "navigation"
         }
       ]
     }

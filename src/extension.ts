@@ -13,7 +13,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(diagnostics);
     console.log('Congratulations, your extension "corgi" is now active!');
-
+    const statusBarItem = (() => {
+        const statusBarButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+        statusBarButton.text = "$(play) Run Corgi";
+        statusBarButton.tooltip = "Run Corgi from Workspace Root";
+        statusBarButton.command = 'corgi.runFromRoot';
+        statusBarButton.show();
+        return statusBarButton; // Return the status bar item for disposal
+    })();
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {
             if (corgiPattern.test(path.basename(document.fileName))) {
@@ -60,6 +67,24 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('corgi.doctorFromRoot', async () => {
             executeCorgiCommand('doctor', true);
         }),
+        vscode.commands.registerCommand('corgi.runFromStatusBar', async () => {
+            executeCorgiCommand('run', true);
+        }),
+        vscode.commands.registerCommand('corgi.cancel', async () => {
+            vscode.commands.executeCommand('workbench.action.terminal.kill');
+        }),
+        vscode.commands.registerCommand('corgi.stop', async () => {
+            const activeTerminal = vscode.window.activeTerminal;
+            if (activeTerminal) {
+                // Send Ctrl+C key combination
+                await vscode.commands.executeCommand('workbench.action.terminal.sendSequence', {
+                    text: '\u0003' // ASCII code for Ctrl+C
+                });
+            } else {
+                vscode.window.showInformationMessage('No active terminal.');
+            }
+        }),
+        statusBarItem
     );
     const corgiTreeProvider = new CorgiTreeProvider();
     vscode.window.registerTreeDataProvider('corgiTreeView', corgiTreeProvider);
