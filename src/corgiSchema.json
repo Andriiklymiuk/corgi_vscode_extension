@@ -9,7 +9,10 @@
                 ".*": {
                     "type": "object",
                     "properties": {
-                        "driver": { "type": "string" },
+                        "driver": { 
+                            "type": "string",
+                            "enum": ["postgres","redis","rabbitmq","sqs"]
+                        },
                         "host": { "type": "string" },
                         "user": { "type": "string" },
                         "password": { "type": "string" },
