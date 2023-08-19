@@ -29,7 +29,7 @@
                                 "password": { "type": "string" },
                                 "port": { "type": "integer" }
                             },
-                            "required": ["host", "databaseName", "user", "password", "port"],
+                            "required": ["host", "user", "password", "port"],
                             "additionalProperties": false
                         },
                         "additionalProperties": false
@@ -66,7 +66,7 @@
                                     "envAlias": { "type": "string" },
                                     "suffix": { "type": "string" }
                                 },
-                                "required": ["name", "envAlias"],
+                                "required": ["name"],
                                 "additionalProperties": false
                             }
                         },
@@ -78,7 +78,7 @@
                                     "name": { "type": "string" },
                                     "envAlias": { "type": "string" }
                                 },
-                                "required": ["name", "envAlias"],
+                                "required": ["name"],
                                 "additionalProperties": false
                             }
                         },
