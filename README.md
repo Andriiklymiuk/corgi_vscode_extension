@@ -1,5 +1,8 @@
 # Corgi extension
 
+Extension link in [vscode marketplace](https://marketplace.visualstudio.com/items?itemName=Corgi.corgi)
+
+
 This is helpful corgi extension, that helps in syntax highlighting of your `corgi-compose.yml` files.
 
 # Requirements (only needed for running corgi directly in vscode)
