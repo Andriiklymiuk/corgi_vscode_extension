@@ -17,4 +17,4 @@ brew install corgi
 ## Attribution
 
 Icons used:
-<a href="https://www.freepik.com/icon/pawprint_1076928#fromView=keyword&term=Dog&page=1&position=1">Icon by Freepik</a>
+<a href="https://www.freepik.com/icon/pawprint_1076877#fromView=keyword&term=Dog&page=1&position=14">Icon by Freepik</a>
