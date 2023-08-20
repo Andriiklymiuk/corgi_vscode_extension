@@ -55,6 +55,15 @@ function getLastFoldersFromPath(filePath: string, count: number = 3): string {
   return segments.slice(-count).join(path.sep);
 }
 
+export function installCorgiWithHomebrew() {
+  let terminal = vscode.window.createTerminal("Corgi Terminal");
+  terminal.show();
+  terminal.sendText("brew tap andriiklymiuk/homebrew-tools");
+  terminal.sendText("brew install corgi");
+}
+
+const autoExecuteCommands = ['db -u', 'db -d', 'db -s', 'db --seedAll'];
+
 function runInTerminal(command: string, directoryPath: string, filePath?: string) {
   let terminal = vscode.window.createTerminal({
     name: "Corgi Terminal",
@@ -65,5 +74,9 @@ function runInTerminal(command: string, directoryPath: string, filePath?: string
     terminal.sendText(`corgi ${command} -f ${path.basename(filePath)}`);
   } else {
     terminal.sendText(`corgi ${command}`);
+  }
+
+  if (autoExecuteCommands.includes(command)) {
+    terminal.sendText('\u000D');  // Send the enter key to the terminal.
   }
 }

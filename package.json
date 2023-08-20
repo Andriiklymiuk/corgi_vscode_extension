@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -35,7 +35,7 @@
       {
         "command": "corgi.run",
         "title": "Corgi run",
-        "icon": "$(play-circle)"
+        "icon": "$(debug-start)"
       },
       {
         "command": "corgi.init",
@@ -69,7 +69,7 @@
       {
         "command": "corgi.runFromRoot",
         "title": "Corgi run from root",
-        "icon": "$(play-circle)"
+        "icon": "$(debug-start)"
       },
       {
         "command": "corgi.pullFromRoot",
@@ -78,6 +78,50 @@
       {
         "command": "corgi.initFromRoot",
         "title": "Corgi init from Workspace Root"
+      },
+      {
+        "command": "corgi.db",
+        "title": "Corgi db"
+      },
+      {
+        "command": "corgi.dbFromRoot",
+        "title": "Corgi db from Workspace Root"
+      },
+      {
+        "command": "corgi.dbUp",
+        "title": "Corgi up all databases"
+      },
+      {
+        "command": "corgi.dbUpFromRoot",
+        "title": "Corgi up all databases from Workspace Root"
+      },
+      {
+        "command": "corgi.dbDown",
+        "title": "Corgi down all databases"
+      },
+      {
+        "command": "corgi.dbDownFromRoot",
+        "title": "Corgi down all databases from Workspace Root"
+      },
+      {
+        "command": "corgi.dStop",
+        "title": "Corgi stop all databases"
+      },
+      {
+        "command": "corgi.dbStopFromRoot",
+        "title": "Corgi stop all databases from Workspace Root"
+      },
+      {
+        "command": "corgi.dbSeed",
+        "title": "Corgi seed all databases"
+      },
+      {
+        "command": "corgi.dbSeedFromRoot",
+        "title": "Corgi seed all databases from Workspace Root"
+      },
+      {
+        "command": "corgi.installWithHomebrew",
+        "title": "Corgi install with Homebrew"
       }
     ],
     "viewsContainers": {

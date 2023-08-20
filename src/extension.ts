@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
-import { executeCorgiCommand } from './corgiCommands';
+import { executeCorgiCommand, installCorgiWithHomebrew } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
 
 const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
@@ -55,6 +55,21 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('corgi.doctor', async () => {
             executeCorgiCommand('doctor');
         }),
+        vscode.commands.registerCommand('corgi.db', async () => {
+            executeCorgiCommand('db');
+        }),
+        vscode.commands.registerCommand('corgi.dbUp', async () => {
+            executeCorgiCommand('db -u');
+        }),
+        vscode.commands.registerCommand('corgi.dbDown', async () => {
+            executeCorgiCommand('db -d');
+        }),
+        vscode.commands.registerCommand('corgi.dbStop', async () => {
+            executeCorgiCommand('db -s');
+        }),
+        vscode.commands.registerCommand('corgi.dbSeed', async () => {
+            executeCorgiCommand('db --seedAll');
+        }),
         vscode.commands.registerCommand('corgi.runFromRoot', async () => {
             executeCorgiCommand('run', true);
         }),
@@ -70,8 +85,26 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('corgi.runFromStatusBar', async () => {
             executeCorgiCommand('run', true);
         }),
+        vscode.commands.registerCommand('corgi.dbFromRoot', async () => {
+            executeCorgiCommand('db', true);
+        }),
+        vscode.commands.registerCommand('corgi.dbUpFromRoot', async () => {
+            executeCorgiCommand('db -u', true);
+        }),
+        vscode.commands.registerCommand('corgi.dbDownFromRoot', async () => {
+            executeCorgiCommand('db -d', true);
+        }),
+        vscode.commands.registerCommand('corgi.dbStopFromRoot', async () => {
+            executeCorgiCommand('db -s', true);
+        }),
+        vscode.commands.registerCommand('corgi.dbSeedFromRoot', async () => {
+            executeCorgiCommand('db --seedAll', true);
+        }),
         vscode.commands.registerCommand('corgi.cancel', async () => {
             vscode.commands.executeCommand('workbench.action.terminal.kill');
+        }),
+        vscode.commands.registerCommand('corgi.installWithHomebrew', async () => {
+            installCorgiWithHomebrew();
         }),
         vscode.commands.registerCommand('corgi.stop', async () => {
             const activeTerminal = vscode.window.activeTerminal;

@@ -14,4 +14,8 @@ All notable changes to the "corgi" extension will be documented in this file.
 
 ## [0.0.5]
 
-- Update corgi run and corgi stop command names
+- Update corgi run and corgi stop command names\
+## [0.0.6]
+
+- Added corgi db
+- Added corgi install with homebrew (if not installed already)
