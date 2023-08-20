@@ -9,32 +9,68 @@
                 ".*": {
                     "type": "object",
                     "properties": {
-                        "driver": { 
+                        "driver": {
                             "type": "string",
-                            "enum": ["postgres","redis","rabbitmq","sqs"]
+                            "enum": [
+                                "postgres",
+                                "redis",
+                                "rabbitmq",
+                                "sqs"
+                            ]
                         },
-                        "host": { "type": "string" },
-                        "user": { "type": "string" },
-                        "password": { "type": "string" },
-                        "databaseName": { "type": "string" },
-                        "port": { "type": "integer" },
-                        "seedFromDbEnvPath": { "type": "string" },
-                        "seedFromFilePath": { "type": "string" },
+                        "host": {
+                            "type": "string"
+                        },
+                        "user": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        },
+                        "databaseName": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
+                        },
+                        "seedFromDbEnvPath": {
+                            "type": "string"
+                        },
+                        "seedFromFilePath": {
+                            "type": "string"
+                        },
                         "seedFromDb": {
                             "type": "object",
                             "properties": {
-                                "host": { "type": "string" },
-                                "databaseName": { "type": "string" },
-                                "user": { "type": "string" },
-                                "password": { "type": "string" },
-                                "port": { "type": "integer" }
+                                "host": {
+                                    "type": "string"
+                                },
+                                "databaseName": {
+                                    "type": "string"
+                                },
+                                "user": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": "string"
+                                },
+                                "port": {
+                                    "type": "integer"
+                                }
                             },
-                            "required": ["host", "user", "password", "port"],
+                            "required": [
+                                "host",
+                                "user",
+                                "password",
+                                "port"
+                            ],
                             "additionalProperties": false
                         },
                         "additionalProperties": false
                     },
-                    "required": ["databaseName"],
+                    "required": [
+                        "databaseName"
+                    ],
                     "additionalProperties": false
                 }
             }
@@ -45,28 +81,54 @@
                 ".*": {
                     "type": "object",
                     "properties": {
-                        "path": { "type": "string" },
-                        "ignore_env": { "type": "boolean" },
-                        "manualRun": { "type": "boolean" },
-                        "cloneFrom": { "type": "string" },
-                        "branch": { "type": "string" },
+                        "path": {
+                            "type": "string"
+                        },
+                        "ignore_env": {
+                            "type": "boolean"
+                        },
+                        "manualRun": {
+                            "type": "boolean"
+                        },
+                        "cloneFrom": {
+                            "type": "string"
+                        },
+                        "branch": {
+                            "type": "string"
+                        },
                         "environment": {
                             "type": "array",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
-                        "envPath": { "type": "string" },
-                        "copyEnvFromFilePath": { "type": "string" },
-                        "port": { "type": "integer" },
+                        "envPath": {
+                            "type": "string"
+                        },
+                        "copyEnvFromFilePath": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
+                        },
                         "depends_on_services": {
                             "type": "array",
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "name": { "type": "string" },
-                                    "envAlias": { "type": "string" },
-                                    "suffix": { "type": "string" }
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "envAlias": {
+                                        "type": "string"
+                                    },
+                                    "suffix": {
+                                        "type": "string"
+                                    }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                    "name"
+                                ],
                                 "additionalProperties": false
                             }
                         },
@@ -75,34 +137,64 @@
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "name": { "type": "string" },
-                                    "envAlias": { "type": "string" }
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "envAlias": {
+                                        "type": "string"
+                                    }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                    "name"
+                                ],
                                 "additionalProperties": false
                             }
                         },
-                        "beforeStart": { "type": "array", "items": { "type": "string" } },
-                        "start": { "type": "array", "items": { "type": "string" } },
-                        "afterStart": { "type": "array", "items": { "type": "string" } },
+                        "beforeStart": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "start": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "afterStart": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "test": {
                             "type": "array",
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "name": { "type": "string" },
-                                    "manualRun": { "type": "boolean" },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "manualRun": {
+                                        "type": "boolean"
+                                    },
                                     "command": {
                                         "type": "array",
-                                        "items": { "type": "string" }
+                                        "items": {
+                                            "type": "string"
+                                        }
                                     }
                                 },
-                                "required": ["name", "command"],
+                                "required": [
+                                    "name",
+                                    "command"
+                                ],
                                 "additionalProperties": false
                             }
                         }
                     },
-                    "required": ["path"],
+                    "required": [],
                     "additionalProperties": false
                 }
             },
@@ -114,12 +206,28 @@
                 ".*": {
                     "type": "object",
                     "properties": {
-                        "why": { "type": "array", "items": { "type": "string" } },
-                        "install": { "type": "array", "items": { "type": "string" } },
-                        "optional": { "type": "boolean" },
-                        "checkCmd": { "type": "string" }
+                        "why": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "install": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "optional": {
+                            "type": "boolean"
+                        },
+                        "checkCmd": {
+                            "type": "string"
+                        }
                     },
-                    "required": ["checkCmd"],
+                    "required": [
+                        "checkCmd"
+                    ],
                     "additionalProperties": false
                 }
             },
