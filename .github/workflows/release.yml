@@ -46,5 +46,5 @@ jobs:
       - name: Publish to Visual Studio Marketplace
         if: github.ref == 'refs/heads/main' && env.VERSION_EXISTS == 'false'
         run: make publish
-        with:
-          pat: ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
