@@ -1,13 +1,14 @@
 .PHONY: \
 	install \
 	build \
-	release \
-	dev
+	buildRelease \
+	dev \
+	publish
 
 build:
 	pnpm package
 
-release:
+buildRelease:
 	pnpm build:vsce
 
 install:
@@ -15,3 +16,6 @@ install:
 
 dev:
 	pnpm watch
+
+publish:
+	pnpm publish

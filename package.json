@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -173,7 +173,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build:vsce": "vsce package --no-dependencies"
+    "build:vsce": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
