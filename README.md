@@ -1,4 +1,17 @@
-# Corgi extension
+# 🐶 Corgi vscode extension
+
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=bugs)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Andriiklymiuk_corgi_vscode_extension&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Andriiklymiuk_corgi_vscode_extension)
 
 Extension link in [vscode marketplace](https://marketplace.visualstudio.com/items?itemName=Corgi.corgi)
 
