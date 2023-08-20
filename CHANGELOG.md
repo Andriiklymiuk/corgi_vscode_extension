@@ -23,3 +23,8 @@ All notable changes to the "corgi" extension will be documented in this file.
 ## [0.0.7]
 
 - Ignore corgi compose for docs and help commands
+
+
+## [0.1.0]
+
+- Update readme
