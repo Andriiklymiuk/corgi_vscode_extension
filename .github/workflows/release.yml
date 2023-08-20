@@ -23,9 +23,6 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
-      - name: Package Extension
-        run: make build
-
       - name: Install vsce
         run: npm install -g vsce
 
