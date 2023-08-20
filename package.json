@@ -174,7 +174,7 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "build:vsce": "vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
+    "publish:vsce": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",

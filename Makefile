@@ -18,4 +18,4 @@ dev:
 	pnpm watch
 
 publish:
-	pnpm publish
+	pnpm publish:vsce
