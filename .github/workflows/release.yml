@@ -23,6 +23,15 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      # SonarCloud Quality Check Step
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        with:
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          projectBaseDir: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install vsce
         run: npm install -g vsce
 
