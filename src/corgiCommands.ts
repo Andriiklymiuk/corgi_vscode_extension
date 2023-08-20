@@ -2,10 +2,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-export async function executeCorgiCommand(command: string, fromRoot: boolean = false) {
+export async function executeCorgiCommand(command: string, fromRoot: boolean = false, ignoreCorgiCompose = false) {
   let files = await vscode.workspace.findFiles('**/corgi-*.yml');
 
-  if (!files.length) {
+  if (!files.length && !ignoreCorgiCompose) {
     vscode.window.showErrorMessage('No corgi-compose.yml file found.');
     return;
   }
@@ -15,8 +15,8 @@ export async function executeCorgiCommand(command: string, fromRoot: boolean = f
   if (fromRoot) {
     // If running from root, check if there's a corgi file in the root
     const rootCorgiFile = files.find(file => path.dirname(file.fsPath) === rootDirectory);
-    if (rootCorgiFile) {
-      runInTerminal(command, rootDirectory, rootCorgiFile.fsPath);
+    if (rootCorgiFile || ignoreCorgiCompose) {
+      runInTerminal(command, rootDirectory, ignoreCorgiCompose ? undefined : rootCorgiFile?.fsPath);
       return;
     } else {
       vscode.window.showErrorMessage('No corgi-compose.yml file found in the workspace root.');
@@ -70,7 +70,7 @@ function runInTerminal(command: string, directoryPath: string, filePath?: string
     cwd: directoryPath
   });
   terminal.show();
-  if (command === 'run' && filePath) {
+  if (filePath) {
     terminal.sendText(`corgi ${command} -f ${path.basename(filePath)}`);
   } else {
     terminal.sendText(`corgi ${command}`);
