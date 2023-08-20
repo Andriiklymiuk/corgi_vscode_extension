@@ -47,10 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
             executeCorgiCommand('pull');
         }),
         vscode.commands.registerCommand('corgi.docs', async () => {
-            executeCorgiCommand('docs');
+            executeCorgiCommand('docs', true, true);
         }),
         vscode.commands.registerCommand('corgi.help', async () => {
-            executeCorgiCommand('help');
+            executeCorgiCommand('help', true, true);
         }),
         vscode.commands.registerCommand('corgi.doctor', async () => {
             executeCorgiCommand('doctor');
