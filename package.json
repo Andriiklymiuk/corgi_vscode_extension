@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -59,6 +59,10 @@
         "icon": "$(stop-circle)"
       },
       {
+        "command": "corgi.create",
+        "title": "Corgi create"
+      },
+      {
         "command": "corgi.doctor",
         "title": "Doctor corgi, check for required (if all programs installed, etc)"
       },
@@ -70,6 +74,10 @@
         "command": "corgi.runFromRoot",
         "title": "Corgi run from root",
         "icon": "$(debug-start)"
+      },
+      {
+        "command": "corgi.createFromRoot",
+        "title": "Corgi create from root"
       },
       {
         "command": "corgi.pullFromRoot",

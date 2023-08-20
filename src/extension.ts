@@ -40,6 +40,9 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('corgi.run', async () => {
             executeCorgiCommand('run');
         }),
+        vscode.commands.registerCommand('corgi.create', async () => {
+            executeCorgiCommand('create');
+        }),
         vscode.commands.registerCommand('corgi.init', async () => {
             executeCorgiCommand('init');
         }),
@@ -81,6 +84,9 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('corgi.doctorFromRoot', async () => {
             executeCorgiCommand('doctor', true);
+        }),
+        vscode.commands.registerCommand('corgi.createFromRoot', async () => {
+            executeCorgiCommand('create', true);
         }),
         vscode.commands.registerCommand('corgi.runFromStatusBar', async () => {
             executeCorgiCommand('run', true);
