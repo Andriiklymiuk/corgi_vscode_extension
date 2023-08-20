@@ -19,3 +19,7 @@ All notable changes to the "corgi" extension will be documented in this file.
 
 - Added corgi db
 - Added corgi install with homebrew (if not installed already)
+
+## [0.0.7]
+
+- Ignore corgi compose for docs and help commands
