@@ -65,8 +65,8 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
     const generalCommands = [
       { id: "corgi.run", title: "Corgi run", icon: "debug-start" },
       { id: "corgi.stop", title: "Corgi stop", icon: "stop-circle" },
-      { id: "corgi.init", title: "Corgi init", icon: "tools" },
-      { id: "corgi.pull", title: "Corgi pull", icon: "cloud-download" },
+      { id: "corgi.init", title: "Initialize repos and databases", icon: "tools" },
+      { id: "corgi.pull", title: "git pull all repos", icon: "cloud-download" },
       { id: "corgi.doctor", title: "Install required services", icon: "info" },
       { id: "corgi.create", title: "Corgi create", icon: "file-code" },
     ];
@@ -74,8 +74,8 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
     const rootCommands = [
       { id: "corgi.runFromRoot", title: "Corgi run", icon: "debug-start" },
       { id: "corgi.stop", title: "Corgi stop", icon: "stop-circle" },
-      { id: "corgi.initFromRoot", title: "Corgi init", icon: "tools" },
-      { id: "corgi.pullFromRoot", title: "Corgi pull", icon: "cloud-download" },
+      { id: "corgi.initFromRoot", title: "Initialize repos and databases", icon: "tools" },
+      { id: "corgi.pullFromRoot", title: "git pull all repos", icon: "cloud-download" },
       { id: "corgi.doctorFromRoot", title: "Install required services", icon: "info" },
       { id: "corgi.createFromRoot", title: "Corgi create", icon: "file-code" },
     ];
