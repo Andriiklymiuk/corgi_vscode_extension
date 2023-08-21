@@ -58,12 +58,7 @@
                                     "type": "integer"
                                 }
                             },
-                            "required": [
-                                "host",
-                                "user",
-                                "password",
-                                "port"
-                            ],
+                            "required": [],
                             "additionalProperties": false
                         },
                         "additionalProperties": false
