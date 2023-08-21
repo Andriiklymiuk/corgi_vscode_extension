@@ -1,6 +1,19 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { exec } from 'child_process';
+
+export async function isCorgiInstalled(): Promise<boolean> {
+  return new Promise((resolve) => {
+    exec('corgi -v', (error) => {
+      if (error) {
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+}
 
 export async function executeCorgiCommand(command: string, fromRoot: boolean = false, ignoreCorgiCompose = false) {
   let files = await vscode.workspace.findFiles('**/corgi-*.yml');
@@ -55,11 +68,27 @@ function getLastFoldersFromPath(filePath: string, count: number = 3): string {
   return segments.slice(-count).join(path.sep);
 }
 
-export function installCorgiWithHomebrew() {
-  let terminal = vscode.window.createTerminal("Corgi Terminal");
-  terminal.show();
-  terminal.sendText("brew install andriiklymiuk/homebrew-tools/corgi");
+export async function installCorgiWithHomebrew(): Promise<boolean> {
+  return new Promise<boolean>(async (resolve) => {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Installing Corgi...",
+        cancellable: false
+      },
+      async (progress, token) => {
+        exec('brew install andriiklymiuk/homebrew-tools/corgi', (error) => {
+          if (error) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      }
+    );
+  });
 }
+
 
 const autoExecuteCommands = ['db -u', 'db -d', 'db -s', 'db --seedAll'];
 

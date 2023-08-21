@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -19,11 +19,17 @@
     "workspaceContains:corgi-compose*.yml",
     "workspaceContains:corgi-compose*.yaml",
     "workspaceContains:corgi-*.yml",
-    "workspaceContains:corgi-*.yaml",
-    "onView:corgiTreeView"
+    "workspaceContains:corgi-*.yaml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsWelcome": [
+      {
+        "view": "corgiTreeView",
+        "contents": "Corgi cli is not installed.\nInstall corgi to get started\n[$(cloud-download)Install Corgi](command:corgi.installWithHomebrew)\nYou can also check corgi cli repo for more info.\n[$(github-alt)Corgi repo](https://github.com/Andriiklymiuk/corgi)\n",
+        "when": "corgiNotInstalled"
+      }
+    ],
     "keybindings": [
       {
         "key": "ctrl+c",

@@ -36,3 +36,7 @@ All notable changes to the "corgi" extension will be documented in this file.
 ## [0.2.1]
 
 - Added corgi create command
+
+## [0.3.0]
+
+- Added welcome page

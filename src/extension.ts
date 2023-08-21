@@ -3,13 +3,24 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
-import { executeCorgiCommand, installCorgiWithHomebrew } from './corgiCommands';
+import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
 
 const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
 
-export function activate(context: vscode.ExtensionContext) {
+async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
+    const isInstalled = await isCorgiInstalled();
+    // If Corgi is not installed, set the context key so the welcome view can be shown
+    vscode.commands.executeCommand('setContext', 'corgiNotInstalled', !isInstalled);
+    corgiTreeProvider.refresh();
+}
+
+export async function activate(context: vscode.ExtensionContext) {
     const diagnostics = vscode.languages.createDiagnosticCollection('corgi');
+    const corgiTreeProvider = new CorgiTreeProvider();
+    vscode.window.registerTreeDataProvider('corgiTreeView', corgiTreeProvider);
+
+    checkCorgiInstallation(corgiTreeProvider);
 
     context.subscriptions.push(diagnostics);
     console.log('Congratulations, your extension "corgi" is now active!');
@@ -19,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
         statusBarButton.tooltip = "Run Corgi from Workspace Root";
         statusBarButton.command = 'corgi.runFromRoot';
         statusBarButton.show();
-        return statusBarButton; // Return the status bar item for disposal
+        return statusBarButton;
     })();
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {
@@ -110,7 +121,13 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('workbench.action.terminal.kill');
         }),
         vscode.commands.registerCommand('corgi.installWithHomebrew', async () => {
-            installCorgiWithHomebrew();
+            const installed = await installCorgiWithHomebrew();
+            if (installed) {
+                vscode.commands.executeCommand('setContext', 'corgiNotInstalled', false);
+                corgiTreeProvider.refresh();
+            } else {
+                vscode.window.showErrorMessage('Failed to install Corgi. Please try again or install manually with brew install andriiklymiuk/homebrew-tools/corgi');
+            }
         }),
         vscode.commands.registerCommand('corgi.stop', async () => {
             const activeTerminal = vscode.window.activeTerminal;
@@ -125,9 +142,6 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         statusBarItem
     );
-    const corgiTreeProvider = new CorgiTreeProvider();
-    vscode.window.registerTreeDataProvider('corgiTreeView', corgiTreeProvider);
-
 }
 
 export function deactivate() { }

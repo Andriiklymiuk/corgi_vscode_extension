@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { isCorgiInstalled } from './corgiCommands';
 
 export class CorgiNode extends vscode.TreeItem {
   constructor(
@@ -42,7 +43,12 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
     return element;
   }
 
-  getChildren(element?: CorgiNode): Thenable<CorgiNode[]> {
+  async getChildren(element?: CorgiNode): Promise<CorgiNode[]> {
+    const isInstalled = await isCorgiInstalled();
+
+    if (!isInstalled) {
+      return [];
+    }
     if (!element) {
       return Promise.resolve([
         new CorgiNode('Run from workspace root', vscode.TreeItemCollapsibleState.Expanded),
@@ -58,7 +64,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
     const generalCommands = [
       { id: "corgi.run", title: "Corgi run", icon: "debug-start" },
-      { id: "corgi.stop", title: "Corgi stop", icon: "stop-cirle" },
+      { id: "corgi.stop", title: "Corgi stop", icon: "stop-circle" },
       { id: "corgi.init", title: "Corgi init", icon: "tools" },
       { id: "corgi.pull", title: "Corgi pull", icon: "cloud-download" },
       { id: "corgi.doctor", title: "Doctor corgi", icon: "info" },
@@ -67,7 +73,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
     const rootCommands = [
       { id: "corgi.runFromRoot", title: "Corgi run", icon: "debug-start" },
-      { id: "corgi.stop", title: "Corgi stop", icon: "stop-cirle" },
+      { id: "corgi.stop", title: "Corgi stop", icon: "stop-circle" },
       { id: "corgi.initFromRoot", title: "Corgi init", icon: "tools" },
       { id: "corgi.pullFromRoot", title: "Corgi pull", icon: "cloud-download" },
       { id: "corgi.doctorFromRoot", title: "Doctor corgi", icon: "info" },
