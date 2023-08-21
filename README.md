@@ -34,7 +34,6 @@ You can install corgi in any of these ways:
 - manually install [Corgi](https://github.com/Andriiklymiuk/corgi) with [Homebrew](https://brew.sh)
 
 ```bash
-brew tap andriiklymiuk/homebrew-tools
 brew install corgi
 ```
 

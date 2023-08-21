@@ -58,8 +58,7 @@ function getLastFoldersFromPath(filePath: string, count: number = 3): string {
 export function installCorgiWithHomebrew() {
   let terminal = vscode.window.createTerminal("Corgi Terminal");
   terminal.show();
-  terminal.sendText("brew tap andriiklymiuk/homebrew-tools");
-  terminal.sendText("brew install corgi");
+  terminal.sendText("brew install andriiklymiuk/homebrew-tools/corgi");
 }
 
 const autoExecuteCommands = ['db -u', 'db -d', 'db -s', 'db --seedAll'];
