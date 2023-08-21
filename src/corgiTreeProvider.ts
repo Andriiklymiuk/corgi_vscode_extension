@@ -58,7 +58,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
     const generalCommands = [
       { id: "corgi.run", title: "Corgi run", icon: "debug-start" },
-      { id: "corgi.stop", title: "Corgi stop", icon: "debug-stop" },
+      { id: "corgi.stop", title: "Corgi stop", icon: "stop-cirle" },
       { id: "corgi.init", title: "Corgi init", icon: "tools" },
       { id: "corgi.pull", title: "Corgi pull", icon: "cloud-download" },
       { id: "corgi.doctor", title: "Doctor corgi", icon: "info" },
@@ -67,7 +67,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
     const rootCommands = [
       { id: "corgi.runFromRoot", title: "Corgi run", icon: "debug-start" },
-      { id: "corgi.stop", title: "Corgi stop", icon: "debug-stop" },
+      { id: "corgi.stop", title: "Corgi stop", icon: "stop-cirle" },
       { id: "corgi.initFromRoot", title: "Corgi init", icon: "tools" },
       { id: "corgi.pullFromRoot", title: "Corgi pull", icon: "cloud-download" },
       { id: "corgi.doctorFromRoot", title: "Doctor corgi", icon: "info" },
