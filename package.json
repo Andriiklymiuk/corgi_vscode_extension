@@ -136,6 +136,10 @@
       {
         "command": "corgi.installWithHomebrew",
         "title": "Corgi install with Homebrew"
+      },
+      {
+        "command": "corgi.downloadExample",
+        "title": "Download example"
       }
     ],
     "viewsContainers": {

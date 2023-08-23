@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
 
+const exampleProjects: { title: string, link: string }[] = [];
+
+
 export class CorgiNode extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly commandId?: string,
-    private readonly iconName?: string
+    private readonly iconName?: string,
+    public readonly args: any[] = []
   ) {
     super(label, collapsibleState);
 
@@ -14,7 +18,7 @@ export class CorgiNode extends vscode.TreeItem {
       this.command = {
         command: this.commandId,
         title: label,
-        arguments: []
+        arguments: this.args
       };
     }
 
@@ -59,6 +63,9 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         new CorgiNode('Databases from chosen location', vscode.TreeItemCollapsibleState.Collapsed),
         new CorgiDividerNode(),
         new CorgiNode('Info commands', vscode.TreeItemCollapsibleState.Collapsed),
+        // TODO: add some examples, when they are ready
+        // new CorgiDividerNode(),
+        // new CorgiNode('Examples', vscode.TreeItemCollapsibleState.Collapsed),
       ]);
     }
 
@@ -125,6 +132,20 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
     if (element.label === 'Databases from chosen location') {
       return Promise.resolve(
         dbCommands.map(command => new CorgiNode(command.title, vscode.TreeItemCollapsibleState.None, command.id, command.icon))
+      );
+    }
+
+    if (element.label === 'Examples') {
+      return Promise.resolve(
+        exampleProjects.map(project => {
+          return new CorgiNode(
+            project.title,
+            vscode.TreeItemCollapsibleState.None,
+            'corgi.downloadExample',
+            'arrow-down',
+            [project.link],
+          );
+        })
       );
     }
 

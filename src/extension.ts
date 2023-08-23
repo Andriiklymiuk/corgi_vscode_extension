@@ -5,6 +5,7 @@ import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
+import { downloadFile } from './utils/downloadFile';
 
 const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
 
@@ -140,6 +141,26 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage('No active terminal.');
             }
         }),
+        vscode.commands.registerCommand('corgi.downloadExample', async (url: string) => {
+            if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+                vscode.window.showErrorMessage('Please open a workspace before downloading.');
+                return;
+            }
+
+            const basePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+            const fileName = url.split('/').pop() || 'corgi-compose.yml';
+            const downloadPath = path.join(basePath, fileName);
+
+            downloadFile(url, downloadPath, (error) => {
+                if (error) {
+                    console.log('error', error);
+                    vscode.window.showErrorMessage('Failed to download file.');
+                } else {
+                    vscode.window.showInformationMessage('File downloaded successfully to ' + downloadPath);
+                }
+            });
+        }),
+
         statusBarItem
     );
 }
