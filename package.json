@@ -140,6 +140,10 @@
       {
         "command": "corgi.downloadExample",
         "title": "Download example"
+      },
+      {
+        "command": "corgi.openLink",
+        "title": "Open example link"
       }
     ],
     "viewsContainers": {
@@ -182,6 +186,16 @@
           "command": "corgi.stop",
           "when": "view == corgiTreeView",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "corgi.downloadExample",
+          "when": "view == corgiTreeView && viewItem == example"
+        },
+        {
+          "command": "corgi.openLink",
+          "when": "view == corgiTreeView && viewItem == example"
         }
       ]
     }

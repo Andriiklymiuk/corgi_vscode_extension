@@ -1,7 +1,19 @@
 import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
 
-const exampleProjects: { title: string, link: string }[] = [];
+export interface CorgiExample {
+  title: string;
+  downloadLink: string;
+  publicLink: string
+}
+
+const exampleProjects: CorgiExample[] = [
+  {
+    title: 'example 1',
+    downloadLink: 'https://raw.githubusercontent.com/Andriiklymiuk/corgi/main/examples/0example.corgi-compose.yml',
+    publicLink: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml'
+  }
+];
 
 
 export class CorgiNode extends vscode.TreeItem {
@@ -10,7 +22,8 @@ export class CorgiNode extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly commandId?: string,
     private readonly iconName?: string,
-    public readonly args: any[] = []
+    public readonly args: any[] = [],
+    public readonly contextValue?: string,
   ) {
     super(label, collapsibleState);
 
@@ -25,6 +38,7 @@ export class CorgiNode extends vscode.TreeItem {
     if (this.iconName) {
       this.iconPath = new vscode.ThemeIcon(this.iconName);  // use ThemeIcon with codicon name
     }
+    this.contextValue = contextValue;
   }
 }
 
@@ -63,9 +77,8 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         new CorgiNode('Databases from chosen location', vscode.TreeItemCollapsibleState.Collapsed),
         new CorgiDividerNode(),
         new CorgiNode('Info commands', vscode.TreeItemCollapsibleState.Collapsed),
-        // TODO: add some examples, when they are ready
-        // new CorgiDividerNode(),
-        // new CorgiNode('Examples', vscode.TreeItemCollapsibleState.Collapsed),
+        new CorgiDividerNode(),
+        new CorgiNode('Examples', vscode.TreeItemCollapsibleState.Collapsed),
       ]);
     }
 
@@ -137,15 +150,14 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
     if (element.label === 'Examples') {
       return Promise.resolve(
-        exampleProjects.map(project => {
-          return new CorgiNode(
-            project.title,
-            vscode.TreeItemCollapsibleState.None,
-            'corgi.downloadExample',
-            'arrow-down',
-            [project.link],
-          );
-        })
+        exampleProjects.map(project => new CorgiNode(
+          project.title,
+          vscode.TreeItemCollapsibleState.None,
+          'corgi.downloadExample',
+          'arrow-down',
+          [project],
+          'example'
+        ))
       );
     }
 

@@ -4,7 +4,7 @@ import * as path from 'path';
 import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
-import { CorgiTreeProvider } from './corgiTreeProvider';
+import { CorgiExample, CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 
 const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
@@ -141,7 +141,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage('No active terminal.');
             }
         }),
-        vscode.commands.registerCommand('corgi.downloadExample', async (url: string) => {
+        vscode.commands.registerCommand('corgi.downloadExample', async (example: CorgiExample | any) => {
+            let url: string;
+            if (example && example.args && example.args[0]) {
+                url = example.args[0].downloadLink;
+            } else {
+                url = example.downloadLink;
+            }
             if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
                 vscode.window.showErrorMessage('Please open a workspace before downloading.');
                 return;
@@ -160,7 +166,15 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             });
         }),
-
+        vscode.commands.registerCommand('corgi.openLink', async (example: CorgiExample | any) => {
+            let url: string;
+            if (example && example.args && example.args[0]) {
+                url = example.args[0].publicLink;
+            } else {
+                url = example.publicLink;
+            }
+            vscode.env.openExternal(vscode.Uri.parse(url));
+        }),
         statusBarItem
     );
 }
