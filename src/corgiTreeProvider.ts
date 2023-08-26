@@ -9,7 +9,7 @@ export interface CorgiExample {
 
 const exampleProjects: CorgiExample[] = [
   {
-    title: 'example 1',
+    title: '2 postgres databases',
     downloadLink: 'https://raw.githubusercontent.com/Andriiklymiuk/corgi/main/examples/0example.corgi-compose.yml',
     publicLink: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml'
   }
