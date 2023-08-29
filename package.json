@@ -148,6 +148,14 @@
       {
         "command": "corgi.openLink",
         "title": "Open example link"
+      },
+      {
+        "command": "corgi.clean",
+        "title": "Clean"
+      },
+      {
+        "command": "corgi.cleanFromRoot",
+        "title": "Clean"
       }
     ],
     "viewsContainers": {

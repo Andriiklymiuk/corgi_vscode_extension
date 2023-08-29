@@ -33,6 +33,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
         { name: 'corgi.dbDown', cmd: 'db -d' },
         { name: 'corgi.dbStop', cmd: 'db -s' },
         { name: 'corgi.dbSeed', cmd: 'db --seedAll' },
+        { name: 'corgi.clean', cmd: 'clean -i all' },
 
         { name: 'corgi.runFromStatusBar', cmd: 'run', fromRoot: true },
 
@@ -46,6 +47,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
         { name: 'corgi.dbDownFromRoot', cmd: 'db -d', fromRoot: true },
         { name: 'corgi.dbStopFromRoot', cmd: 'db -s', fromRoot: true },
         { name: 'corgi.dbSeedFromRoot', cmd: 'db --seedAll', fromRoot: true },
+        { name: 'corgi.cleanFromRoot', cmd: 'clean -i all', fromRoot: true },
     ];
 
     for (const { name, cmd, fromRoot, ignoreCorgiCompose } of specialCommands) {
