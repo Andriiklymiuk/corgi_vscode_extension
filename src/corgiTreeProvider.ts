@@ -3,14 +3,14 @@ import { isCorgiInstalled } from './corgiCommands';
 
 export interface CorgiExample {
   title: string;
-  downloadLink: string;
+  link: string;
   publicLink: string
 }
 
 const exampleProjects: CorgiExample[] = [
   {
     title: '2 postgres databases',
-    downloadLink: 'https://raw.githubusercontent.com/Andriiklymiuk/corgi/main/examples/0example.corgi-compose.yml',
+    link: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml',
     publicLink: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml'
   }
 ];
@@ -153,8 +153,8 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         exampleProjects.map(project => new CorgiNode(
           project.title,
           vscode.TreeItemCollapsibleState.None,
-          'corgi.downloadExample',
-          'arrow-down',
+          'corgi.runExample',
+          undefined,
           [project],
           'example'
         ))

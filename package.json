@@ -142,6 +142,10 @@
         "title": "Download example"
       },
       {
+        "command": "corgi.runExample",
+        "title": "Download and run example"
+      },
+      {
         "command": "corgi.openLink",
         "title": "Open example link"
       }
@@ -189,6 +193,10 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "corgi.runExample",
+          "when": "view == corgiTreeView && viewItem == example"
+        },
         {
           "command": "corgi.downloadExample",
           "when": "view == corgiTreeView && viewItem == example"

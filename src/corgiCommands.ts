@@ -15,7 +15,12 @@ export async function isCorgiInstalled(): Promise<boolean> {
   });
 }
 
-export async function executeCorgiCommand(command: string, fromRoot: boolean = false, ignoreCorgiCompose = false) {
+export async function executeCorgiCommand(
+  command: string,
+  fromRoot: boolean = false,
+  ignoreCorgiCompose = false,
+  filePath?: string
+) {
   let files = await vscode.workspace.findFiles('**/corgi-*.yml');
 
   if (!files.length && !ignoreCorgiCompose) {
@@ -24,7 +29,10 @@ export async function executeCorgiCommand(command: string, fromRoot: boolean = f
   }
 
   let rootDirectory = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-
+  if (filePath) {
+    runInTerminal(command, path.dirname(filePath), filePath);
+    return;
+  }
   if (fromRoot) {
     // If running from root, check if there's a corgi file in the root
     const rootCorgiFile = files.find(file => path.dirname(file.fsPath) === rootDirectory);
