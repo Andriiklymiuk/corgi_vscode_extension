@@ -162,8 +162,34 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
     }
 
     const rawUrl = convertToRawUrl(link);
-    const fileName = rawUrl.split('/').pop() || 'corgi-compose.yml';
+    let fileName = rawUrl.split('/').pop() || 'corgi-compose.yml';
+
+    let folderPath = '';
+
+    // Add path to the fileName if path property is present in example object
+    if (example.path) {
+        folderPath = example.path;
+
+        // Remove ./ from the path if it exists
+        if (folderPath.startsWith('./')) {
+            folderPath = folderPath.slice(2);
+        }
+
+        // If the path is not just '.', prepend it to the fileName
+        if (folderPath !== '.') {
+            fileName = path.join(folderPath, fileName);
+        }
+    }
+
     const downloadPath = path.join(basePath, fileName);
+
+    // Check if the folder exists, if not, create it
+    if (folderPath) {
+        const folderFullPath = path.join(basePath, folderPath);
+        if (!fs.existsSync(folderFullPath)) {
+            fs.mkdirSync(folderFullPath, { recursive: true });
+        }
+    }
 
     if (fs.existsSync(downloadPath)) {
         const overwrite = await vscode.window.showQuickPick(['Yes', 'No'], {

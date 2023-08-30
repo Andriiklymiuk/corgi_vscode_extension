@@ -1,10 +1,32 @@
 import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export interface CorgiExample {
   title: string;
   link: string;
-  publicLink: string
+  publicLink?: string;
+  path?: string;
+}
+
+async function getCustomExamples(): Promise<CorgiExample[]> {
+  try {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+      const workspacePath = workspaceFolders[0].uri.fsPath;
+      const exampleFilePath = path.join(workspacePath, 'corgi-examples.json');
+      if (fs.existsSync(exampleFilePath)) {
+        const rawData = fs.readFileSync(exampleFilePath, 'utf-8');
+        if (!rawData) { return []; };
+        const parsedData = JSON.parse(rawData);
+        return parsedData;
+      }
+    }
+  } catch (error) {
+    console.error('Error reading corgi-examples.json:', error);
+  }
+  return [];
 }
 
 const exampleProjects: CorgiExample[] = [
@@ -63,12 +85,14 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
 
   async getChildren(element?: CorgiNode): Promise<CorgiNode[]> {
     const isInstalled = await isCorgiInstalled();
+    const customExamples = await getCustomExamples();
+    console.log('customExamples', customExamples);
 
     if (!isInstalled) {
       return [];
     }
     if (!element) {
-      return Promise.resolve([
+      const rootItems = [
         new CorgiNode('Run from workspace root', vscode.TreeItemCollapsibleState.Expanded),
         new CorgiDividerNode(),
         new CorgiNode('Run from chosen location', vscode.TreeItemCollapsibleState.Collapsed),
@@ -79,7 +103,11 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         new CorgiNode('Info commands', vscode.TreeItemCollapsibleState.Collapsed),
         new CorgiDividerNode(),
         new CorgiNode('Examples', vscode.TreeItemCollapsibleState.Collapsed),
-      ]);
+      ];
+      if (customExamples?.length > 0) {
+        rootItems.push(new CorgiNode('Your Examples', vscode.TreeItemCollapsibleState.Collapsed));
+      }
+      return Promise.resolve(rootItems);
     }
 
     const generalCommands = [
@@ -161,6 +189,18 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
           'example'
         ))
       );
+    }
+    if (element.label === 'Your Examples') {
+      return Promise.resolve(customExamples.map(project =>
+        new CorgiNode(
+          project.title,
+          vscode.TreeItemCollapsibleState.None,
+          'corgi.runExample',
+          undefined,
+          [project],
+          'example'
+        )
+      ));
     }
 
     return Promise.resolve([]);
