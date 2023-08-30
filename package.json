@@ -19,7 +19,8 @@
     "workspaceContains:corgi-compose*.yml",
     "workspaceContains:corgi-compose*.yaml",
     "workspaceContains:corgi-*.yml",
-    "workspaceContains:corgi-*.yaml"
+    "workspaceContains:corgi-*.yaml",
+    "workspaceContains:corgi-examples.json"
   ],
   "main": "./dist/extension.js",
   "contributes": {
