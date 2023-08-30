@@ -82,6 +82,11 @@
         "icon": "$(debug-start)"
       },
       {
+        "command": "corgi.reload",
+        "title": "Reload extension",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "corgi.createFromRoot",
         "title": "Corgi create from root"
       },
@@ -196,6 +201,11 @@
         },
         {
           "command": "corgi.stop",
+          "when": "view == corgiTreeView",
+          "group": "navigation"
+        },
+        {
+          "command": "corgi.reload",
           "when": "view == corgiTreeView",
           "group": "navigation"
         }

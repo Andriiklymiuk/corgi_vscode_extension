@@ -94,6 +94,10 @@ export async function activate(context: vscode.ExtensionContext) {
             new CorgiCompletionProvider(),
             '.', ':', ' '
         ),
+        vscode.commands.registerCommand('corgi.reload', async () => {
+            corgiTreeProvider.refresh();
+            vscode.window.showInformationMessage('Corgi extension refreshed');
+        }),
         vscode.commands.registerCommand('corgi.cancel', async () => {
             vscode.commands.executeCommand('workbench.action.terminal.kill');
         }),
