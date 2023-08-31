@@ -125,6 +125,19 @@ export async function activate(context: vscode.ExtensionContext) {
             await downloadCorgiExample(example);
         }),
         vscode.commands.registerCommand('corgi.runExample', async (example: CorgiExample | any) => {
+            if (example && example.args && example.args[0]) {
+                example = example.args[0];
+            } else {
+                example = example;
+            }
+            if (!example.link) {
+                if (example.publicLink) {
+                    vscode.env.openExternal(vscode.Uri.parse(example.publicLink));
+                    return;
+                }
+                vscode.window.showErrorMessage('No links provided to run corgi or to show example in the web');
+                return;
+            }
             const downloadPath = await downloadCorgiExample(example);
             if (!downloadPath) {
                 vscode.window.showErrorMessage('Example could not be downloaded. Aborting.');
