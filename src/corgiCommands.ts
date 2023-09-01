@@ -26,7 +26,7 @@ export async function executeCorgiCommand(
     return;
   }
 
-  let files = await vscode.workspace.findFiles('**/corgi-*.yml');
+  let files = await vscode.workspace.findFiles('**/*corgi-*.yml');
 
   if (!files.length && !ignoreCorgiCompose) {
     vscode.window.showErrorMessage('No corgi-compose.yml file found.');
