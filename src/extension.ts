@@ -136,8 +136,6 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('corgi.runExample', async (example: CorgiExample | any) => {
             if (example && example.args && example.args[0]) {
                 example = example.args[0];
-            } else {
-                example = example;
             }
             if (!example.link) {
                 if (example.publicLink) {
