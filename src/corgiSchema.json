@@ -15,6 +15,7 @@
                                 "postgres",
                                 "redis",
                                 "rabbitmq",
+                                "mongodb",
                                 "sqs"
                             ]
                         },
