@@ -31,9 +31,15 @@ async function getCustomExamples(): Promise<CorgiExample[]> {
 
 const exampleProjects: CorgiExample[] = [
   {
-    title: '2 postgres databases',
+    title: '2 postgres databases with echo logs',
     link: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml',
     publicLink: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml'
+  },
+  {
+    title: "Rabbitmq + go + nestjs servers ",
+    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/rabbitmq/rabbitmq-go-nestjs.corgi-compose.yml",
+    publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/rabbitmq/rabbitmq-go-nestjs.corgi-compose.yml",
+    path: "rabbitmq_go_nestjs_queue_example"
   }
 ];
 
