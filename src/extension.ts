@@ -67,13 +67,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(diagnostics);
     console.log('Congratulations, your extension "corgi" is now active!');
-    const statusBarItem = (() => {
+    const runStatusBarItem = (() => {
         const statusBarButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         statusBarButton.text = "$(play) Run Corgi";
         statusBarButton.tooltip = "Run Corgi from Workspace Root";
         statusBarButton.command = 'corgi.runFromRoot';
         statusBarButton.show();
         return statusBarButton;
+    })();
+
+    const stopStatusBarItem = (() => {
+        const stopButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+        stopButton.text = "$(debug-stop) Corgi";
+        stopButton.tooltip = "Stop Corgi in Active Terminal";
+        stopButton.command = 'corgi.stop';
+        stopButton.show();
+        return stopButton;
     })();
 
     registerCorgiCommands(context);
@@ -155,7 +164,8 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             vscode.env.openExternal(vscode.Uri.parse(url));
         }),
-        statusBarItem
+        runStatusBarItem,
+        stopStatusBarItem
     );
 }
 
