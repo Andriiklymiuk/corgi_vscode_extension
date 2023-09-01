@@ -22,7 +22,7 @@ export async function executeCorgiCommand(
   filePath?: string
 ) {
   if (filePath) {
-    runInTerminal(command, path.dirname(filePath), filePath);
+    await runInTerminal(command, path.dirname(filePath), filePath);
     return;
   }
 
@@ -39,7 +39,7 @@ export async function executeCorgiCommand(
     // If running from root, check if there's a corgi file in the root
     const rootCorgiFile = files.find(file => path.dirname(file.fsPath) === rootDirectory);
     if (rootCorgiFile || ignoreCorgiCompose) {
-      runInTerminal(command, rootDirectory, ignoreCorgiCompose ? undefined : rootCorgiFile?.fsPath);
+      await runInTerminal(command, rootDirectory, ignoreCorgiCompose ? undefined : rootCorgiFile?.fsPath);
       return;
     } else {
       vscode.window.showErrorMessage('No corgi-compose.yml file found in the workspace root.');
@@ -49,7 +49,7 @@ export async function executeCorgiCommand(
 
   // If there's only one file, use it
   if (files.length === 1) {
-    runInTerminal(command, path.dirname(files[0].fsPath), files[0].fsPath);
+    await runInTerminal(command, path.dirname(files[0].fsPath), files[0].fsPath);
     return;
   }
 
@@ -65,7 +65,7 @@ export async function executeCorgiCommand(
   if (selectedFile) {
     const fullFilePath = files.find(file => file.fsPath.endsWith(selectedFile!.description))?.fsPath;
     if (fullFilePath) {
-      runInTerminal(command, path.dirname(fullFilePath), fullFilePath);
+      await runInTerminal(command, path.dirname(fullFilePath), fullFilePath);
     }
   } else {
     // Handle the case where no file was selected, if needed.
@@ -99,22 +99,29 @@ export async function installCorgiWithHomebrew(): Promise<boolean> {
   });
 }
 
+let globalTerminal: vscode.Terminal | null = null;
 
 const autoExecuteCommands = ['db -u', 'db -d', 'db -s', 'db --seedAll'];
 
-function runInTerminal(command: string, directoryPath: string, filePath?: string) {
-  let terminal = vscode.window.createTerminal({
-    name: "Corgi Terminal",
-    cwd: directoryPath
-  });
-  terminal.show();
-  if (filePath) {
-    terminal.sendText(`corgi ${command} -f ${path.basename(filePath)}`);
-  } else {
-    terminal.sendText(`corgi ${command}`);
-  }
+function runInTerminal(command: string, directoryPath: string, filePath?: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!globalTerminal) {
+      globalTerminal = vscode.window.createTerminal({
+        name: "Corgi Terminal",
+        cwd: directoryPath,
+      });
+    }
+    globalTerminal.show();
+    let fullCommand = filePath ? `corgi ${command} -f ${path.basename(filePath)}` : `corgi ${command}`;
+    globalTerminal.sendText(fullCommand);
 
-  if (autoExecuteCommands.includes(command)) {
-    terminal.sendText('\u000D');  // Send the enter key to the terminal.
-  }
+    // custom timeout to wait for command execution. Not ideal, but for now it will do
+    setTimeout(() => {
+      resolve();
+    }, 3000);
+
+    if (autoExecuteCommands.includes(command)) {
+      globalTerminal.sendText('\u000D');  // Send the enter key to the terminal.
+    }
+  });
 }
