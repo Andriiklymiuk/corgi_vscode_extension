@@ -232,5 +232,3 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
         return null;
     }
 };
-
-export function deactivate() { }

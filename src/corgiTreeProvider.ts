@@ -92,7 +92,6 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
   async getChildren(element?: CorgiNode): Promise<CorgiNode[]> {
     const isInstalled = await isCorgiInstalled();
     const customExamples = await getCustomExamples();
-    console.log('customExamples', customExamples);
 
     if (!isInstalled) {
       return [];
