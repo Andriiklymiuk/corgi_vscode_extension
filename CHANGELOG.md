@@ -40,3 +40,7 @@ All notable changes to the "corgi" extension will be documented in this file.
 ## [0.3.0]
 
 - Added welcome page
+
+## [0.4.0]
+
+- Added mongodb support
