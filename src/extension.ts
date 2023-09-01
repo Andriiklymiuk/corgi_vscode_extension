@@ -9,7 +9,7 @@ import { CorgiExample, CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
 
-const corgiPattern = /^corgi-.*\.(yml|yaml)$/;
+const corgiPattern = /^(.*\.)?corgi(-compose)?\.(yml|yaml)$/;
 
 async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
     const isInstalled = await isCorgiInstalled();
@@ -99,7 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
         vscode.languages.registerCompletionItemProvider(
-            { pattern: '**/corgi-*.yml', language: 'yaml' },
+            { pattern: '**/*corgi-*.yml', language: 'yaml' },
             new CorgiCompletionProvider(),
             '.', ':', ' '
         ),
