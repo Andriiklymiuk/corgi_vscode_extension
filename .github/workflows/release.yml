@@ -59,8 +59,8 @@ jobs:
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git tag $TAG
-            git push origin $TAG
             git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            git push origin $TAG
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           else
             echo "Tag already exists"
