@@ -45,7 +45,7 @@ jobs:
         if: env.VERSION_EXISTS == 'false'
         id: create-tag
         run: |
-          TAG="${CURRENT_VERSION}"
+          TAG="v${CURRENT_VERSION}"
 
           echo "VERSION: ${CURRENT_VERSION}"
           echo "TAG: $TAG"
@@ -56,8 +56,8 @@ jobs:
           if [ "$HTTP_STATUS" -ne 200 ]
           then
             echo "Tag does not exist, creating new tag"
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
+            git config --global user.email "action@github.com"
+            git config --global user.name "GitHub Action"
             git tag $TAG
             git push origin $TAG
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
