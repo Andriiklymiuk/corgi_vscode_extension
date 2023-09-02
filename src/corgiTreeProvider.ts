@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CorgiExample, corgiExamplesFileName } from './examples/exampleProjects';
+import { CorgiExample, corgiExamplesFileName, exampleProjects } from './examples/exampleProjects';
 
 async function getCustomExamples(): Promise<CorgiExample[]> {
   try {
