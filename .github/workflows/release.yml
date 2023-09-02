@@ -77,14 +77,9 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      - name: List directory contents
-        run: ls -la
-
       - name: Package Extension
         if: env.VERSION_EXISTS == 'false'
         run: pnpm build:vsce
-      - name: List directory contents
-        run: ls -la
 
       - name: Generate Changelog
         if: env.VERSION_EXISTS == 'false'
