@@ -118,12 +118,19 @@ jobs:
         id: create_release
         run: |
           changelog=$(cat CHANGELOG.md)
-          response=$(gh release create \
-            v${{ env.CURRENT_VERSION }} \
-            CHANGELOG.md \
-            --title "v${{ env.CURRENT_VERSION }}" \
-            --notes "$changelog" \
-            --json upload_url)
+          changelog=$(echo "$changelog" | jq -Rs .)
+          response=$(curl \
+            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+            --header "Content-Type: application/json" \
+            --request POST \
+            --data '{
+              "tag_name": "v'${{ env.CURRENT_VERSION }}'",
+              "name": "v'${{ env.CURRENT_VERSION }}'",
+              "body": '"$changelog"',
+              "draft": false,
+              "prerelease": false
+            }' \
+            "https://api.github.com/repos/${{ github.repository }}/releases")
           upload_url=$(echo "$response" | jq -r '.upload_url')
           echo "::set-output name=upload_url::$upload_url"
         env:
