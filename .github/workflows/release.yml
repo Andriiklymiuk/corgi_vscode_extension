@@ -46,20 +46,25 @@ jobs:
       - name: Generate Changelog with Commit Links
         run: |
           git fetch --tags
-          LATEST_COMMIT=$(git rev-list --tags --max-count=1 2>/dev/null)
-          if [ $? -ne 0 ]; then
+          LATEST_COMMIT=$(git rev-list --tags --max-count=1 2>/dev/null || echo "")
+          if [ -z "$LATEST_COMMIT" ]; then
             echo "No tags found, generating changelog from latest commits."
             COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
           else
-            LATEST_TAG=$(git describe --tags $LATEST_COMMIT)
-            echo "Latest tag found: $LATEST_TAG"
-            PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null)
-            if [ $? -ne 0 ] || [ -z "$PREVIOUS_TAG" ]; then
-              echo "No previous tags found"
+            LATEST_TAG=$(git describe --tags $LATEST_COMMIT 2>/dev/null || echo "")
+            if [ -z "$LATEST_TAG" ]; then
+              echo "No names found, cannot describe anything."
               COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
             else
-              echo "Previous tag found: $PREVIOUS_TAG"
-              COMMIT_LOG=$(git log --oneline --no-merges $PREVIOUS_TAG..$LATEST_TAG --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+              echo "Latest tag found: $LATEST_TAG"
+              PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+              if [ -z "$PREVIOUS_TAG" ]; then
+                echo "No previous tags found"
+                COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+              else
+                echo "Previous tag found: $PREVIOUS_TAG"
+                COMMIT_LOG=$(git log --oneline --no-merges $PREVIOUS_TAG..$LATEST_TAG --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+              fi
             fi
           fi
           echo "COMMIT_LOG=$COMMIT_LOG" >> $GITHUB_ENV
