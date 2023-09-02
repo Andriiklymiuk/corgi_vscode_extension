@@ -41,7 +41,7 @@ jobs:
             echo "VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      - name: Extract APP_VERSION and Create Tag
+      - name: Extract version and Create Tag
         if: env.VERSION_EXISTS == 'false'
         id: create-tag
         run: |
@@ -59,7 +59,6 @@ jobs:
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git tag $TAG
-            git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             git push origin $TAG
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           else
@@ -67,7 +66,7 @@ jobs:
             echo "TAG_EXISTS=true" >> $GITHUB_ENV
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           CURRENT_VERSION: ${{ env.CURRENT_VERSION }}
 
       - name: Publish to Visual Studio Marketplace
@@ -99,7 +98,7 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Upload Release Asset
         if: env.VERSION_EXISTS == 'false'
@@ -110,4 +109,4 @@ jobs:
           asset_name: corgi-${{ env.CURRENT_VERSION }}.vsix
           asset_content_type: application/octet-stream
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
