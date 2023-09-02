@@ -69,7 +69,7 @@ jobs:
             fi
           fi
           echo "$COMMIT_LOG"
-          echo "::set-output name=changelog::$COMMIT_LOG"
+          echo "$COMMIT_LOG" > CHANGELOG.md
         env:
           GITHUB_REPO: ${{ github.repository }}
 
@@ -86,13 +86,13 @@ jobs:
       - name: Create GitHub Release
         if: env.VERSION_EXISTS == 'false'
         id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: v${{ env.CURRENT_VERSION }}
-          release_name: Release ${{ env.CURRENT_VERSION }}
-          body: ${{ steps.generate_changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
+        run: |
+          changelog=$(cat CHANGELOG.md)
+          gh release create \
+            v${{ env.CURRENT_VERSION }} \
+            CHANGELOG.md \
+            --title "v${{ env.CURRENT_VERSION }}" \
+            --notes "$changelog"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
