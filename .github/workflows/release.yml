@@ -44,6 +44,7 @@ jobs:
           fi
 
       - name: Generate Changelog with Commit Links
+        id: generate_changelog
         run: |
           git fetch --tags
           LATEST_COMMIT=$(git rev-list --tags --max-count=1 2>/dev/null || echo "")
@@ -67,7 +68,8 @@ jobs:
               fi
             fi
           fi
-          echo "COMMIT_LOG=$COMMIT_LOG" >> $GITHUB_ENV
+          echo "$COMMIT_LOG" > ./COMMIT_LOG.txt
+          echo "commit_log=$(cat ./COMMIT_LOG.txt)" >> $GITHUB_ENV
         env:
           GITHUB_REPO: ${{ github.repository }}
 
@@ -88,7 +90,7 @@ jobs:
         with:
           tag_name: v${{ env.CURRENT_VERSION }}
           release_name: Release ${{ env.CURRENT_VERSION }}
-          body: ${{ env.COMMIT_LOG }}
+          body: ${{ steps.generate_changelog.outputs.commit_log }}
           draft: false
           prerelease: false
         env:
