@@ -46,11 +46,12 @@ jobs:
       - name: Generate Changelog with Commit Links
         run: |
           git fetch --tags
-          LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null)
+          LATEST_COMMIT=$(git rev-list --tags --max-count=1 2>/dev/null)
           if [ $? -ne 0 ]; then
             echo "No tags found, generating changelog from latest commits."
             COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
           else
+            LATEST_TAG=$(git describe --tags $LATEST_COMMIT)
             echo "Latest tag found: $LATEST_TAG"
             PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$PREVIOUS_TAG" ]; then
