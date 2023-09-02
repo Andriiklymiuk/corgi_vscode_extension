@@ -53,16 +53,25 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      - name: Generate Changelog
-        if: env.VERSION_EXISTS == 'false'
-        id: generate-changelog
+      - name: Generate Changelog with Commit Links
+        env:
+          GITHUB_REPO: ${{ github.repository }}
         run: |
+          git fetch --tags
           LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
           if [ ! -z "$LATEST_TAG" ]; then
-            CHANGELOG=$(git log --pretty=format:"- %s" $LATEST_TAG..HEAD)
-            echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
+            echo "Latest tag found: $LATEST_TAG"
+            PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null)
+            if [ $? -ne 0 ] || [ -z "$PREVIOUS_TAG" ]; then
+              echo "No previous tags found"
+              COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+            else
+              echo "Previous tag found: $PREVIOUS_TAG"
+              COMMIT_LOG=$(git log --oneline --no-merges $PREVIOUS_TAG..$LATEST_TAG --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+            fi
+            echo "COMMIT_LOG=$COMMIT_LOG" >> $GITHUB_ENV
           else
-            echo "No previous tags found."
+            echo "No tags found."
           fi
 
       - name: Create GitHub Release
@@ -72,7 +81,7 @@ jobs:
         with:
           tag_name: v${{ env.CURRENT_VERSION }}
           release_name: Release ${{ env.CURRENT_VERSION }}
-          body: ${{ env.CHANGELOG }}
+          body: ${{ env.COMMIT_LOG }}
           draft: false
           prerelease: false
         env:
