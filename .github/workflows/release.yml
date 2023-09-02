@@ -43,23 +43,14 @@ jobs:
             echo "VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      - name: Package Extension
-        if: env.VERSION_EXISTS == 'false'
-        run: pnpm build:vsce
-
-      - name: Publish to Visual Studio Marketplace
-        if: env.VERSION_EXISTS == 'false'
-        run: make publish
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
       - name: Generate Changelog with Commit Links
-        env:
-          GITHUB_REPO: ${{ github.repository }}
         run: |
           git fetch --tags
-          LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-          if [ ! -z "$LATEST_TAG" ]; then
+          LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null)
+          if [ $? -ne 0 ]; then
+            echo "No tags found, generating changelog from latest commits."
+            COMMIT_LOG=$(git log --oneline --no-merges -n 20 --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
+          else
             echo "Latest tag found: $LATEST_TAG"
             PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$PREVIOUS_TAG" ]; then
@@ -69,10 +60,20 @@ jobs:
               echo "Previous tag found: $PREVIOUS_TAG"
               COMMIT_LOG=$(git log --oneline --no-merges $PREVIOUS_TAG..$LATEST_TAG --pretty=format:"- [%h](https://github.com/$GITHUB_REPO/commit/%H) %s")
             fi
-            echo "COMMIT_LOG=$COMMIT_LOG" >> $GITHUB_ENV
-          else
-            echo "No tags found."
           fi
+          echo "COMMIT_LOG=$COMMIT_LOG" >> $GITHUB_ENV
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Package Extension
+        if: env.VERSION_EXISTS == 'false'
+        run: pnpm build:vsce
+
+      - name: Publish to Visual Studio Marketplace
+        if: env.VERSION_EXISTS == 'false'
+        run: make publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Create GitHub Release
         if: env.VERSION_EXISTS == 'false'
