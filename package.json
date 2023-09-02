@@ -11,6 +11,8 @@
     "vscode": "^1.81.0"
   },
   "categories": [
+    "Linters",
+    "Snippets",
     "Other"
   ],
   "activationEvents": [
