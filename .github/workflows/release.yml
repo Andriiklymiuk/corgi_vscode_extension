@@ -31,6 +31,7 @@ jobs:
         run: |
           CURRENT_VERSION=$(jq -r '.version' package.json)
           MARKETPLACE_VERSION=$(vsce show Corgi.corgi --json | grep -m1 '"version":' | awk -F'"' '{print $4}')
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
 
           if [ "$CURRENT_VERSION" == "$MARKETPLACE_VERSION" ]; then
             echo "Version $CURRENT_VERSION is already published"
@@ -40,8 +41,72 @@ jobs:
             echo "VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
 
+      - name: Extract APP_VERSION and Create Tag
+        if: env.VERSION_EXISTS == 'false'
+        id: create-tag
+        run: |
+          TAG="${CURRENT_VERSION}"
+
+          echo "VERSION: ${CURRENT_VERSION}"
+          echo "TAG: $TAG"
+
+          # Check if the tag exists
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${GITHUB_TOKEN}" https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/$TAG)
+
+          if [ "$HTTP_STATUS" -ne 200 ]
+          then
+            echo "Tag does not exist, creating new tag"
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git tag $TAG
+            git push origin $TAG
+            echo "TAG_EXISTS=false" >> $GITHUB_ENV
+          else
+            echo "Tag already exists"
+            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_VERSION: ${{ env.CURRENT_VERSION }}
+
       - name: Publish to Visual Studio Marketplace
-        if: github.ref == 'refs/heads/main' && env.VERSION_EXISTS == 'false'
+        if: env.VERSION_EXISTS == 'false'
         run: make publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Generate Changelog
+        if: env.VERSION_EXISTS == 'false'
+        id: generate-changelog
+        run: |
+          LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          if [ ! -z "$LATEST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" $LATEST_TAG..HEAD)
+            echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
+          else
+            echo "No previous tags found."
+          fi
+
+      - name: Create GitHub Release
+        if: env.VERSION_EXISTS == 'false'
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.CURRENT_VERSION }}
+          release_name: Release ${{ env.CURRENT_VERSION }}
+          body: ${{ env.CHANGELOG }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
+        if: env.VERSION_EXISTS == 'false'
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./corgi-${{ env.CURRENT_VERSION }}.vsix
+          asset_name: corgi-${{ env.CURRENT_VERSION }}.vsix
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
