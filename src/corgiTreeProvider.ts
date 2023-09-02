@@ -2,20 +2,14 @@ import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
 import * as path from 'path';
 import * as fs from 'fs';
-
-export interface CorgiExample {
-  title: string;
-  link: string;
-  publicLink?: string;
-  path?: string;
-}
+import { CorgiExample, corgiExamplesFileName } from './examples/exampleProjects';
 
 async function getCustomExamples(): Promise<CorgiExample[]> {
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders) {
       const workspacePath = workspaceFolders[0].uri.fsPath;
-      const exampleFilePath = path.join(workspacePath, 'corgi-examples.json');
+      const exampleFilePath = path.join(workspacePath, corgiExamplesFileName);
       if (fs.existsSync(exampleFilePath)) {
         const rawData = fs.readFileSync(exampleFilePath, 'utf-8');
         if (!rawData) { return []; };
@@ -24,31 +18,10 @@ async function getCustomExamples(): Promise<CorgiExample[]> {
       }
     }
   } catch (error) {
-    console.error('Error reading corgi-examples.json:', error);
+    console.error(`Error reading ${corgiExamplesFileName}:`, error);
   }
   return [];
 }
-
-const exampleProjects: CorgiExample[] = [
-  {
-    title: '2 postgres databases with echo logs',
-    link: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml',
-    publicLink: 'https://github.com/Andriiklymiuk/corgi/blob/main/examples/0example.corgi-compose.yml'
-  },
-  {
-    title: "Rabbitmq + go + nestjs servers ",
-    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/rabbitmq/rabbitmq-go-nestjs.corgi-compose.yml",
-    publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/rabbitmq/rabbitmq-go-nestjs.corgi-compose.yml",
-    path: "rabbitmq_go_nestjs_queue_example"
-  },
-  {
-    title: "AWS SQS + postgres + go + deno servers ",
-    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/aws_sqs/aws_sqs_postgres_go_deno.corgi-compose.yml",
-    publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/aws_sqs/aws_sqs_postgres_go_deno.corgi-compose.yml",
-    path: "aws_sqs_postgres_go_deno_queue_example"
-  },
-];
-
 
 export class CorgiNode extends vscode.TreeItem {
   constructor(

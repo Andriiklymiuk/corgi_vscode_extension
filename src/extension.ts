@@ -5,9 +5,10 @@ import * as fs from 'fs';
 import { CorgiCompletionProvider } from './completion';
 import { validateYaml } from './validateYml';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
-import { CorgiExample, CorgiTreeProvider } from './corgiTreeProvider';
+import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
+import { CorgiExample } from './examples/exampleProjects';
 
 const corgiPattern = /^(.*\.)?corgi(-compose)?\.(yml|yaml)$/;
 
