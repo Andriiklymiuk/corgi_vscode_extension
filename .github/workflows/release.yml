@@ -43,6 +43,36 @@ jobs:
             echo "VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
 
+      - name: Extract version and Create Tag
+        if: env.VERSION_EXISTS == 'false'
+        id: create-tag
+        run: |
+          TAG="v${CURRENT_VERSION}"
+
+          echo "VERSION: ${CURRENT_VERSION}"
+          echo "TAG: $TAG"
+
+          # Check if the tag exists
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${GITHUB_TOKEN}" https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/$TAG)
+
+          if [ "$HTTP_STATUS" -ne 200 ]
+          then
+            echo "Tag does not exist, creating new tag"
+            git config --global user.email "action@github.com"
+            git config --global user.name "GitHub Action"
+            git tag $TAG
+            git push origin $TAG
+            echo "TAG_EXISTS=false" >> $GITHUB_ENV
+          else
+            echo "Tag already exists"
+            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          CURRENT_VERSION: ${{ env.CURRENT_VERSION }}
+
+      - run: git fetch --force --tags
+
       - name: Generate Changelog with Commit Links
         id: generate_changelog
         run: |
@@ -88,11 +118,14 @@ jobs:
         id: create_release
         run: |
           changelog=$(cat CHANGELOG.md)
-          gh release create \
+          response=$(gh release create \
             v${{ env.CURRENT_VERSION }} \
             CHANGELOG.md \
             --title "v${{ env.CURRENT_VERSION }}" \
-            --notes "$changelog"
+            --notes "$changelog" \
+            --json upload_url)
+          upload_url=$(echo "$response" | jq -r '.upload_url')
+          echo "::set-output name=upload_url::$upload_url"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
