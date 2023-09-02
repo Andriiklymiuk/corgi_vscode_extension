@@ -105,7 +105,7 @@ const autoExecuteCommands = ['db -u', 'db -d', 'db -s', 'db --seedAll'];
 
 function runInTerminal(command: string, directoryPath: string, filePath?: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (!globalTerminal) {
+    if (!globalTerminal || globalTerminal.exitStatus !== undefined) {
       globalTerminal = vscode.window.createTerminal({
         name: "Corgi Terminal",
         cwd: directoryPath,
