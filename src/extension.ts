@@ -10,7 +10,7 @@ import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
 import { CorgiExample } from './examples/exampleProjects';
 
-const corgiPattern = /^(.*\.)?corgi(-compose)?\.(yml|yaml)$/;
+const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
 async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
     const isInstalled = await isCorgiInstalled();
