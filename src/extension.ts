@@ -141,6 +141,9 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
         vscode.commands.registerCommand('corgi.downloadExample', async (example: CorgiExample | any) => {
+            if (example && example.args && example.args[0]) {
+                example = example.args[0];
+            }
             await downloadCorgiExample(example);
         }),
         vscode.commands.registerCommand('corgi.runExample', async (example: CorgiExample | any) => {
@@ -161,7 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 return;
             }
             await executeCorgiCommand('init', false, false, downloadPath);
-            await executeCorgiCommand('run', false, false, downloadPath);
+            await executeCorgiCommand(`run${example.shouldSeed ? " --seed" : ""}`, false, false, downloadPath);
         }),
         vscode.commands.registerCommand('corgi.openLink', async (example: CorgiExample | any) => {
             let url: string;
@@ -185,12 +188,7 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
 
     const basePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
-    let link: string;
-    if (example && example.args && example.args[0]) {
-        link = example.args[0].link;
-    } else {
-        link = example.link;
-    }
+    let link = example.link;
 
     const rawUrl = convertToRawUrl(link);
     let fileName = rawUrl.split('/').pop() || 'corgi-compose.yml';
@@ -235,6 +233,24 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
     try {
         await downloadFile(rawUrl, downloadPath);
         vscode.window.showInformationMessage('File downloaded successfully to ' + downloadPath);
+
+        const mainFileDir = path.dirname(downloadPath);
+
+        if (example.files && Array.isArray(example.files)) {
+            for (const fileLink of example.files) {
+                const fileRawUrl = convertToRawUrl(fileLink);
+                const fileName = fileRawUrl.split('/').pop() || 'unknown_file';
+                const fileDownloadPath = path.join(mainFileDir, fileName);
+                try {
+                    await downloadFile(fileRawUrl, fileDownloadPath);
+                    vscode.window.showInformationMessage('Additional file downloaded successfully to ' + fileDownloadPath);
+                } catch (fileError) {
+                    console.log('File download error:', fileError);
+                    vscode.window.showErrorMessage(`Failed to download additional file: ${fileLink}`);
+                }
+            }
+        }
+
         return downloadPath;
     } catch (error) {
         console.log('error', error);

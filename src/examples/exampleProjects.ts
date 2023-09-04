@@ -3,6 +3,8 @@ export interface CorgiExample {
   link?: string;
   publicLink?: string;
   path?: string;
+  files?: string[];
+  shouldSeed?: boolean;
 }
 
 export const corgiExamplesFileName = 'corgi-examples.json';
@@ -15,11 +17,13 @@ export const exampleProjects: CorgiExample[] = [
   },
   {
     title: "Postgres with data + go + react native",
-    // TODO: add link, when you will be able to add other files
-    // TODO: corgi run --seed for examples or seedExample: true (think about it)
-    // link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/postgres/postgres-seeded-go-reactnative.corgi-compose.yml",
+    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/postgres/postgres-seeded-go-reactnative.corgi-compose.yml",
     publicLink: "https://github.com/Andriiklymiuk/corgi/tree/main/examples/postgres",
-    path: "postgres_with_data_go_reactnative_example"
+    path: "postgres_with_data_go_reactnative_example",
+    files: [
+      "https://github.com/Andriiklymiuk/corgi/blob/main/examples/postgres/users_dump.sql"
+    ],
+    shouldSeed: true
   },
   {
     title: "Rabbitmq + go + nestjs servers ",
