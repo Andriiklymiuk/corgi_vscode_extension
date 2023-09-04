@@ -53,6 +53,15 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
 
     for (const { name, cmd, fromRoot, ignoreCorgiCompose } of specialCommands) {
         const disposable = vscode.commands.registerCommand(name, async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const document = editor.document;
+                const fileName = document.fileName;
+                if (corgiPattern.test(path.basename(document.fileName))) {
+                    executeCorgiCommand(cmd, false, false, fileName);
+                    return;
+                }
+            }
             executeCorgiCommand(cmd, fromRoot, ignoreCorgiCompose);
         });
         context.subscriptions.push(disposable);
