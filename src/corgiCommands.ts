@@ -37,9 +37,14 @@ export async function executeCorgiCommand(
 
   if (fromRoot) {
     // If running from root, check if there's a corgi file in the root
-    const rootCorgiFile = files.find(file => path.dirname(file.fsPath) === rootDirectory);
-    if (rootCorgiFile || ignoreCorgiCompose) {
-      await runInTerminal(command, rootDirectory, ignoreCorgiCompose ? undefined : rootCorgiFile?.fsPath);
+    const rootCorgiFiles = files.filter(file => path.dirname(file.fsPath) === rootDirectory);
+    let selectedRootCorgiFile = rootCorgiFiles.find(file => path.basename(file.fsPath) === 'corgi-compose.yml');
+    if (!selectedRootCorgiFile && rootCorgiFiles.length > 0) {
+      selectedRootCorgiFile = rootCorgiFiles[0];
+    }
+
+    if (selectedRootCorgiFile || ignoreCorgiCompose) {
+      await runInTerminal(command, rootDirectory, ignoreCorgiCompose ? undefined : selectedRootCorgiFile?.fsPath);
       return;
     } else {
       vscode.window.showErrorMessage('No corgi-compose.yml file found in the workspace root.');
