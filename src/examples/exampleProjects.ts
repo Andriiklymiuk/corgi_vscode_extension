@@ -37,4 +37,10 @@ export const exampleProjects: CorgiExample[] = [
     publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/aws_sqs/aws_sqs_postgres_go_deno.corgi-compose.yml",
     path: "aws_sqs_postgres_go_deno_queue_example"
   },
+  {
+    title: "MongoDb + go server",
+    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/mongodb/mongodb-go.corgi-compose.yml",
+    publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/mongodb/mongodb-go.corgi-compose.yml",
+    path: "mongodb-go_example"
+  },
 ];
