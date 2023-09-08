@@ -41,6 +41,12 @@ export const exampleProjects: CorgiExample[] = [
     title: "MongoDb + go server",
     link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/mongodb/mongodb-go.corgi-compose.yml",
     publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/mongodb/mongodb-go.corgi-compose.yml",
-    path: "mongodb-go_example"
+    path: "mongodb_go_example"
+  },
+  {
+    title: "Redis + bun server + expo app",
+    link: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/redis/redis-bun-expo.corgi-compose.yml",
+    publicLink: "https://github.com/Andriiklymiuk/corgi/blob/main/examples/redis/redis-bun-expo.corgi-compose.yml",
+    path: "redis_bun_expo_example"
   },
 ];
