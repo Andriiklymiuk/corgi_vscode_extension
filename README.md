@@ -18,6 +18,8 @@
 Extension link in
 [vscode marketplace](https://marketplace.visualstudio.com/items?itemName=Corgi.corgi)
 
+Public docs in [corgi docs](https://andriiklymiuk.github.io/corgi/)
+
 </div>
 
 This is helpful corgi extension, that:
