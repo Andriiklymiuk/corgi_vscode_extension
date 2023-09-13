@@ -12,8 +12,8 @@ export const corgiExamplesFileName = 'corgi-examples.json';
 export const exampleProjects: CorgiExample[] = [
   {
     title: '2 postgres databases with echo logs',
-    link: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/0example.corgi-compose.yml',
-    publicLink: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/0example.corgi-compose.yml'
+    link: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/echoExample.corgi-compose.yml',
+    publicLink: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/echoExample.corgi-compose.yml'
   },
   {
     title: "Postgres with data + go + react native",
