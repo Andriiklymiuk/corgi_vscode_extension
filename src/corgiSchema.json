@@ -21,6 +21,9 @@
                                 "sqs"
                             ]
                         },
+                        "version": {
+                            "type": "string"
+                        },
                         "host": {
                             "type": "string"
                         },
