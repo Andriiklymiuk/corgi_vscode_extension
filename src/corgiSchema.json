@@ -22,7 +22,10 @@
                             ]
                         },
                         "version": {
-                            "type": "string"
+                            "type": [
+                                "string",
+                                "number"
+                            ]
                         },
                         "host": {
                             "type": "string"
