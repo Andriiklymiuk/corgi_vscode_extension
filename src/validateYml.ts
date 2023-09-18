@@ -5,7 +5,7 @@ import corgiSchema from './corgiSchema.json';
 
 const ajv = new Ajv();
 
-export function validateYaml(diagnostics: vscode.DiagnosticCollection, document: vscode.TextDocument) {
+export function validateCorgiComposeYaml(diagnostics: vscode.DiagnosticCollection, document: vscode.TextDocument) {
   const yamlContent = document.getText();
   try {
     const jsonContent = yaml.parse(yamlContent);

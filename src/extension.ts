@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CorgiCompletionProvider } from './completion';
-import { validateYaml } from './validateYml';
+import { validateCorgiComposeYaml } from './validateYml';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
@@ -100,12 +100,12 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {
             if (corgiPattern.test(path.basename(document.fileName))) {
-                validateYaml(diagnostics, document);
+                validateCorgiComposeYaml(diagnostics, document);
             }
         }),
         vscode.workspace.onDidOpenTextDocument((document) => {
             if (corgiPattern.test(path.basename(document.fileName))) {
-                validateYaml(diagnostics, document);
+                validateCorgiComposeYaml(diagnostics, document);
             }
         }),
         vscode.languages.registerCompletionItemProvider(
