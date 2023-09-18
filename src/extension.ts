@@ -8,10 +8,9 @@ import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from 
 import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
-import { CorgiExample } from './examples/exampleProjects';
+import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
-const corgiExamplesJsonPattern = /^(.*\.)?corgi(-[a-zA-Z0-9]*)?(\.\w+)?\.json$/;
 
 async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
     const isInstalled = await isCorgiInstalled();

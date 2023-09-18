@@ -7,7 +7,7 @@ export interface CorgiExample {
   shouldSeed?: boolean;
 }
 
-export const corgiExamplesFileName = 'corgi-examples.json';
+export const corgiExamplesJsonPattern = /^(?!.*\.corgi\.json$|.*corgi-\.json$).*corgi(-[a-zA-Z0-9]+)?\.json$/;
 
 export const exampleProjects: CorgiExample[] = [
   {

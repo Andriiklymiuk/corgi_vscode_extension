@@ -2,25 +2,35 @@ import * as vscode from 'vscode';
 import { isCorgiInstalled } from './corgiCommands';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CorgiExample, corgiExamplesFileName, exampleProjects } from './examples/exampleProjects';
+import { CorgiExample, corgiExamplesJsonPattern, exampleProjects } from './examples/exampleProjects';
 
 async function getCustomExamples(): Promise<CorgiExample[]> {
+  const allExamples: CorgiExample[] = [];
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders) {
       const workspacePath = workspaceFolders[0].uri.fsPath;
-      const exampleFilePath = path.join(workspacePath, corgiExamplesFileName);
-      if (fs.existsSync(exampleFilePath)) {
-        const rawData = fs.readFileSync(exampleFilePath, 'utf-8');
-        if (!rawData) { return []; };
-        const parsedData = JSON.parse(rawData);
-        return parsedData;
+
+      // Read the directory to find all JSON files
+      const files = fs.readdirSync(workspacePath);
+
+      // Filter files that match the 'corgi-*.json' or 'corgi.json' pattern
+      const corgiFiles = files.filter((file) => file.match(corgiExamplesJsonPattern));
+
+      for (const corgiFile of corgiFiles) {
+        const exampleFilePath = path.join(workspacePath, corgiFile);
+        if (fs.existsSync(exampleFilePath)) {
+          const rawData = fs.readFileSync(exampleFilePath, 'utf-8');
+          if (!rawData) { continue; }
+          const parsedData: CorgiExample[] = JSON.parse(rawData);
+          allExamples.push(...parsedData);
+        }
       }
     }
   } catch (error) {
-    console.error(`Error reading ${corgiExamplesFileName}:`, error);
+    console.error(`Error reading corgi example files:`, error);
   }
-  return [];
+  return allExamples;
 }
 
 export class CorgiNode extends vscode.TreeItem {
@@ -89,7 +99,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         new CorgiNode('Examples', vscode.TreeItemCollapsibleState.Collapsed),
       ];
       if (customExamples?.length > 0) {
-        rootItems.push(new CorgiNode('Your Examples', vscode.TreeItemCollapsibleState.Collapsed));
+        rootItems.push(new CorgiNode('Your Projects', vscode.TreeItemCollapsibleState.Expanded));
       }
       return Promise.resolve(rootItems);
     }
@@ -174,17 +184,18 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
         ))
       );
     }
-    if (element.label === 'Your Examples') {
-      return Promise.resolve(customExamples.map(project =>
-        new CorgiNode(
-          project.title,
-          vscode.TreeItemCollapsibleState.None,
-          'corgi.runExample',
-          undefined,
-          [project],
-          'example'
-        )
-      ));
+    if (element.label === 'Your Projects') {
+      return Promise.resolve(
+        customExamples.map(project =>
+          new CorgiNode(
+            project.title,
+            vscode.TreeItemCollapsibleState.None,
+            'corgi.runExample',
+            undefined,
+            [project],
+            'example'
+          )
+        ));
     }
 
     return Promise.resolve([]);
