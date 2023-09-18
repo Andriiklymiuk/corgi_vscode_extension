@@ -43,6 +43,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
         { name: 'corgi.initFromRoot', cmd: 'init', fromRoot: true },
         { name: 'corgi.doctorFromRoot', cmd: 'doctor', fromRoot: true },
         { name: 'corgi.createFromRoot', cmd: 'create', fromRoot: true, ignoreCorgiCompose: true },
+        { name: 'corgi.forkFromRoot', cmd: 'fork', fromRoot: true },
         { name: 'corgi.dbFromRoot', cmd: 'db', fromRoot: true },
         { name: 'corgi.dbUpFromRoot', cmd: 'db -u', fromRoot: true },
         { name: 'corgi.dbDownFromRoot', cmd: 'db -d', fromRoot: true },

@@ -121,6 +121,7 @@ export class CorgiTreeProvider implements vscode.TreeDataProvider<CorgiNode> {
       { id: "corgi.pullFromRoot", title: "git pull all repos", icon: "cloud-download" },
       { id: "corgi.doctorFromRoot", title: "Install required services", icon: "info" },
       { id: "corgi.createFromRoot", title: "Corgi create", icon: "file-code" },
+      { id: "corgi.forkFromRoot", title: "Corgi fork", icon: "repo-forked" },
       { id: "corgi.cleanFromRoot", title: "Clean", icon: "trash" },
     ];
 

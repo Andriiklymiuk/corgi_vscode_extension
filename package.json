@@ -94,6 +94,10 @@
         "title": "Corgi create from root"
       },
       {
+        "command": "corgi.forkFromRoot",
+        "title": "Corgi fork repo from root"
+      },
+      {
         "command": "corgi.pullFromRoot",
         "title": "Corgi pull from Workspace Root"
       },
