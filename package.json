@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.4.23",
+  "version": "0.4.24",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -154,6 +154,10 @@
         "title": "Download and run"
       },
       {
+        "command": "corgi.forkExample",
+        "title": "Fork example to your repo"
+      },
+      {
         "command": "corgi.openLink",
         "title": "Open example link"
       },
@@ -224,6 +228,10 @@
         },
         {
           "command": "corgi.openLink",
+          "when": "view == corgiTreeView && viewItem == example"
+        },
+        {
+          "command": "corgi.forkExample",
           "when": "view == corgiTreeView && viewItem == example"
         }
       ]

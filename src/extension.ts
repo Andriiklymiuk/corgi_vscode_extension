@@ -166,6 +166,17 @@ export async function activate(context: vscode.ExtensionContext) {
             await executeCorgiCommand('init', false, false, downloadPath);
             await executeCorgiCommand(`run${example.shouldSeed ? " --seed" : ""}`, false, false, downloadPath);
         }),
+        vscode.commands.registerCommand('corgi.forkExample', async (example: CorgiExample | any) => {
+            if (example && example.args && example.args[0]) {
+                example = example.args[0];
+            }
+            const downloadPath = await downloadCorgiExample(example);
+            if (!downloadPath) {
+                vscode.window.showErrorMessage('Example could not be downloaded. Aborting.');
+                return;
+            }
+            await executeCorgiCommand('fork --all', false, false, downloadPath);
+        }),
         vscode.commands.registerCommand('corgi.openLink', async (example: CorgiExample | any) => {
             let url: string;
             if (example && example.args && example.args[0]) {
