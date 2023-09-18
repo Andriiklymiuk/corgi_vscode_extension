@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
+import * as fs from "fs";
+import * as path from "path";
 import Ajv from 'ajv';
-import corgiSchema from './corgiSchema.json';
+import corgiComposeSchema from './corgiComposeSchema.json';
+import corgiExamplesSchema from './corgiExamplesSchema.json';
 
 const ajv = new Ajv();
 
@@ -9,7 +12,7 @@ export function validateCorgiComposeYaml(diagnostics: vscode.DiagnosticCollectio
   const yamlContent = document.getText();
   try {
     const jsonContent = yaml.parse(yamlContent);
-    const valid = ajv.validate(corgiSchema, jsonContent);
+    const valid = ajv.validate(corgiComposeSchema, jsonContent);
     if (!valid && ajv.errors) {
       const diagnosticErrors = ajv.errors.map(error => {
         const propertyPath = error.instancePath.split('/').slice(1);
@@ -82,5 +85,66 @@ export function validateCorgiComposeYaml(diagnostics: vscode.DiagnosticCollectio
   } catch (err) {
     vscode.window.showInformationMessage('Error parsing YAML in Corgi extension!');
     console.error("Failed to parse YAML:", err);
+  }
+}
+
+const ajvJson = new Ajv();
+
+export async function validateCorgiExamplesJson(diagnostics: vscode.DiagnosticCollection, document: vscode.TextDocument) {
+  // Clear old diagnostics
+  diagnostics.set(document.uri, []);
+
+  const jsonContent = document.getText();
+  let parsedJson: any;
+
+  try {
+    parsedJson = JSON.parse(jsonContent);
+  } catch (e) {
+    const diagnostic = new vscode.Diagnostic(
+      new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+      "Unable to parse JSON file",
+      vscode.DiagnosticSeverity.Error
+    );
+    diagnostics.set(document.uri, [diagnostic]);
+    return;
+  }
+
+  const validate = ajvJson.compile(corgiExamplesSchema);
+  const valid = validate(parsedJson);
+
+  if (!valid) {
+    const diagnosticArray: vscode.Diagnostic[] = [];
+
+    for (const error of validate.errors ?? []) {
+      const instancePath = error.instancePath; // like '/0' or '/1'
+      const index = Number(instancePath.match(/\/(\d+)/)?.[1]); // Extract index from instancePath
+
+      if (index !== undefined) {
+        const lines = jsonContent.split('\n');
+        let lineNumber = 0;
+        let objCount = -1; // Because array itself is an object in JSON
+
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].trim() === "{") {
+            objCount++;
+          }
+          if (objCount === index) {
+            lineNumber = i;
+            break;
+          }
+        }
+
+        const message = `${error.message ?? ''} (at ${error.instancePath ?? ''})`;
+        const diagnostic = new vscode.Diagnostic(
+          new vscode.Range(new vscode.Position(lineNumber, 0), new vscode.Position(lineNumber, 1)),
+          message,
+          vscode.DiagnosticSeverity.Error
+        );
+        diagnosticArray.push(diagnostic);
+      }
+    }
+    diagnostics.set(document.uri, diagnosticArray);
+  } else {
+    diagnostics.delete(document.uri);
   }
 }

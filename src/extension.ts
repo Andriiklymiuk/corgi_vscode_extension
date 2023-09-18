@@ -2,8 +2,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CorgiCompletionProvider } from './completion';
-import { validateCorgiComposeYaml } from './validateYml';
+import { CorgiComposeCompletionProvider, CorgiJsonCompletionProvider } from './completion';
+import { validateCorgiComposeYaml, validateCorgiExamplesJson } from './validate';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
@@ -11,6 +11,7 @@ import { convertToRawUrl } from './utils/convertToRawUrl';
 import { CorgiExample } from './examples/exampleProjects';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
+const corgiExamplesJsonPattern = /^(.*\.)?corgi(-[a-zA-Z0-9]*)?(\.\w+)?\.json$/;
 
 async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
     const isInstalled = await isCorgiInstalled();
@@ -102,15 +103,26 @@ export async function activate(context: vscode.ExtensionContext) {
             if (corgiPattern.test(path.basename(document.fileName))) {
                 validateCorgiComposeYaml(diagnostics, document);
             }
+            if (corgiExamplesJsonPattern.test(path.basename(document.fileName))) {
+                validateCorgiExamplesJson(diagnostics, document);
+            }
         }),
         vscode.workspace.onDidOpenTextDocument((document) => {
             if (corgiPattern.test(path.basename(document.fileName))) {
                 validateCorgiComposeYaml(diagnostics, document);
             }
+            if (corgiExamplesJsonPattern.test(path.basename(document.fileName))) {
+                validateCorgiExamplesJson(diagnostics, document);
+            }
         }),
         vscode.languages.registerCompletionItemProvider(
             { pattern: '**/*corgi-*.yml', language: 'yaml' },
-            new CorgiCompletionProvider(),
+            new CorgiComposeCompletionProvider(),
+            '.', ':', ' '
+        ),
+        vscode.languages.registerCompletionItemProvider(
+            { pattern: '**/*corgi*.json', language: 'json' },
+            new CorgiJsonCompletionProvider(),
             '.', ':', ' '
         ),
         vscode.commands.registerCommand('corgi.reload', async () => {

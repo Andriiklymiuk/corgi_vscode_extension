@@ -36,8 +36,12 @@ const extensionConfig = {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, 'src/corgiSchema.json'),
-          to: path.resolve(__dirname, 'dist/corgiSchema.json')
+          from: path.resolve(__dirname, 'src/corgiComposeSchema.json'),
+          to: path.resolve(__dirname, 'dist/corgiComposeSchema.json')
+        },
+        {
+          from: path.resolve(__dirname, 'src/corgiExamplesSchema.json'),
+          to: path.resolve(__dirname, 'dist/corgiExamplesSchema.json')
         }
       ],
     }),
