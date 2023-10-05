@@ -16,6 +16,7 @@
                                 "redis",
                                 "mysql",
                                 "dynamodb",
+                                "mssql",
                                 "kafka",
                                 "rabbitmq",
                                 "mongodb",
