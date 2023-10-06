@@ -17,6 +17,8 @@
                                 "mysql",
                                 "dynamodb",
                                 "mssql",
+                                "cassandra",
+                                "cockroach",
                                 "kafka",
                                 "rabbitmq",
                                 "mongodb",
