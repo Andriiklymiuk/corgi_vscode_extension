@@ -19,6 +19,7 @@
                                 "mssql",
                                 "cassandra",
                                 "cockroach",
+                                "clickhouse",
                                 "kafka",
                                 "rabbitmq",
                                 "mongodb",
