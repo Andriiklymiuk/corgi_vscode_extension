@@ -15,6 +15,7 @@
                                 "postgres",
                                 "redis",
                                 "mysql",
+                                "mariadb",
                                 "dynamodb",
                                 "mssql",
                                 "cassandra",
