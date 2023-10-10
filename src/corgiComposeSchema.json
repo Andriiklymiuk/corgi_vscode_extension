@@ -21,6 +21,7 @@
                                 "cassandra",
                                 "cockroach",
                                 "clickhouse",
+                                "scylla",
                                 "kafka",
                                 "rabbitmq",
                                 "mongodb",
