@@ -25,7 +25,8 @@
                                 "kafka",
                                 "rabbitmq",
                                 "mongodb",
-                                "sqs"
+                                "sqs",
+                                "keydb"
                             ]
                         },
                         "version": {
