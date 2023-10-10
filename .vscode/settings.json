@@ -15,6 +15,7 @@
         "clickhouse",
         "codicon",
         "dbaeumer",
+        "keydb",
         "Rabbitmq"
     ]
 }
