@@ -16,6 +16,7 @@
         "codicon",
         "dbaeumer",
         "keydb",
-        "Rabbitmq"
+        "Rabbitmq",
+        "surrealdb"
     ]
 }
