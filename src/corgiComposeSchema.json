@@ -28,7 +28,9 @@
                                 "sqs",
                                 "keydb",
                                 "influxdb",
-                                "surrealdb"
+                                "surrealdb",
+                                "arangodb",
+                                "neo4j"
                             ]
                         },
                         "version": {

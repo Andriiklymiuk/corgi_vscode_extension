@@ -12,6 +12,7 @@
     "typescript.tsc.autoDetect": "off",
     "cSpell.words": [
         "amodio",
+        "arangodb",
         "clickhouse",
         "codicon",
         "dbaeumer",
