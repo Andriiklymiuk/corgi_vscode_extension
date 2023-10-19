@@ -30,7 +30,8 @@
                                 "influxdb",
                                 "surrealdb",
                                 "arangodb",
-                                "neo4j"
+                                "neo4j",
+                                "elasticsearch"
                             ]
                         },
                         "version": {
