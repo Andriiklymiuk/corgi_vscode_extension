@@ -31,7 +31,8 @@
                                 "surrealdb",
                                 "arangodb",
                                 "neo4j",
-                                "elasticsearch"
+                                "elasticsearch",
+                                "timescaledb"
                             ]
                         },
                         "version": {

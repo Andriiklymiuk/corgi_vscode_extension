@@ -18,6 +18,7 @@
         "dbaeumer",
         "keydb",
         "Rabbitmq",
-        "surrealdb"
+        "surrealdb",
+        "timescaledb"
     ]
 }
