@@ -32,7 +32,8 @@
                                 "arangodb",
                                 "neo4j",
                                 "elasticsearch",
-                                "timescaledb"
+                                "timescaledb",
+                                "couchdb"
                             ]
                         },
                         "version": {
