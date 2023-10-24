@@ -34,7 +34,8 @@
                                 "elasticsearch",
                                 "timescaledb",
                                 "couchdb",
-                                "dgraph"
+                                "dgraph",
+                                "meilisearch"
                             ]
                         },
                         "version": {

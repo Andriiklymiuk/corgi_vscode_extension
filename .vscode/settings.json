@@ -18,6 +18,7 @@
         "dbaeumer",
         "dgraph",
         "keydb",
+        "meilisearch",
         "Rabbitmq",
         "surrealdb",
         "timescaledb"
