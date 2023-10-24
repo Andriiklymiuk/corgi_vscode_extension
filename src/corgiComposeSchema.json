@@ -33,7 +33,8 @@
                                 "neo4j",
                                 "elasticsearch",
                                 "timescaledb",
-                                "couchdb"
+                                "couchdb",
+                                "dgraph"
                             ]
                         },
                         "version": {
