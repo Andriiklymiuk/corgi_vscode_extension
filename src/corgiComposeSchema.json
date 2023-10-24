@@ -35,7 +35,8 @@
                                 "timescaledb",
                                 "couchdb",
                                 "dgraph",
-                                "meilisearch"
+                                "meilisearch",
+                                "faunadb"
                             ]
                         },
                         "version": {

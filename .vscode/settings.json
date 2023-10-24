@@ -17,6 +17,7 @@
         "codicon",
         "dbaeumer",
         "dgraph",
+        "faunadb",
         "keydb",
         "meilisearch",
         "Rabbitmq",
