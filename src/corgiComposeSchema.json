@@ -36,7 +36,8 @@
                                 "couchdb",
                                 "dgraph",
                                 "meilisearch",
-                                "faunadb"
+                                "faunadb",
+                                "yugabytedb"
                             ]
                         },
                         "version": {
