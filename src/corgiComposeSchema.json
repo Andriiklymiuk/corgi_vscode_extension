@@ -133,6 +133,9 @@
                         "port": {
                             "type": "integer"
                         },
+                        "portAlias": {
+                            "type": "string"
+                        },
                         "depends_on_services": {
                             "type": "array",
                             "items": {
