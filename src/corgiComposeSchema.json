@@ -14,6 +14,7 @@
                             "enum": [
                                 "postgres",
                                 "redis",
+                                "redis-server",
                                 "mysql",
                                 "mariadb",
                                 "dynamodb",
