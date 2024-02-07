@@ -49,4 +49,10 @@ export const exampleProjects: CorgiExample[] = [
     publicLink: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/redis/redis-bun-expo.corgi-compose.yml",
     path: "redis_bun_expo_example"
   },
+  {
+    title: "Hono server, websocket + expo app",
+    link: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoExpoTodo/hono-bun-expo.corgi-compose.yml",
+    publicLink: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoExpoTodo/hono-bun-expo.corgi-compose.yml",
+    path: "hono_expo_example"
+  },
 ];
