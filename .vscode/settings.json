@@ -18,6 +18,7 @@
         "dbaeumer",
         "dgraph",
         "faunadb",
+        "Hono",
         "keydb",
         "meilisearch",
         "Rabbitmq",
