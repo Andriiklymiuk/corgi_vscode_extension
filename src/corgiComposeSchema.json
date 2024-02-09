@@ -257,6 +257,30 @@
                 }
             },
             "additionalProperties": false
+        },
+        "init": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "beforeStart": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "start": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "afterStart": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         }
     },
     "additionalProperties": false
