@@ -62,6 +62,9 @@
                         "port": {
                             "type": "integer"
                         },
+                        "manualRun": {
+                            "type": "boolean"
+                        },
                         "seedFromDbEnvPath": {
                             "type": "string"
                         },
