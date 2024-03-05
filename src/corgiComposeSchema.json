@@ -152,6 +152,9 @@
                                     },
                                     "suffix": {
                                         "type": "string"
+                                    },
+                                    "forceUseEnv": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
@@ -170,6 +173,9 @@
                                     },
                                     "envAlias": {
                                         "type": "string"
+                                    },
+                                    "forceUseEnv": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
