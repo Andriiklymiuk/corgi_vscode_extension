@@ -22,6 +22,7 @@ async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
 function registerCorgiCommands(context: vscode.ExtensionContext) {
     const specialCommands = [
         { name: 'corgi.run', cmd: 'run' },
+        { name: 'corgi.runOmitBeforeStart', cmd: 'run --omit=beforeStart' },
         { name: 'corgi.init', cmd: 'init' },
         { name: 'corgi.pull', cmd: 'pull' },
         { name: 'corgi.db', cmd: 'db' },
@@ -39,6 +40,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
         { name: 'corgi.runFromStatusBar', cmd: 'run', fromRoot: true },
 
         { name: 'corgi.runFromRoot', cmd: 'run', fromRoot: true },
+        { name: 'corgi.runOmitBeforeStartFromRoot', cmd: 'run --omit=beforeStart', fromRoot: true },
         { name: 'corgi.pullFromRoot', cmd: 'pull', fromRoot: true },
         { name: 'corgi.initFromRoot', cmd: 'init', fromRoot: true },
         { name: 'corgi.doctorFromRoot', cmd: 'doctor', fromRoot: true },
