@@ -48,7 +48,7 @@
       },
       {
         "command": "corgi.runOmitBeforeStart",
-        "title": "Corgi run, but omit beforeStart commands",
+        "title": "Corgi run, but omit beforeStart",
         "icon": "$(run-below)"
       },
       {
@@ -95,7 +95,7 @@
       },
       {
         "command": "corgi.runOmitBeforeStartFromRoot",
-        "title": "Corgi run from root, but omit beforeStart commands",
+        "title": "Corgi run from root, but omit beforeStart",
         "icon": "$(run-below)"
       },
       {
