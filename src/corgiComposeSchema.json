@@ -296,6 +296,9 @@
         },
         "useDocker": {
             "type": "boolean"
+        },
+        "useAwsVpn": {
+            "type": "boolean"
         }
     },
     "additionalProperties": false
