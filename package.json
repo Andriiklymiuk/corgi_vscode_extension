@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "Corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "0.4.54",
+  "version": "0.5.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
