@@ -39,7 +39,8 @@
                                 "meilisearch",
                                 "faunadb",
                                 "yugabytedb",
-                                "skytable"
+                                "skytable",
+                                "dragonfly"
                             ]
                         },
                         "version": {
