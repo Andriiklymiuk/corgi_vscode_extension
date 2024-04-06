@@ -41,7 +41,8 @@
                                 "yugabytedb",
                                 "skytable",
                                 "dragonfly",
-                                "redict"
+                                "redict",
+                                "valkey"
                             ]
                         },
                         "version": {

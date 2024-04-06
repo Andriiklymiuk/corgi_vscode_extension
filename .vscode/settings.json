@@ -26,6 +26,7 @@
     "skytable",
     "surrealdb",
     "timescaledb",
+    "valkey",
     "yugabytedb"
   ]
 }
