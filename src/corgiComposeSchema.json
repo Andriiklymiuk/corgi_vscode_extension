@@ -40,7 +40,8 @@
                                 "faunadb",
                                 "yugabytedb",
                                 "skytable",
-                                "dragonfly"
+                                "dragonfly",
+                                "redict"
                             ]
                         },
                         "version": {
