@@ -38,7 +38,8 @@
                                 "dgraph",
                                 "meilisearch",
                                 "faunadb",
-                                "yugabytedb"
+                                "yugabytedb",
+                                "skytable"
                             ]
                         },
                         "version": {
