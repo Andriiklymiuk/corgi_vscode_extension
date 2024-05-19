@@ -303,6 +303,12 @@
         },
         "useAwsVpn": {
             "type": "boolean"
+        },
+        "name": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
         }
     },
     "additionalProperties": false
