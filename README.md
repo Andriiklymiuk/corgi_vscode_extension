@@ -41,6 +41,11 @@ You can install corgi in any of these ways:
 brew install andriiklymiuk/homebrew-tools/corgi
 ```
 
+Try it with expo + hono server
+```bash
+corgi run -t https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoExpoTodo/hono-bun-expo.corgi-compose.yml
+```
+
 ## Attribution
 
 Credits:
