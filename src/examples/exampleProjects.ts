@@ -13,7 +13,8 @@ export const exampleProjects: CorgiExample[] = [
   {
     title: '2 postgres databases with echo logs',
     link: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/echoExample.corgi-compose.yml',
-    publicLink: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/echoExample.corgi-compose.yml'
+    publicLink: 'https://github.com/Andriiklymiuk/corgi_examples/blob/main/echoExample.corgi-compose.yml',
+    path: 'echo_example_with_postgres_databases'
   },
   {
     title: "Postgres with data + go + react native",
