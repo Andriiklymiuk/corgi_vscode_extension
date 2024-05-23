@@ -66,6 +66,9 @@
                         "port": {
                             "type": "integer"
                         },
+                        "port2": {
+                            "type": "integer"
+                        },
                         "manualRun": {
                             "type": "boolean"
                         },
