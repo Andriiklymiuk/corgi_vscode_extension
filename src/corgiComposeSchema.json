@@ -140,6 +140,9 @@
                         "copyEnvFromFilePath": {
                             "type": "string"
                         },
+                        "localhostNameInEnv": {
+                            "type": "string"
+                        },
                         "port": {
                             "type": "integer"
                         },
