@@ -27,6 +27,7 @@
                                 "rabbitmq",
                                 "mongodb",
                                 "sqs",
+                                "s3",
                                 "keydb",
                                 "influxdb",
                                 "surrealdb",
