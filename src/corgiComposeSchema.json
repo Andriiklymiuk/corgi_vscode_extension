@@ -216,7 +216,7 @@
                         "interactiveInput": {
                             "type": "boolean"
                         },
-                        "test": {
+                        "scripts": {
                             "type": "array",
                             "items": {
                                 "type": "object",
@@ -227,11 +227,14 @@
                                     "manualRun": {
                                         "type": "boolean"
                                     },
-                                    "command": {
+                                    "commands": {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         }
+                                    },
+                                    "copyEnvFromFilePath": {
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
