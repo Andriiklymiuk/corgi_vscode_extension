@@ -239,7 +239,7 @@
                                 },
                                 "required": [
                                     "name",
-                                    "command"
+                                    "commands"
                                 ],
                                 "additionalProperties": false
                             }
