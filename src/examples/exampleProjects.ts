@@ -56,4 +56,10 @@ export const exampleProjects: CorgiExample[] = [
     publicLink: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoExpoTodo/hono-bun-expo.corgi-compose.yml",
     path: "hono_expo_example"
   },
+  {
+    title: "Hono server, graphql, redis, postgres + nextjs, golden retriever",
+    link: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoNestRecipeApp/hono-nest-postgres-redis.corgi-compose.yml",
+    publicLink: "https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoNestRecipeApp/hono-nest-postgres-redis.corgi-compose.yml",
+    path: "hono_nextjs_example"
+  },
 ];
