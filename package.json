@@ -1,9 +1,9 @@
 {
-  "name": "corgi-checker",
-  "displayName": "corgi checker v2",
-  "publisher": "andriiklymiuk",
+  "name": "corgi",
+  "displayName": "corgi",
+  "publisher": "corgi",
   "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
