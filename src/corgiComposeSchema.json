@@ -243,6 +243,19 @@
                                 ],
                                 "additionalProperties": false
                             }
+                        },
+                        "runner": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "enum": [
+                                        "docker"
+                                    ]
+                                }
+                            },
+                            "required": [],
+                            "additionalProperties": false
                         }
                     },
                     "required": [],
