@@ -46,6 +46,11 @@ Try it with expo + hono server example
 corgi run -t https://github.com/Andriiklymiuk/corgi_examples/blob/main/honoExpoTodo/hono-bun-expo.corgi-compose.yml
 ```
 
+In order to update corgi run
+```bash
+corgi update
+```
+
 ## Attribution
 
 Credits:
