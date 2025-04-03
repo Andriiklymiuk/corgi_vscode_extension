@@ -43,7 +43,8 @@
                                 "skytable",
                                 "dragonfly",
                                 "redict",
-                                "valkey"
+                                "valkey",
+                                "postgis"
                             ]
                         },
                         "version": {
