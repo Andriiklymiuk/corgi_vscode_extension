@@ -16,7 +16,9 @@ export class CorgiComposeCompletionProvider implements vscode.CompletionItemProv
     if (context.triggerCharacter === ' ') {
       if (currentLine.trim().startsWith('driver:')) {
         for (const driver of corgiComposeSchema.properties.db_services.patternProperties['.*'].properties.driver.enum) {
-          items.push(new vscode.CompletionItem(driver, vscode.CompletionItemKind.Value));
+          const item = new vscode.CompletionItem(driver, vscode.CompletionItemKind.Value);
+          item.documentation = `Database driver: ${driver}`;
+          items.push(item);
         }
       }
       return items;
@@ -24,14 +26,24 @@ export class CorgiComposeCompletionProvider implements vscode.CompletionItemProv
     if (currentIndent === 0) {
       for (const prop in corgiComposeSchema.properties) {
         if (prop.startsWith(typedWord)) {
-          items.push(new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property));
+          const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+          const propSchema = (corgiComposeSchema.properties as any)[prop];
+          if (propSchema.description) {
+            item.documentation = propSchema.description;
+          }
+          items.push(item);
         }
       }
     }
     else if (parentKey === 'db_services') {
       for (const prop in corgiComposeSchema.properties.db_services.patternProperties['.*'].properties) {
         if (prop.startsWith(typedWord)) {
-          items.push(new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property));
+          const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+          const propSchema = (corgiComposeSchema.properties.db_services.patternProperties['.*'].properties as any)[prop];
+          if (propSchema.description) {
+            item.documentation = propSchema.description;
+          }
+          items.push(item);
         }
       }
     }
@@ -53,7 +65,12 @@ export class CorgiComposeCompletionProvider implements vscode.CompletionItemProv
 
         for (const prop in dbDependProperties) {
           if (prop.startsWith(typedWord)) {
-            items.push(new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property));
+            const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+            const propSchema = (dbDependProperties as any)[prop];
+            if (propSchema.description) {
+              item.documentation = propSchema.description;
+            }
+            items.push(item);
           }
         }
       }
@@ -62,13 +79,23 @@ export class CorgiComposeCompletionProvider implements vscode.CompletionItemProv
 
         for (const prop in serviceDependProperties) {
           if (prop.startsWith(typedWord)) {
-            items.push(new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property));
+            const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+            const propSchema = (serviceDependProperties as any)[prop];
+            if (propSchema.description) {
+              item.documentation = propSchema.description;
+            }
+            items.push(item);
           }
         }
       } else {
         for (const prop in properties) {
           if (prop.startsWith(typedWord)) {
-            items.push(new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property));
+            const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+            const propSchema = (properties as any)[prop];
+            if (propSchema.description) {
+              item.documentation = propSchema.description;
+            }
+            items.push(item);
           }
         }
       }
@@ -79,7 +106,9 @@ export class CorgiComposeCompletionProvider implements vscode.CompletionItemProv
 
       for (const driver of corgiComposeSchema.properties.db_services.patternProperties['.*'].properties.driver.enum) {
         if (!valueTyped || driver.startsWith(valueTyped)) {
-          items.push(new vscode.CompletionItem(driver, vscode.CompletionItemKind.Value));
+          const item = new vscode.CompletionItem(driver, vscode.CompletionItemKind.Value);
+          item.documentation = `Database driver: ${driver}`;
+          items.push(item);
         }
       }
     }
