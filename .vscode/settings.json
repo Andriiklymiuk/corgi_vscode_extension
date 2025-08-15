@@ -21,6 +21,7 @@
     "Hono",
     "keydb",
     "meilisearch",
+    "rabbitmq",
     "Rabbitmq",
     "redict",
     "skytable",

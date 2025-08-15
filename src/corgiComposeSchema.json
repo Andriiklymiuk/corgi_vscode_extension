@@ -11,6 +11,7 @@
                     "properties": {
                         "driver": {
                             "type": "string",
+                            "description": "Database driver for this service. By default postgres is used.",
                             "enum": [
                                 "postgres",
                                 "redis",
@@ -51,52 +52,79 @@
                             "type": [
                                 "string",
                                 "number"
-                            ]
+                            ],
+                            "description": "Database version for this service, that will be used to setup database. By default latest version is used."
                         },
                         "host": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Database host for this service, that will be used in DB_HOST. By default localhost is used."
                         },
                         "user": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Database user for this service, that will be used in DB_USER."
                         },
                         "password": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Database password for this service, that will be used in DB_PASSWORD."
                         },
                         "databaseName": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Database name for this service, that will be used in DB_NAME."
                         },
                         "port": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Database port for this service, that will be used in DB_PORT."
                         },
                         "port2": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Secondary port for this database service."
                         },
                         "manualRun": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Determines if the service will be run with run cmd. If it is true, then to run you add --services manual_to_run_service to run cmd. By default it is false."
                         },
                         "seedFromDbEnvPath": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Path to .env file with db credentials for db, from which data is seeded. Use either seedFromFilePath or seedFromDb/seedFromDbEnvPath."
                         },
                         "seedFromFilePath": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Path to dump.sql file from which data is seeded. Use either seedFromFilePath or seedFromDb/seedFromDbEnvPath."
                         },
                         "seedFromDb": {
                             "type": "object",
+                            "description": "Db credentials to seed from. Use either seedFromFilePath or seedFromDb/seedFromDbEnvPath.",
                             "properties": {
                                 "host": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Host of the database to seed from."
                                 },
                                 "databaseName": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Name of the database to seed from."
                                 },
                                 "user": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "User for the database to seed from."
                                 },
                                 "password": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Password for the database to seed from."
                                 },
                                 "port": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Port of the database to seed from."
+                                }
+                            },
+                            "required": [],
+                            "additionalProperties": false
+                        },
+                        "additional": {
+                            "type": "object",
+                            "properties": {
+                                "definitionPath": {
+                                    "type": "string",
+                                    "description": "Path to definition file (e.g., RabbitMQ definitions JSON file)"
                                 }
                             },
                             "required": [],
@@ -116,57 +144,73 @@
                     "type": "object",
                     "properties": {
                         "path": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Path to the actual project repo. By default the path to the folder in which corgi-compose.yml is used."
                         },
                         "ignore_env": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Should service ignore env and don't change env file or not. By default is false (env is not ignored)."
                         },
                         "manualRun": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Determines if the service will be run with run cmd. If it is true, that to run you add --services manual_to_run_service to run cmd. By default it is false."
                         },
                         "cloneFrom": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Git url to target repo. By default nothing is cloned."
                         },
                         "branch": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Branch to use for git checkout. By default default branch for repo is used."
                         },
                         "environment": {
                             "type": "array",
+                            "description": "List of environment variables to copy and put into your env file. By default no environments are added.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "envPath": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Path to .env file in target repo. By default .env file is used."
                         },
                         "copyEnvFromFilePath": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The path to the .env, which content will be copied to service repo .env file."
                         },
                         "localhostNameInEnv": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Localhost name to use in .env file, by default localhost is used."
                         },
                         "port": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Service port, that will be added to .env file."
                         },
                         "portAlias": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Service port env name alias, that will be added to .env file. By default PORT is used, e.g. PORT=5432."
                         },
                         "depends_on_services": {
                             "type": "array",
+                            "description": "Adds service credentials to .env. suffix is added at the end of added value. NAME_TO_USE_IN_ENV=localhost:port/special/suffix will be added to .env. If you add just name, than it is SERVICE_NAME=localhost:port_in_env.",
                             "items": {
                                 "type": "object",
                                 "properties": {
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Name of the service to depend on."
                                     },
                                     "envAlias": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Name to use in environment variable."
                                     },
                                     "suffix": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Suffix to add at the end of the service URL."
                                     },
                                     "forceUseEnv": {
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "description": "Force use environment variable."
                                     }
                                 },
                                 "required": [
@@ -177,17 +221,21 @@
                         },
                         "depends_on_db": {
                             "type": "array",
+                            "description": "Adds db credentials (DB_HOST,etc) from db_services will be copied to .env. envAlias adds string before db credentials, like NAME_BEFORE_DB_IN_ENV_DB_HOST.",
                             "items": {
                                 "type": "object",
                                 "properties": {
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Name of the database service to depend on."
                                     },
                                     "envAlias": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "String to add before db credentials in environment variables."
                                     },
                                     "forceUseEnv": {
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "description": "Force use environment variable."
                                     }
                                 },
                                 "required": [
@@ -198,44 +246,53 @@
                         },
                         "beforeStart": {
                             "type": "array",
+                            "description": "List of commands to run consequently, before start commands are run.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "start": {
                             "type": "array",
+                            "description": "List of commands to run in parallel for the service needs.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "afterStart": {
                             "type": "array",
+                            "description": "List of commands to run consequently, when the cli is exited.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "interactiveInput": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Enable interactive input for the service."
                         },
                         "scripts": {
                             "type": "array",
+                            "description": "List of scripts to run for the service.",
                             "items": {
                                 "type": "object",
                                 "properties": {
                                     "name": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Name of the script."
                                     },
                                     "manualRun": {
-                                        "type": "boolean"
+                                        "type": "boolean",
+                                        "description": "Whether the script should be run manually."
                                     },
                                     "commands": {
                                         "type": "array",
+                                        "description": "List of commands to execute in this script.",
                                         "items": {
                                             "type": "string"
                                         }
                                     },
                                     "copyEnvFromFilePath": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Path to .env file to copy environment variables from for this script."
                                     }
                                 },
                                 "required": [
@@ -267,27 +324,32 @@
         },
         "required": {
             "type": "object",
+            "description": "Required commands and their installation instructions.",
             "patternProperties": {
                 ".*": {
                     "type": "object",
                     "properties": {
                         "why": {
                             "type": "array",
+                            "description": "The reasons to use/install this required command.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "install": {
                             "type": "array",
+                            "description": "Installation steps to run, if cmd not found.",
                             "items": {
                                 "type": "string"
                             }
                         },
                         "optional": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "Show or not the prompt, before this cmd installation. By default false."
                         },
                         "checkCmd": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Command to run to check, if it is installed. By default cmd name is used."
                         }
                     },
                     "required": [
@@ -300,39 +362,47 @@
         },
         "init": {
             "type": "array",
+            "description": "Initialization commands to run at the start.",
             "items": {
                 "type": "string"
             }
         },
         "beforeStart": {
             "type": "array",
+            "description": "Commands to run before starting services.",
             "items": {
                 "type": "string"
             }
         },
         "start": {
             "type": "array",
+            "description": "Commands to run when starting.",
             "items": {
                 "type": "string"
             }
         },
         "afterStart": {
             "type": "array",
+            "description": "Commands to run after starting services.",
             "items": {
                 "type": "string"
             }
         },
         "useDocker": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether to use Docker for running services."
         },
         "useAwsVpn": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether to use AWS VPN connection."
         },
         "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Name of the corgi-compose project."
         },
         "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Description of the corgi-compose project."
         }
     },
     "additionalProperties": false
