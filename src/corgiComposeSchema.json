@@ -45,7 +45,9 @@
                                 "dragonfly",
                                 "redict",
                                 "valkey",
-                                "postgis"
+                                "postgis",
+                                "pgvector",
+                                "localstack"
                             ]
                         },
                         "version": {
@@ -129,6 +131,24 @@
                             },
                             "required": [],
                             "additionalProperties": false
+                        },
+                        "services": {
+                            "type": "array",
+                            "description": "localstack driver only. AWS services to enable in the single LocalStack container (e.g. [sqs, s3]).",
+                            "items": {
+                                "type": "string",
+                                "enum": ["sqs", "s3", "dynamodb", "sns", "lambda", "secretsmanager", "ssm", "kinesis", "stepfunctions", "events"]
+                            }
+                        },
+                        "queues": {
+                            "type": "array",
+                            "description": "localstack driver only. SQS queues to auto-create in the LocalStack bootstrap.",
+                            "items": { "type": "string" }
+                        },
+                        "buckets": {
+                            "type": "array",
+                            "description": "localstack driver only. S3 buckets to auto-create in the LocalStack bootstrap.",
+                            "items": { "type": "string" }
                         },
                         "additionalProperties": false
                     },
