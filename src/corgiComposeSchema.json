@@ -150,6 +150,10 @@
                             "description": "localstack driver only. S3 buckets to auto-create in the LocalStack bootstrap.",
                             "items": { "type": "string" }
                         },
+                        "healthCheck": {
+                            "type": "string",
+                            "description": "Optional HTTP path probed by `corgi status`. If set, status GETs http://localhost:<port><healthCheck> and accepts any non-5xx response as healthy. If unset, status falls back to a raw TCP connect on the port. localstack driver defaults to /_localstack/health."
+                        },
                         "additionalProperties": false
                     },
                     "required": [],
@@ -288,6 +292,10 @@
                         "interactiveInput": {
                             "type": "boolean",
                             "description": "Enable interactive input for the service."
+                        },
+                        "healthCheck": {
+                            "type": "string",
+                            "description": "Optional HTTP path probed by `corgi status`. If set, status GETs http://localhost:<port><healthCheck> and accepts any non-5xx response as healthy. If unset, status falls back to a raw TCP connect on the port."
                         },
                         "scripts": {
                             "type": "array",
