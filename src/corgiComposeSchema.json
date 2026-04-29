@@ -243,6 +243,13 @@
                                 "additionalProperties": false
                             }
                         },
+                        "exports": {
+                            "type": "array",
+                            "description": "Whitelist of env vars this service exports to dependents. Entry 'NAME' re-exports an env var from the service's own resolved env. Entry 'NAME=value' is an inline literal (supports ${OWN_VAR} expansion). Dependents reference these via ${producer.NAME} inside their own `environment` block. Producer must be listed in consumer's depends_on_services.",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "depends_on_db": {
                             "type": "array",
                             "description": "Adds db credentials (DB_HOST,etc) from db_services will be copied to .env. envAlias adds string before db credentials, like NAME_BEFORE_DB_IN_ENV_DB_HOST.",
