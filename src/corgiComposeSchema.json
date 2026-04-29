@@ -189,9 +189,10 @@
                         },
                         "environment": {
                             "type": "array",
-                            "description": "List of environment variables to copy and put into your env file. By default no environments are added.",
+                            "description": "List of environment variables to add to this service's .env file.\n\nEach entry is `KEY=VALUE`. The VALUE supports two substitution forms:\n  • `${OWN_VAR}` — references another env var on the same service (own copyEnv, db emissions, port).\n  • `${producer.VAR}` — references a var exported by another service. The producer must be listed in this service's depends_on_services AND export VAR via its `exports:` list.\n\nExample:\n  - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}\n  - NOTIFICATION_SERVICE_TOKEN=${notification-api.NOTIFICATION_SERVICE_TOKEN}",
                             "items": {
-                                "type": "string"
+                                "type": "string",
+                                "pattern": "^[A-Za-z_][A-Za-z0-9_]*=.*$"
                             }
                         },
                         "envPath": {
