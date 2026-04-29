@@ -150,6 +150,78 @@
                             "description": "localstack driver only. S3 buckets to auto-create in the LocalStack bootstrap.",
                             "items": { "type": "string" }
                         },
+                        "topics": {
+                            "type": "array",
+                            "description": "localstack driver only. SNS topics to auto-create in the LocalStack bootstrap. Implies the 'sns' service.",
+                            "items": { "type": "string" }
+                        },
+                        "subscriptions": {
+                            "type": "array",
+                            "description": "localstack driver only. SNS topic -> SQS queue subscriptions. Each entry must reference a topic from 'topics' and a queue from 'queues'.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "topic": {
+                                        "type": "string",
+                                        "description": "SNS topic name. Must be declared in 'topics'."
+                                    },
+                                    "queue": {
+                                        "type": "string",
+                                        "description": "SQS queue name. Must be declared in 'queues'."
+                                    }
+                                },
+                                "required": ["topic", "queue"],
+                                "additionalProperties": false
+                            }
+                        },
+                        "secrets": {
+                            "type": "array",
+                            "description": "localstack driver only. AWS Secrets Manager entries to auto-create. Implies the 'secretsmanager' service. Local dev only — do not commit real production secrets.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Secret name (path-style allowed, e.g. 'db/password')."
+                                    },
+                                    "value": {
+                                        "type": "string",
+                                        "description": "Secret string value."
+                                    }
+                                },
+                                "required": ["name"],
+                                "additionalProperties": false
+                            }
+                        },
+                        "parameters": {
+                            "type": "array",
+                            "description": "localstack driver only. AWS SSM Parameter Store entries to auto-create. Implies the 'ssm' service.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Parameter name (e.g. '/app/log_level')."
+                                    },
+                                    "value": {
+                                        "type": "string",
+                                        "description": "Parameter value."
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "description": "Parameter type. Defaults to String.",
+                                        "enum": ["String", "StringList", "SecureString"]
+                                    }
+                                },
+                                "required": ["name"],
+                                "additionalProperties": false
+                            }
+                        },
+                        "streams": {
+                            "type": "array",
+                            "description": "localstack driver only. Kinesis streams to auto-create (1 shard each). Implies the 'kinesis' service.",
+                            "items": { "type": "string" }
+                        },
                         "healthCheck": {
                             "type": "string",
                             "description": "Optional HTTP path probed by `corgi status`. If set, status GETs http://localhost:<port><healthCheck> and accepts any non-5xx response as healthy. If unset, status falls back to a raw TCP connect on the port. localstack driver defaults to /_localstack/health."
