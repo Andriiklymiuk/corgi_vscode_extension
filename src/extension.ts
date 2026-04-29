@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CorgiComposeCompletionProvider, CorgiJsonCompletionProvider } from './completion';
+import { CorgiCrossServiceRefCompletionProvider } from './crossServiceRefCompletion';
 import { validateCorgiComposeYaml, validateCorgiExamplesJson } from './validate';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
 import { CorgiTreeProvider } from './corgiTreeProvider';
@@ -121,6 +122,11 @@ export async function activate(context: vscode.ExtensionContext) {
             { pattern: '**/*corgi-*.yml', language: 'yaml' },
             new CorgiComposeCompletionProvider(),
             '.', ':', ' '
+        ),
+        vscode.languages.registerCompletionItemProvider(
+            { pattern: '**/*corgi-*.yml', language: 'yaml' },
+            new CorgiCrossServiceRefCompletionProvider(),
+            '$', '{', '.', ' '
         ),
         vscode.languages.registerCompletionItemProvider(
             { pattern: '**/*corgi*.json', language: 'json' },
