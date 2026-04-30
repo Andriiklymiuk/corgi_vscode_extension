@@ -70,6 +70,17 @@ export class CorgiCrossServiceRefCompletionProvider implements vscode.Completion
         document: vscode.TextDocument,
         position: vscode.Position
     ): vscode.ProviderResult<vscode.CompletionItem[]> {
+        const lineText = document.lineAt(position).text;
+        const beforeCursor = lineText.substring(0, position.character);
+
+        const depsContext = this.detectDepsNameContext(document, position, beforeCursor);
+        const dotMatch = beforeCursor.match(/\$\{([A-Za-z0-9_\-/]+)\.([A-Za-z0-9_]*)$/);
+        const openMatch = beforeCursor.match(/\$\{([A-Za-z0-9_\-/]*)$/);
+
+        if (!depsContext && !dotMatch && !openMatch) {
+            return undefined;
+        }
+
         let raw: unknown;
         try {
             raw = parse(document.getText());
@@ -81,21 +92,10 @@ export class CorgiCrossServiceRefCompletionProvider implements vscode.Completion
             return undefined;
         }
 
-        const lineText = document.lineAt(position).text;
-        const beforeCursor = lineText.substring(0, position.character);
-
-        const depsContext = this.detectDepsNameContext(document, position, beforeCursor);
         if (depsContext) {
             return this.completeDepsName(parsed, depsContext, document, position.line);
         }
-
-        const dotMatch = beforeCursor.match(/\$\{([A-Za-z0-9_\-/]+)\.([A-Za-z0-9_]*)$/);
-        const openMatch = beforeCursor.match(/\$\{([A-Za-z0-9_\-/]*)$/);
-        if (dotMatch || openMatch) {
-            return this.completeCrossServiceRef(parsed, document, position, dotMatch);
-        }
-
-        return undefined;
+        return this.completeCrossServiceRef(parsed, document, position, dotMatch);
     }
 
     private completeCrossServiceRef(

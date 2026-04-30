@@ -47,7 +47,8 @@
                                 "valkey",
                                 "postgis",
                                 "pgvector",
-                                "localstack"
+                                "localstack",
+                                "supabase"
                             ]
                         },
                         "version": {
@@ -147,8 +148,30 @@
                         },
                         "buckets": {
                             "type": "array",
-                            "description": "localstack driver only. S3 buckets to auto-create in the LocalStack bootstrap.",
+                            "description": "localstack: S3 buckets to auto-create in the LocalStack bootstrap. supabase: Storage buckets to create via Storage API + emit per-bucket env (SUPABASE_BUCKET_<NAME>=<bucket>).",
                             "items": { "type": "string" }
+                        },
+                        "jwtSecret": {
+                            "type": "string",
+                            "description": "supabase driver only. Override the stock JWT secret. Must match auth.jwt_secret in supabase/config.toml — corgi re-signs ANON_KEY / SERVICE_ROLE_KEY with this so emitted env matches what `supabase status` reports."
+                        },
+                        "authUsers": {
+                            "type": "array",
+                            "description": "supabase driver only. Auth users to seed via the supabase Admin API on `up`. Idempotent — duplicates are skipped.",
+                            "items": {
+                                "type": "object",
+                                "required": ["email", "password"],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "email": { "type": "string" },
+                                    "password": { "type": "string" },
+                                    "metadata": {
+                                        "type": "object",
+                                        "description": "Map serialized to JSON for user_metadata. e.g. { role: admin, plan: pro }.",
+                                        "additionalProperties": true
+                                    }
+                                }
+                            }
                         },
                         "topics": {
                             "type": "array",
@@ -372,6 +395,10 @@
                         "interactiveInput": {
                             "type": "boolean",
                             "description": "Enable interactive input for the service."
+                        },
+                        "autoSourceEnv": {
+                            "type": "boolean",
+                            "description": "Toggle automatic sourcing of the service .env before start/beforeStart commands. Default true. Set false to keep secrets out of subprocess env (e.g. npm postinstall)."
                         },
                         "healthCheck": {
                             "type": "string",
