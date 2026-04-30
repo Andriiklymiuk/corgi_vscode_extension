@@ -48,7 +48,8 @@
                                 "postgis",
                                 "pgvector",
                                 "localstack",
-                                "supabase"
+                                "supabase",
+                                "image"
                             ]
                         },
                         "version": {
@@ -158,6 +159,14 @@
                         "configTomlPath": {
                             "type": "string",
                             "description": "supabase driver only. Optional path (relative to corgi-compose.yml) to a config.toml that corgi copies to <projectRoot>/supabase/config.toml on every `corgi init`. If unset, supabase init runs on first `corgi up` if no config.toml exists."
+                        },
+                        "image": {
+                            "type": "string",
+                            "description": "image driver only. Docker image reference, e.g. `gotenberg/gotenberg:8`."
+                        },
+                        "containerPort": {
+                            "type": "integer",
+                            "description": "image driver only. Container's internal port. Defaults to `port:` if unset. Used in docker-compose `<port>:<containerPort>` mapping."
                         },
                         "authUsers": {
                             "type": "array",
