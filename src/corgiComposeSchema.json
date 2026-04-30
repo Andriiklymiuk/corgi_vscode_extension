@@ -168,6 +168,21 @@
                             "type": "integer",
                             "description": "image driver only. Container's internal port. Defaults to `port:` if unset. Used in docker-compose `<port>:<containerPort>` mapping."
                         },
+                        "environment": {
+                            "type": "array",
+                            "description": "image driver only. Docker-compose environment list, e.g. [\"MEILI_MASTER_KEY=secret\", \"LOG_LEVEL=debug\"]. Passed through verbatim.",
+                            "items": { "type": "string" }
+                        },
+                        "volumes": {
+                            "type": "array",
+                            "description": "image driver only. Docker-compose volume mounts, e.g. [\"./data:/app/data\", \"named-vol:/var/lib/x\"]. Passed through verbatim.",
+                            "items": { "type": "string" }
+                        },
+                        "command": {
+                            "type": "array",
+                            "description": "image driver only. Override container entrypoint args, e.g. [\"--collector.zipkin.host-port=9411\"]. Passed through verbatim as docker-compose `command:` array.",
+                            "items": { "type": "string" }
+                        },
                         "authUsers": {
                             "type": "array",
                             "description": "supabase driver only. Auth users to seed via the supabase Admin API on `up`. Idempotent — duplicates are skipped.",
