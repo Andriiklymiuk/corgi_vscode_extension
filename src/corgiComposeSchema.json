@@ -338,6 +338,26 @@
                             "type": "string",
                             "description": "Service port env name alias, that will be added to .env file. By default PORT is used, e.g. PORT=5432."
                         },
+                        "tunnel": {
+                            "type": "object",
+                            "description": "Optional named (stable URL) tunnel for `corgi tunnel`. When set + hostname resolves non-empty, corgi runs the provider in named mode. Otherwise falls back to Quick mode.",
+                            "additionalProperties": false,
+                            "properties": {
+                                "provider": {
+                                    "type": "string",
+                                    "enum": ["cloudflared", "ngrok"],
+                                    "description": "Tunnel provider. cloudflared (Named Tunnel, free with Cloudflare-managed domain) or ngrok (free static domain on *.ngrok-free.app). localtunnel rejected — Quick mode only. CLI --provider flag overrides this."
+                                },
+                                "hostname": {
+                                    "type": "string",
+                                    "description": "Public HTTPS hostname (e.g. api-andrii.dev.example.com or my-static.ngrok-free.app). Supports ${VAR} substitution from shell env, then service env file. Required when block present."
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "description": "cloudflared only: tunnel name (must already exist via `cloudflared tunnel create <name>`). Supports ${VAR} substitution. Ignored for ngrok."
+                                }
+                            }
+                        },
                         "depends_on_services": {
                             "type": "array",
                             "description": "Adds service credentials to .env. suffix is added at the end of added value. NAME_TO_USE_IN_ENV=localhost:port/special/suffix will be added to .env. If you add just name, than it is SERVICE_NAME=localhost:port_in_env.",
