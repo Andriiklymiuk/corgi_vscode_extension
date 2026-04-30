@@ -155,6 +155,10 @@
                             "type": "string",
                             "description": "supabase driver only. Override the stock JWT secret. Must match auth.jwt_secret in supabase/config.toml — corgi re-signs ANON_KEY / SERVICE_ROLE_KEY with this so emitted env matches what `supabase status` reports."
                         },
+                        "configTomlPath": {
+                            "type": "string",
+                            "description": "supabase driver only. Optional path (relative to corgi-compose.yml) to a config.toml that corgi copies to <projectRoot>/supabase/config.toml on every `corgi init`. If unset, supabase init runs on first `corgi up` if no config.toml exists."
+                        },
                         "authUsers": {
                             "type": "array",
                             "description": "supabase driver only. Auth users to seed via the supabase Admin API on `up`. Idempotent — duplicates are skipped.",
