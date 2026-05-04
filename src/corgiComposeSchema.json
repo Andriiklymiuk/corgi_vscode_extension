@@ -158,7 +158,19 @@
                         },
                         "configTomlPath": {
                             "type": "string",
-                            "description": "supabase driver only. Optional path (relative to corgi-compose.yml) to a config.toml that corgi copies to <projectRoot>/supabase/config.toml on every `corgi init`. If unset, supabase init runs on first `corgi up` if no config.toml exists."
+                            "description": "supabase driver only. Path (relative to corgi-compose.yml) to the canonical config.toml. When set, corgi copies it to corgi_services/db_services/<svc>/supabase/config.toml on every init and runs the supabase CLI from there. When unset, falls back to <projectRoot>/supabase/config.toml created by `supabase init`."
+                        },
+                        "dbPort": {
+                            "type": "integer",
+                            "description": "supabase driver only. Override [db].port in config.toml. Patched on every up so emitted SUPABASE_DB_PORT matches the bind. Default 54322."
+                        },
+                        "studioPort": {
+                            "type": "integer",
+                            "description": "supabase driver only. Override [studio].port. Default 54323."
+                        },
+                        "inbucketPort": {
+                            "type": "integer",
+                            "description": "supabase driver only. Override [inbucket].port (local email capture UI). Default 54324."
                         },
                         "image": {
                             "type": "string",
