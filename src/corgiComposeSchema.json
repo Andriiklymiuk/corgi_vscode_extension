@@ -289,6 +289,13 @@
                             "type": "string",
                             "description": "Optional HTTP path probed by `corgi status`. If set, status GETs http://localhost:<port><healthCheck> and accepts any non-5xx response as healthy. If unset, status falls back to a raw TCP connect on the port. localstack driver defaults to /_localstack/health."
                         },
+                        "profiles": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Named profiles this db_service belongs to. corgi run --profile <name> runs only members of that profile plus their transitive depends_on closure."
+                        },
                         "additionalProperties": false
                     },
                     "required": [],
@@ -391,6 +398,11 @@
                                     "forceUseEnv": {
                                         "type": "boolean",
                                         "description": "Force use environment variable."
+                                    },
+                                    "condition": {
+                                        "type": "string",
+                                        "enum": ["ready", "started"],
+                                        "description": "ready (default): wait until the dependency passes its readiness probe before starting this service. started: wait only until it has launched."
                                     }
                                 },
                                 "required": [
@@ -423,6 +435,11 @@
                                     "forceUseEnv": {
                                         "type": "boolean",
                                         "description": "Force use environment variable."
+                                    },
+                                    "condition": {
+                                        "type": "string",
+                                        "enum": ["ready", "started"],
+                                        "description": "ready (default): wait until the dependency passes its readiness probe before starting this service. started: wait only until it has launched."
                                     }
                                 },
                                 "required": [
@@ -509,6 +526,13 @@
                             },
                             "required": [],
                             "additionalProperties": false
+                        },
+                        "profiles": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "Named profiles this service belongs to. corgi run --profile <name> runs only members of that profile plus their transitive depends_on closure."
                         }
                     },
                     "required": [],
