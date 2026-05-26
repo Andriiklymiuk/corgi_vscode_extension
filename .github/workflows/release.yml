@@ -113,36 +113,13 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release and Upload Asset
         if: env.VERSION_EXISTS == 'false'
-        id: create_release
         run: |
-          changelog=$(cat CHANGELOG.md)
-          changelog=$(echo "$changelog" | jq -Rs .)
-          response=$(curl \
-            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-            --header "Content-Type: application/json" \
-            --request POST \
-            --data '{
-              "tag_name": "v'${{ env.CURRENT_VERSION }}'",
-              "name": "v'${{ env.CURRENT_VERSION }}'",
-              "body": '"$changelog"',
-              "draft": false,
-              "prerelease": false
-            }' \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
-          upload_url=$(echo "$response" | jq -r '.upload_url')
-          echo "::set-output name=upload_url::$upload_url"
+          gh release create "v${CURRENT_VERSION}" \
+            "./corgi-${CURRENT_VERSION}.vsix" \
+            --title "v${CURRENT_VERSION}" \
+            --notes-file CHANGELOG.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-
-      - name: Upload Release Asset
-        if: env.VERSION_EXISTS == 'false'
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./corgi-${{ env.CURRENT_VERSION }}.vsix
-          asset_name: corgi-${{ env.CURRENT_VERSION }}.vsix
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          CURRENT_VERSION: ${{ env.CURRENT_VERSION }}

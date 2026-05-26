@@ -480,10 +480,20 @@
                         },
                         "afterStart": {
                             "type": "array",
-                            "description": "List of commands to run consequently, when the cli is exited.",
+                            "description": "Commands run when the cli exits (also on single-service stop/restart).",
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "restartPolicy": {
+                            "type": "object",
+                            "description": "Auto-heal a detached service that crashes at startup.",
+                            "properties": {
+                                "mode": { "type": "string", "enum": ["on-failure", "never"], "description": "on-failure relaunches on crash; never (default) does nothing." },
+                                "maxRetries": { "type": "integer", "minimum": 0, "description": "Relaunch attempts before giving up." },
+                                "backoffSeconds": { "type": "integer", "minimum": 0, "description": "Delay between relaunch attempts." }
+                            },
+                            "additionalProperties": false
                         },
                         "interactiveInput": {
                             "type": "boolean",
