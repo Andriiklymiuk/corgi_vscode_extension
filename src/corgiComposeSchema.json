@@ -627,6 +627,19 @@
         "description": {
             "type": "string",
             "description": "Description of the corgi-compose project."
+        },
+        "envTiers": {
+            "type": "object",
+            "description": "Named env tiers selected by `corgi run --tier`. Each picks the env dir feeding services, a default dbServices selection, and whether to confirm before running.",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "dir": { "type": "string", "description": "Root dir for per-service env lookup: <dir>/<service>.env." },
+                    "dbServices": { "type": "string", "description": "Default --dbServices for this tier (e.g. \"none\"). Overridden by an explicit --dbServices." },
+                    "confirm": { "type": "boolean", "description": "Prompt before running this tier (e.g. prod). Bypassed with --yes." }
+                },
+                "additionalProperties": false
+            }
         }
     },
     "additionalProperties": false
