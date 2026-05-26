@@ -455,9 +455,20 @@
                         },
                         "beforeStart": {
                             "type": "array",
-                            "description": "List of commands to run consequently, before start commands are run.",
+                            "description": "Commands run before start. Each entry is a string, or {run, cacheKey} where cacheKey lists files whose unchanged hash lets corgi skip that step (--no-cache forces run).",
                             "items": {
-                                "type": "string"
+                                "oneOf": [
+                                    { "type": "string" },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "run": { "type": "string", "description": "The command to run." },
+                                            "cacheKey": { "type": "array", "items": { "type": "string" }, "description": "Files (relative to the service dir) whose combined hash gates this step." }
+                                        },
+                                        "required": ["run"],
+                                        "additionalProperties": false
+                                    }
+                                ]
                             }
                         },
                         "start": {
