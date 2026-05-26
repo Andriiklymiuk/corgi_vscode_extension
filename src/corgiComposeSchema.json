@@ -343,7 +343,12 @@
                         },
                         "copyEnvFromFilePath": {
                             "type": "string",
-                            "description": "The path to the .env, which content will be copied to service repo .env file."
+                            "description": "The path to the .env, which content will be copied to service repo .env file. If missing, falls back to the service repo's .env-example / .env.example."
+                        },
+                        "envPlaceholdersToCheck": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Tokens marking unfilled values; corgi warns (does not fail) when the resolved env still contains any of them."
                         },
                         "localhostNameInEnv": {
                             "type": "string",
