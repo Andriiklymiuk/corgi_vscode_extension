@@ -400,6 +400,10 @@
                                         "type": "string",
                                         "description": "Suffix to add at the end of the service URL."
                                     },
+                                    "scheme": {
+                                        "type": "string",
+                                        "description": "URL scheme for the generated <alias>=<scheme>://host:port (default http). Set https for an SSL service."
+                                    },
                                     "forceUseEnv": {
                                         "type": "boolean",
                                         "description": "Force use environment variable."
