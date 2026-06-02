@@ -49,6 +49,7 @@
                                 "pgvector",
                                 "localstack",
                                 "supabase",
+                                "mailpit",
                                 "image"
                             ]
                         },
