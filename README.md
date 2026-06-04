@@ -31,9 +31,6 @@ This is helpful corgi extension, that:
 
 ## 🤖 AI assistant
 
-Requires VS Code 1.95+ with GitHub Copilot (or any provider exposing the Language
-Model API).
-
 **`@corgi` in Copilot Chat** — knows the corgi-compose.yml schema and the CLI:
 
 - `@corgi /new a go api with a postgres db` — scaffold a corgi-compose.yml
