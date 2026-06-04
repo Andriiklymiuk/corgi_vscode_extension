@@ -27,6 +27,29 @@ This is helpful corgi extension, that:
 - highlights syntax, autocompletion in corgi-compose.yml files
 - adds commands in activity bar, status bar or editing view to run corgi or its
   helpers
+- ships an **AI assistant** (see below)
+
+## 🤖 AI assistant
+
+Requires VS Code 1.95+ with GitHub Copilot (or any provider exposing the Language
+Model API).
+
+**`@corgi` in Copilot Chat** — knows the corgi-compose.yml schema and the CLI:
+
+- `@corgi /new a go api with a postgres db` — scaffold a corgi-compose.yml
+- `@corgi /explain` — explain the current compose file (what starts, env wiring)
+- `@corgi /debug` — runs `corgi doctor` + `corgi status` and diagnoses issues
+- `@corgi how do I add a redis cache?` — grounded Q&A
+
+Each reply offers one-click **corgi doctor** / **corgi run** buttons.
+
+**Copilot agent-mode tools** — in agent mode Copilot can call corgi directly:
+`corgi-status`, `corgi-doctor`, `corgi-validate`, `corgi-list` (read-only) and
+`corgi-run` (asks before starting your stack). So "get my stack running and fix
+issues" just works. Reference them explicitly with `#corgiStatus`, `#corgiDoctor`,
+etc.
+
+The CLI must be installed (the assistant shells out to it).
 
 # Requirements (only needed for running corgi directly in vscode)
 

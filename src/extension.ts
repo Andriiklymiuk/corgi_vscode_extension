@@ -10,6 +10,7 @@ import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
 import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
+import { registerCorgiAi } from './ai';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
@@ -100,6 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })();
 
     registerCorgiCommands(context);
+    registerCorgiAi(context);
 
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {

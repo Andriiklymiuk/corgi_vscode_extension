@@ -2,17 +2,19 @@
   "name": "corgi",
   "displayName": "corgi",
   "publisher": "corgi",
-  "description": "Spell checker for corgi-compose.yml files and corgi runner from vscode",
+  "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
   "version": "1.15.15",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
   "engines": {
-    "vscode": "^1.81.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Linters",
     "Snippets",
+    "AI",
+    "Chat",
     "Other"
   ],
   "activationEvents": [
@@ -22,10 +24,86 @@
     "workspaceContains:corgi-compose*.yaml",
     "workspaceContains:corgi-*.yml",
     "workspaceContains:corgi-*.yaml",
-    "workspaceContains:corgi-*.json"
+    "workspaceContains:corgi-*.json",
+    "onChatParticipant:corgi.assistant"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "chatParticipants": [
+      {
+        "id": "corgi.assistant",
+        "name": "corgi",
+        "fullName": "Corgi",
+        "description": "Scaffold, explain, and debug your corgi-compose.yml stack",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "new",
+            "description": "Scaffold a corgi-compose.yml from a description"
+          },
+          {
+            "name": "explain",
+            "description": "Explain the current corgi-compose.yml"
+          },
+          {
+            "name": "debug",
+            "description": "Diagnose why services aren't healthy (runs doctor + status)"
+          }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "corgi-status",
+        "displayName": "Corgi: stack status",
+        "modelDescription": "Health and status of the running corgi stack (each service/db, port, running/crashed/stopped) as JSON. Read-only.",
+        "tags": ["corgi"],
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "corgiStatus",
+        "icon": "$(pulse)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "corgi-doctor",
+        "displayName": "Corgi: preflight check",
+        "modelDescription": "Preflight the corgi project as JSON: required tools installed, Docker up, ports free. Read-only.",
+        "tags": ["corgi"],
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "corgiDoctor",
+        "icon": "$(check)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "corgi-validate",
+        "displayName": "Corgi: validate compose",
+        "modelDescription": "Validate corgi-compose.yml semantics (dangling deps, cycles, unknown driver, port conflicts) as JSON. Read-only.",
+        "tags": ["corgi"],
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "corgiValidate",
+        "icon": "$(verified)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "corgi-list",
+        "displayName": "Corgi: list services",
+        "modelDescription": "List the services and db_services defined in corgi-compose.yml as JSON. Read-only.",
+        "tags": ["corgi"],
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "corgiList",
+        "icon": "$(list-unordered)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "corgi-run",
+        "displayName": "Corgi: run stack",
+        "modelDescription": "Start all db_services and services in the background (corgi run --detach) and return the run-state as JSON. Has side effects; asks for confirmation.",
+        "tags": ["corgi"],
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "corgiRun",
+        "icon": "$(play)",
+        "inputSchema": { "type": "object", "properties": {} }
+      }
+    ],
     "viewsWelcome": [
       {
         "view": "corgiTreeView",
@@ -272,7 +350,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
-    "@types/vscode": "^1.81.0",
+    "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^2.3.2",
     "copy-webpack-plugin": "11.0.0",
     "glob": "^8.1.0",
