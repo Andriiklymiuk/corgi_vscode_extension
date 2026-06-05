@@ -22,11 +22,19 @@ Public docs in [corgi docs](https://andriiklymiuk.github.io/corgi/)
 
 </div>
 
-This is helpful corgi extension, that:
+[Corgi](https://github.com/Andriiklymiuk/corgi) is how you run your project
+locally — every day, with one command. You describe your stack once in a
+`corgi-compose.yml` and `corgi run` brings the whole thing up: repos cloned,
+databases seeded, `.env` files wired, every service started (it even starts
+Docker for you). Run the whole thing locally, just the databases (`corgi db -u`),
+or only the frontend against staging (`corgi run --tier staging --services web`).
 
-- highlights syntax, autocompletion in corgi-compose.yml files
-- adds commands in activity bar, status bar or editing view to run corgi or its
-  helpers
+This extension makes that nicer right inside the editor. It:
+
+- highlights syntax and autocompletes `corgi-compose.yml` files
+- adds commands in the activity bar, status bar, and editor to run corgi and its
+  helpers (run, doctor, status, db, tunnel, …)
+- lets you browse and run the showcase examples
 - ships an **AI assistant** (see below)
 
 ## 🤖 AI assistant
