@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -57,51 +57,76 @@
         "name": "corgi-status",
         "displayName": "Corgi: stack status",
         "modelDescription": "Health and status of the running corgi stack (each service/db, port, running/crashed/stopped) as JSON. Read-only.",
-        "tags": ["corgi"],
+        "tags": [
+          "corgi"
+        ],
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "corgiStatus",
         "icon": "$(pulse)",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
       },
       {
         "name": "corgi-doctor",
         "displayName": "Corgi: preflight check",
         "modelDescription": "Preflight the corgi project as JSON: required tools installed, Docker up, ports free. Read-only.",
-        "tags": ["corgi"],
+        "tags": [
+          "corgi"
+        ],
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "corgiDoctor",
         "icon": "$(check)",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
       },
       {
         "name": "corgi-validate",
         "displayName": "Corgi: validate compose",
         "modelDescription": "Validate corgi-compose.yml semantics (dangling deps, cycles, unknown driver, port conflicts) as JSON. Read-only.",
-        "tags": ["corgi"],
+        "tags": [
+          "corgi"
+        ],
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "corgiValidate",
         "icon": "$(verified)",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
       },
       {
         "name": "corgi-list",
         "displayName": "Corgi: list services",
         "modelDescription": "List the services and db_services defined in corgi-compose.yml as JSON. Read-only.",
-        "tags": ["corgi"],
+        "tags": [
+          "corgi"
+        ],
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "corgiList",
         "icon": "$(list-unordered)",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
       },
       {
         "name": "corgi-run",
         "displayName": "Corgi: run stack",
         "modelDescription": "Start all db_services and services in the background (corgi run --detach) and return the run-state as JSON. Has side effects; asks for confirmation.",
-        "tags": ["corgi"],
+        "tags": [
+          "corgi"
+        ],
         "canBeReferencedInPrompt": true,
         "toolReferenceName": "corgiRun",
         "icon": "$(play)",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
       }
     ],
     "viewsWelcome": [
