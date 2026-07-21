@@ -615,6 +615,10 @@
                         "checkCmd": {
                             "type": "string",
                             "description": "Command to run to check, if it is installed. By default cmd name is used."
+                        },
+                        "skipInCi": {
+                            "type": "boolean",
+                            "description": "Drop this tool from preflight when corgi detects CI. For tools only a human needs, e.g. a tunnel client."
                         }
                     },
                     "required": [

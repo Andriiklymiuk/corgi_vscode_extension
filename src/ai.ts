@@ -45,6 +45,10 @@ Key commands: corgi run (start everything; --detach background, --seed, --servic
 
 Run a branch in isolation without editing the compose: corgi run --service-branch <svc>=<branch> (reused git worktree, non-destructive), --service-dir <svc>=<path>, --service-checkout <svc>=<branch>. Manage with corgi worktree list/prune.
 
+One change spanning several repos: corgi run --feature <branch> runs every service whose repo has that branch from a worktree for it, leaving the rest on their current checkout (remote-only branches are fetched first). Per-service flags win over it.
+
+In CI: corgi auto-detects CI (CI/GITHUB_ACTIONS/GITLAB_CI/...) and goes quiet + non-interactive. corgi init --depth 1 for shallow clones, corgi run --feature "$BRANCH" --detach --wait --timeout, corgi status --json to gate, corgi logs --dump <dir> in an always-run step for artifacts. Mark human-only tools with skipInCi: true.
+
 For agents/scripts: --json gives pure JSON on stdout, stable exit/error codes.`;
 
 const chatHandler: vscode.ChatRequestHandler = async (request, context, stream, token) => {
