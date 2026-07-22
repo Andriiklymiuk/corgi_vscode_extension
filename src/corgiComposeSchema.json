@@ -140,22 +140,37 @@
                             "description": "localstack driver only. AWS services to enable in the single LocalStack container (e.g. [sqs, s3]).",
                             "items": {
                                 "type": "string",
-                                "enum": ["sqs", "s3", "dynamodb", "sns", "lambda", "secretsmanager", "ssm", "kinesis", "stepfunctions", "events"]
+                                "enum": [
+                                    "sqs",
+                                    "s3",
+                                    "dynamodb",
+                                    "sns",
+                                    "lambda",
+                                    "secretsmanager",
+                                    "ssm",
+                                    "kinesis",
+                                    "stepfunctions",
+                                    "events"
+                                ]
                             }
                         },
                         "queues": {
                             "type": "array",
                             "description": "localstack driver only. SQS queues to auto-create in the LocalStack bootstrap.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "buckets": {
                             "type": "array",
                             "description": "localstack: S3 buckets to auto-create in the LocalStack bootstrap. supabase: Storage buckets to create via Storage API + emit per-bucket env (SUPABASE_BUCKET_<NAME>=<bucket>).",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "jwtSecret": {
                             "type": "string",
-                            "description": "supabase driver only. Override the stock JWT secret. Must match auth.jwt_secret in supabase/config.toml — corgi re-signs ANON_KEY / SERVICE_ROLE_KEY with this so emitted env matches what `supabase status` reports."
+                            "description": "supabase driver only. Override the stock JWT secret. Must match auth.jwt_secret in supabase/config.toml \u2014 corgi re-signs ANON_KEY / SERVICE_ROLE_KEY with this so emitted env matches what `supabase status` reports."
                         },
                         "configTomlPath": {
                             "type": "string",
@@ -184,28 +199,41 @@
                         "environment": {
                             "type": "array",
                             "description": "image driver only. Docker-compose environment list, e.g. [\"MEILI_MASTER_KEY=secret\", \"LOG_LEVEL=debug\"]. Passed through verbatim.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "volumes": {
                             "type": "array",
                             "description": "image driver only. Docker-compose volume mounts, e.g. [\"./data:/app/data\", \"named-vol:/var/lib/x\"]. Passed through verbatim.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "command": {
                             "type": "array",
                             "description": "image driver only. Override container entrypoint args, e.g. [\"--collector.zipkin.host-port=9411\"]. Passed through verbatim as docker-compose `command:` array.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "authUsers": {
                             "type": "array",
-                            "description": "supabase driver only. Auth users to seed via the supabase Admin API on `up`. Idempotent — duplicates are skipped.",
+                            "description": "supabase driver only. Auth users to seed via the supabase Admin API on `up`. Idempotent \u2014 duplicates are skipped.",
                             "items": {
                                 "type": "object",
-                                "required": ["email", "password"],
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
                                 "additionalProperties": false,
                                 "properties": {
-                                    "email": { "type": "string" },
-                                    "password": { "type": "string" },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
                                     "metadata": {
                                         "type": "object",
                                         "description": "Map serialized to JSON for user_metadata. e.g. { role: admin, plan: pro }.",
@@ -217,7 +245,9 @@
                         "topics": {
                             "type": "array",
                             "description": "localstack driver only. SNS topics to auto-create in the LocalStack bootstrap. Implies the 'sns' service.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "subscriptions": {
                             "type": "array",
@@ -234,13 +264,16 @@
                                         "description": "SQS queue name. Must be declared in 'queues'."
                                     }
                                 },
-                                "required": ["topic", "queue"],
+                                "required": [
+                                    "topic",
+                                    "queue"
+                                ],
                                 "additionalProperties": false
                             }
                         },
                         "secrets": {
                             "type": "array",
-                            "description": "localstack driver only. AWS Secrets Manager entries to auto-create. Implies the 'secretsmanager' service. Local dev only — do not commit real production secrets.",
+                            "description": "localstack driver only. AWS Secrets Manager entries to auto-create. Implies the 'secretsmanager' service. Local dev only \u2014 do not commit real production secrets.",
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -253,7 +286,9 @@
                                         "description": "Secret string value."
                                     }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                    "name"
+                                ],
                                 "additionalProperties": false
                             }
                         },
@@ -274,17 +309,25 @@
                                     "type": {
                                         "type": "string",
                                         "description": "Parameter type. Defaults to String.",
-                                        "enum": ["String", "StringList", "SecureString"]
+                                        "enum": [
+                                            "String",
+                                            "StringList",
+                                            "SecureString"
+                                        ]
                                     }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                    "name"
+                                ],
                                 "additionalProperties": false
                             }
                         },
                         "streams": {
                             "type": "array",
                             "description": "localstack driver only. Kinesis streams to auto-create (1 shard each). Implies the 'kinesis' service.",
-                            "items": { "type": "string" }
+                            "items": {
+                                "type": "string"
+                            }
                         },
                         "healthCheck": {
                             "type": "string",
@@ -332,7 +375,7 @@
                         },
                         "environment": {
                             "type": "array",
-                            "description": "List of environment variables to add to this service's .env file.\n\nEach entry is `KEY=VALUE`. The VALUE supports two substitution forms:\n  • `${OWN_VAR}` — references another env var on the same service (own copyEnv, db emissions, port).\n  • `${producer.VAR}` — references a var exported by another service. The producer must be listed in this service's depends_on_services AND export VAR via its `exports:` list.\n\nExample:\n  - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}\n  - NOTIFICATION_SERVICE_TOKEN=${notification-api.NOTIFICATION_SERVICE_TOKEN}",
+                            "description": "List of environment variables to add to this service's .env file.\n\nEach entry is `KEY=VALUE`. The VALUE supports two substitution forms:\n  \u2022 `${OWN_VAR}` \u2014 references another env var on the same service (own copyEnv, db emissions, port).\n  \u2022 `${producer.VAR}` \u2014 references a var exported by another service. The producer must be listed in this service's depends_on_services AND export VAR via its `exports:` list.\n\nExample:\n  - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}\n  - NOTIFICATION_SERVICE_TOKEN=${notification-api.NOTIFICATION_SERVICE_TOKEN}",
                             "items": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*=.*$"
@@ -348,7 +391,9 @@
                         },
                         "envPlaceholdersToCheck": {
                             "type": "array",
-                            "items": { "type": "string" },
+                            "items": {
+                                "type": "string"
+                            },
                             "description": "Tokens marking unfilled values; corgi warns (does not fail) when the resolved env still contains any of them."
                         },
                         "localhostNameInEnv": {
@@ -370,8 +415,11 @@
                             "properties": {
                                 "provider": {
                                     "type": "string",
-                                    "enum": ["cloudflared", "ngrok"],
-                                    "description": "Tunnel provider. cloudflared (Named Tunnel, free with Cloudflare-managed domain) or ngrok (free static domain on *.ngrok-free.app). localtunnel rejected — Quick mode only. CLI --provider flag overrides this."
+                                    "enum": [
+                                        "cloudflared",
+                                        "ngrok"
+                                    ],
+                                    "description": "Tunnel provider. cloudflared (Named Tunnel, free with Cloudflare-managed domain) or ngrok (free static domain on *.ngrok-free.app). localtunnel rejected \u2014 Quick mode only. CLI --provider flag overrides this."
                                 },
                                 "hostname": {
                                     "type": "string",
@@ -411,7 +459,10 @@
                                     },
                                     "condition": {
                                         "type": "string",
-                                        "enum": ["ready", "started"],
+                                        "enum": [
+                                            "ready",
+                                            "started"
+                                        ],
                                         "description": "ready (default): wait until the dependency passes its readiness probe before starting this service. started: wait only until it has launched."
                                     }
                                 },
@@ -448,7 +499,10 @@
                                     },
                                     "condition": {
                                         "type": "string",
-                                        "enum": ["ready", "started"],
+                                        "enum": [
+                                            "ready",
+                                            "started"
+                                        ],
                                         "description": "ready (default): wait until the dependency passes its readiness probe before starting this service. started: wait only until it has launched."
                                     }
                                 },
@@ -463,14 +517,27 @@
                             "description": "Commands run before start. Each entry is a string, or {run, cacheKey} where cacheKey lists files whose unchanged hash lets corgi skip that step (--no-cache forces run).",
                             "items": {
                                 "oneOf": [
-                                    { "type": "string" },
+                                    {
+                                        "type": "string"
+                                    },
                                     {
                                         "type": "object",
                                         "properties": {
-                                            "run": { "type": "string", "description": "The command to run." },
-                                            "cacheKey": { "type": "array", "items": { "type": "string" }, "description": "Files (relative to the service dir) whose combined hash gates this step." }
+                                            "run": {
+                                                "type": "string",
+                                                "description": "The command to run."
+                                            },
+                                            "cacheKey": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "description": "Files (relative to the service dir) whose combined hash gates this step."
+                                            }
                                         },
-                                        "required": ["run"],
+                                        "required": [
+                                            "run"
+                                        ],
                                         "additionalProperties": false
                                     }
                                 ]
@@ -494,22 +561,48 @@
                             "type": "object",
                             "description": "Auto-heal a detached service that crashes at startup.",
                             "properties": {
-                                "mode": { "type": "string", "enum": ["on-failure", "never"], "description": "on-failure relaunches on crash; never (default) does nothing." },
-                                "maxRetries": { "type": "integer", "minimum": 0, "description": "Relaunch attempts before giving up." },
-                                "backoffSeconds": { "type": "integer", "minimum": 0, "description": "Delay between relaunch attempts." }
+                                "mode": {
+                                    "type": "string",
+                                    "enum": [
+                                        "on-failure",
+                                        "never"
+                                    ],
+                                    "description": "on-failure relaunches on crash; never (default) does nothing."
+                                },
+                                "maxRetries": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Relaunch attempts before giving up."
+                                },
+                                "backoffSeconds": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "description": "Delay between relaunch attempts."
+                                }
                             },
                             "additionalProperties": false
                         },
                         "openOnReady": {
                             "description": "Open the service URL when its healthCheck passes (only with `corgi run --open`). true = http://localhost:<port>/, or an object to customize.",
                             "oneOf": [
-                                { "type": "boolean" },
+                                {
+                                    "type": "boolean"
+                                },
                                 {
                                     "type": "object",
                                     "properties": {
-                                        "path": { "type": "string", "description": "URL path (default /), e.g. /login." },
-                                        "scheme": { "type": "string", "description": "http (default) or https." },
-                                        "browser": { "type": "string", "description": "Specific browser app (macOS open -a), e.g. Google Chrome." }
+                                        "path": {
+                                            "type": "string",
+                                            "description": "URL path (default /), e.g. /login."
+                                        },
+                                        "scheme": {
+                                            "type": "string",
+                                            "description": "http (default) or https."
+                                        },
+                                        "browser": {
+                                            "type": "string",
+                                            "description": "Specific browser app (macOS open -a), e.g. Google Chrome."
+                                        }
                                     },
                                     "additionalProperties": false
                                 }
@@ -579,6 +672,24 @@
                                 "type": "string"
                             },
                             "description": "Named profiles this service belongs to. corgi run --profile <name> runs only members of that profile plus their transitive depends_on closure."
+                        },
+                        "warmup": {
+                            "type": "object",
+                            "description": "One expensive request made once the service is listening, before it counts as ready. healthCheck is polled and must stay cheap; a dev server that compiles on demand redoes the work per probe.",
+                            "properties": {
+                                "path": {
+                                    "type": "string",
+                                    "description": "HTTP path to request. Default /."
+                                },
+                                "timeout": {
+                                    "type": "string",
+                                    "description": "How long the single request may take. Default 10m."
+                                },
+                                "expect": {
+                                    "type": "string",
+                                    "description": "Optional substring the response body must contain."
+                                }
+                            }
                         }
                     },
                     "required": [],
@@ -679,11 +790,45 @@
             "additionalProperties": {
                 "type": "object",
                 "properties": {
-                    "dir": { "type": "string", "description": "Root dir for per-service env lookup: <dir>/<service>.env." },
-                    "dbServices": { "type": "string", "description": "Default --dbServices for this tier (e.g. \"none\"). Overridden by an explicit --dbServices." },
-                    "confirm": { "type": "boolean", "description": "Prompt before running this tier (e.g. prod). Bypassed with --yes." }
+                    "dir": {
+                        "type": "string",
+                        "description": "Root dir for per-service env lookup: <dir>/<service>.env."
+                    },
+                    "dbServices": {
+                        "type": "string",
+                        "description": "Default --dbServices for this tier (e.g. \"none\"). Overridden by an explicit --dbServices."
+                    },
+                    "confirm": {
+                        "type": "boolean",
+                        "description": "Prompt before running this tier (e.g. prod). Bypassed with --yes."
+                    }
                 },
                 "additionalProperties": false
+            }
+        },
+        "e2e": {
+            "type": "object",
+            "description": "Cross-service test suite for the whole stack, run with `corgi test --e2e` against an already-running stack.",
+            "properties": {
+                "workdir": {
+                    "type": "string",
+                    "description": "Directory the suite lives in, relative to corgi-compose.yml."
+                },
+                "install": {
+                    "type": "string",
+                    "description": "Optional command to install the suite's dependencies."
+                },
+                "run": {
+                    "type": "string",
+                    "description": "Command that runs the suite. Non-zero fails."
+                },
+                "artifacts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Paths worth keeping when the suite fails."
+                }
             }
         }
     },
