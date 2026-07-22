@@ -479,6 +479,10 @@
                                 "type": "string"
                             }
                         },
+                        "waitForDatabases": {
+                            "type": "boolean",
+                            "description": "Whether this service waits for the database phase before starting. Default true. Set false for a service that only needs the databases' env — a bundler that spends a minute compiling can do it while the databases come up. Its depends_on_db entries still supply env; only the wait is skipped, so a service whose beforeStart talks to a database must keep the default."
+                        },
                         "depends_on_db": {
                             "type": "array",
                             "description": "Adds db credentials (DB_HOST,etc) from db_services will be copied to .env. envAlias adds string before db credentials, like NAME_BEFORE_DB_IN_ENV_DB_HOST.",
