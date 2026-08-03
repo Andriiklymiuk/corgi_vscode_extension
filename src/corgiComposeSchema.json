@@ -716,7 +716,7 @@
                                         },
                                         "composeFile": {
                                             "type": "string",
-                                            "description": "Delegate to a compose file the service repo ships instead of generating one. Mutually exclusive with the build fields."
+                                            "description": "Delegate to a compose file the service repo ships instead of generating one. Mutually exclusive with the build fields (dockerfile/context/target/args/volumes/containerPort/command). Note: corgi's env feeds ${VAR} interpolation of that file, not container env."
                                         }
                                     },
                                     "required": [],
