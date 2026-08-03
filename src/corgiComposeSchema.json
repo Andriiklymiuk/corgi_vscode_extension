@@ -658,17 +658,71 @@
                             }
                         },
                         "runner": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
+                            "description": "How the service runs. String shorthand `runner: docker` equals `{name: docker}`. A service with no start commands and a Dockerfile or compose file in its repo runs in docker automatically; `corgi run --docker` flips docker-capable scripted services too.",
+                            "oneOf": [
+                                {
                                     "type": "string",
                                     "enum": [
                                         "docker"
-                                    ]
+                                    ],
+                                    "description": "Shorthand: run this service in Docker."
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "enum": [
+                                                "docker"
+                                            ]
+                                        },
+                                        "dockerfile": {
+                                            "type": "string",
+                                            "description": "Dockerfile path relative to the service dir. Defaults to Dockerfile."
+                                        },
+                                        "context": {
+                                            "type": "string",
+                                            "description": "Build context. Defaults to the service dir."
+                                        },
+                                        "target": {
+                                            "type": "string",
+                                            "description": "Multi-stage build target."
+                                        },
+                                        "args": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": [
+                                                    "string",
+                                                    "number",
+                                                    "boolean"
+                                                ]
+                                            },
+                                            "description": "Build args passed to docker build."
+                                        },
+                                        "volumes": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "description": "Volume mounts (host paths relative to the service dir), e.g. ./src:/app/src."
+                                        },
+                                        "containerPort": {
+                                            "type": "integer",
+                                            "description": "Port inside the container. Defaults to the Dockerfile's first EXPOSE, else the service port."
+                                        },
+                                        "command": {
+                                            "type": "string",
+                                            "description": "Override the image CMD."
+                                        },
+                                        "composeFile": {
+                                            "type": "string",
+                                            "description": "Delegate to a compose file the service repo ships instead of generating one. Mutually exclusive with the build fields."
+                                        }
+                                    },
+                                    "required": [],
+                                    "additionalProperties": false
                                 }
-                            },
-                            "required": [],
-                            "additionalProperties": false
+                            ]
                         },
                         "profiles": {
                             "type": "array",
