@@ -838,6 +838,10 @@
             "type": "boolean",
             "description": "Whether to use Docker for running services."
         },
+        "scopeContainers": {
+            "type": "boolean",
+            "description": "Prefix every container with the workspace name (from name:, else the compose dir) so two workspaces sharing service names don't collide in docker. Opt-in; off keeps today's names."
+        },
         "useAwsVpn": {
             "type": "boolean",
             "description": "Whether to use AWS VPN connection."
