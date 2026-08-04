@@ -716,7 +716,15 @@
                                         },
                                         "composeFile": {
                                             "type": "string",
-                                            "description": "Delegate to a compose file the service repo ships instead of generating one. Mutually exclusive with the build fields (dockerfile/context/target/args/volumes/containerPort/command). Note: corgi's env feeds ${VAR} interpolation of that file, not container env."
+                                            "description": "Delegate to a compose file the service repo ships instead of generating one. Mutually exclusive with the build fields (dockerfile/context/target/args/volumes/containerPort/command). Corgi injects its generated env into every container via an override file; ${VAR} in the compose file also interpolates."
+                                        },
+                                        "image": {
+                                            "type": "string",
+                                            "description": "Run the service straight from a registry image — no repo, no build. Requires port:. Mutually exclusive with dockerfile/composeFile."
+                                        },
+                                        "watch": {
+                                            "type": "boolean",
+                                            "description": "Rebuild + restart the container when files in the build context change (docker compose up --watch). Foreground runs only; detached runs skip it."
                                         }
                                     },
                                     "required": [],
