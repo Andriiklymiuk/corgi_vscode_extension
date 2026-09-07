@@ -187,7 +187,10 @@ export class AgentWindow implements vscode.Disposable {
         try {
             fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
             this.revealWatcher = fs.watch(dir, (_event, filename) => {
-                if (filename && filename.toString() === path.basename(this.revealFile)) {
+                // Some platforms report no filename; then any change in the
+                // directory is worth a look (the read is a no-op when the
+                // request is not ours).
+                if (!filename || filename.toString() === path.basename(this.revealFile)) {
                     void this.handleReveal();
                 }
             });
