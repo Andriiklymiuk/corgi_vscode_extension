@@ -87,3 +87,16 @@ Credits:
   by Freepik</a>
 - <a href="https://www.freepik.com/free-vector/cute-corgi-dog-astronaut-floating-space-cartoon-vector-icon-illustration-animal-science-icon-concept-isolated-premium-vector-flat-cartoon-style_22271104.htm#query=corgi%20icon&position=7&from_view=keyword">Corgi
   image by catalyststuff</a>
+
+## Session tracking for `corgi agent`
+
+With [corgi agent mode](https://github.com/Andriiklymiuk/corgi/blob/main/docs/agent.md) the corgi daemon
+keeps a board of every Claude Code session on the machine — for a Stream Deck, or `corgi agent sessions`.
+This extension is the half that lives inside each VS Code window:
+
+- it puts `CORGI_VSCODE_WINDOW` into every integrated terminal, so a `claude` started there knows which window it is in;
+- it tells the daemon which terminal tabs (and which extension host, for the Claude Code panel) this window has;
+- when `corgi agent focus <session>` or a Stream Deck key asks for it, it reveals that exact terminal tab or the Claude Code panel.
+
+Nothing happens until `corgi agent` has been used on the machine, and `corgi.sessionTracking: false` turns it off.
+If the Claude Code panel does not come forward, set `corgi.claudePanelCommand` to the command id that focuses it.

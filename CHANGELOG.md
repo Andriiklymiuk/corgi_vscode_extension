@@ -5,3 +5,7 @@ All extension changes are here
 
 All corgi cli changes are here
 [corgi cli changelog](https://github.com/Andriiklymiuk/corgi/releases)
+
+## 1.17.0
+
+- Session tracking companion for `corgi agent track`: injects `CORGI_VSCODE_WINDOW` into integrated terminals, reports this window's terminals to the corgi daemon, and reveals the terminal tab or Claude Code panel a session runs in when `corgi agent focus` (or a Stream Deck key) asks. Settings: `corgi.sessionTracking`, `corgi.claudePanelCommand`.

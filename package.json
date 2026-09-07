@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "1.16.6",
+  "version": "1.17.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -25,7 +25,8 @@
     "workspaceContains:corgi-*.yml",
     "workspaceContains:corgi-*.yaml",
     "workspaceContains:corgi-*.json",
-    "onChatParticipant:corgi.assistant"
+    "onChatParticipant:corgi.assistant",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -356,6 +357,21 @@
           "when": "view == corgiTreeView && viewItem == example"
         }
       ]
+    },
+    "configuration": {
+      "title": "corgi",
+      "properties": {
+        "corgi.sessionTracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Let `corgi agent` find this window: injects CORGI_VSCODE_WINDOW into integrated terminals and lets `corgi agent focus` (or a Stream Deck) reveal the terminal tab a Claude Code session runs in. Does nothing until corgi agent mode has been used on this machine."
+        },
+        "corgi.claudePanelCommand": {
+          "type": "string",
+          "default": "",
+          "description": "Command id that focuses the Claude Code extension's panel, used when a tracked session runs in the panel rather than a terminal. Leave empty to try the known ids."
+        }
+      }
     }
   },
   "scripts": {
