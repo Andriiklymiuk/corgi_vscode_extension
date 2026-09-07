@@ -1,0 +1,294 @@
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+/**
+ * Session tracking companion for `corgi agent track`.
+ *
+ * corgi's daemon knows which Claude Code sessions are running and what they
+ * are doing, but nothing outside a VS Code window can reveal a specific
+ * terminal tab in it. This module is the piece that runs inside the window:
+ *
+ *  1. It injects CORGI_VSCODE_WINDOW into every integrated terminal, so a
+ *     `claude` started there tells the daemon exactly which window it is in.
+ *  2. It writes a window record (extension-host pid, folders, terminals and
+ *     their shell pids) to <agent dir>/windows/<id>.json whenever a terminal
+ *     opens or closes, so the daemon can join a session to its tab — or, for
+ *     the Claude Code panel, to this window through the extension-host pid.
+ *  3. It watches <agent dir>/reveal/<id>.json for the daemon's "show this
+ *     tab" request and calls terminal.show() on the right terminal.
+ *
+ * Everything is a file under corgi's owner-only agent directory: no port, no
+ * token. It does nothing at all unless corgi's agent directory exists, so a
+ * machine that never ran `corgi agent` sees no files appear.
+ */
+
+interface WindowRecord {
+    id: string;
+    app: string;
+    extHostPid: number;
+    folders: string[];
+    terminals: { name: string; shellPid: number }[];
+    updatedAt: string;
+}
+
+interface RevealRequest {
+    windowId: string;
+    sessionId?: string;
+    shellPid?: number;
+    panel?: boolean;
+}
+
+/** Where corgi keeps agent-mode state: the same rules as corgi's NativeDataDir. */
+export function corgiAgentDir(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform, home: string = os.homedir()): string {
+    const override = (env.CORGI_DATA_DIR || '').trim();
+    if (override) {
+        return path.join(override, 'agent');
+    }
+    switch (platform) {
+        case 'darwin':
+            return path.join(home, 'Library', 'Application Support', 'corgi', 'agent');
+        case 'win32':
+            return path.join(env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'corgi', 'agent');
+        default: {
+            const xdg = (env.XDG_DATA_HOME || '').trim();
+            return path.join(xdg || path.join(home, '.local', 'share'), 'corgi', 'agent');
+        }
+    }
+}
+
+/** A window id as a file name. VS Code's ids are plain, but they are data from elsewhere. */
+export function safeFileName(id: string): string {
+    return id.replace(/[^A-Za-z0-9._-]/g, '_');
+}
+
+/** Candidate command ids that reveal the Claude Code extension's panel, tried in order. */
+export const claudePanelCommands = [
+    'claude-vscode.focus',
+    'claude-vscode.open',
+    'claude-code.focus',
+    'workbench.view.extension.claude-code',
+];
+
+export class AgentWindow implements vscode.Disposable {
+    private readonly disposables: vscode.Disposable[] = [];
+    private readonly agentDir: string;
+    private readonly windowId: string;
+    private reportTimer: NodeJS.Timeout | undefined;
+    private revealWatcher: fs.FSWatcher | undefined;
+    private disposed = false;
+
+    constructor(private readonly context: vscode.ExtensionContext, agentDir?: string) {
+        this.agentDir = agentDir ?? corgiAgentDir();
+        this.windowId = vscode.env.sessionId;
+    }
+
+    get windowFile(): string {
+        return path.join(this.agentDir, 'windows', safeFileName(this.windowId) + '.json');
+    }
+
+    get revealFile(): string {
+        return path.join(this.agentDir, 'reveal', safeFileName(this.windowId) + '.json');
+    }
+
+    start(): void {
+        // The env var costs nothing and must be there before the first
+        // terminal opens, whether or not corgi is installed yet.
+        this.context.environmentVariableCollection.replace('CORGI_VSCODE_WINDOW', this.windowId);
+        this.context.environmentVariableCollection.description = 'corgi: lets `corgi agent focus` find this window';
+
+        this.disposables.push(
+            vscode.window.onDidOpenTerminal(() => this.scheduleReport()),
+            vscode.window.onDidCloseTerminal(() => this.scheduleReport()),
+            vscode.workspace.onDidChangeWorkspaceFolders(() => this.scheduleReport()),
+        );
+        this.scheduleReport();
+        this.watchReveal();
+    }
+
+    /** True when corgi agent mode has ever run here; otherwise this stays silent. */
+    private corgiPresent(): boolean {
+        try {
+            return fs.statSync(this.agentDir).isDirectory();
+        } catch {
+            return false;
+        }
+    }
+
+    private scheduleReport(): void {
+        if (this.reportTimer) {
+            clearTimeout(this.reportTimer);
+        }
+        // Terminals open in bursts (a restored window brings back several);
+        // one record per burst, and processId needs a moment anyway.
+        this.reportTimer = setTimeout(() => {
+            this.reportTimer = undefined;
+            void this.report();
+        }, 200);
+    }
+
+    async report(): Promise<void> {
+        if (this.disposed || !this.corgiPresent()) {
+            return;
+        }
+        const record = await this.buildRecord();
+        try {
+            fs.mkdirSync(path.dirname(this.windowFile), { recursive: true, mode: 0o700 });
+            const tmp = this.windowFile + '.tmp';
+            fs.writeFileSync(tmp, JSON.stringify(record), { mode: 0o600 });
+            fs.renameSync(tmp, this.windowFile);
+        } catch {
+            return;
+        }
+        this.nudgeDaemon();
+        // A reveal watcher could not be armed before the directory existed.
+        this.watchReveal();
+    }
+
+    async buildRecord(): Promise<WindowRecord> {
+        const terminals: WindowRecord['terminals'] = [];
+        for (const t of vscode.window.terminals) {
+            const pid = await t.processId;
+            if (pid) {
+                terminals.push({ name: t.name, shellPid: pid });
+            }
+        }
+        return {
+            id: this.windowId,
+            app: vscode.env.appName,
+            extHostPid: process.pid,
+            folders: (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath),
+            terminals,
+            updatedAt: new Date().toISOString(),
+        };
+    }
+
+    /** SIGUSR1 is the daemon's doorbell; it only rings a daemon that advertised it. */
+    private nudgeDaemon(): void {
+        if (process.platform === 'win32') {
+            return;
+        }
+        try {
+            const info = JSON.parse(fs.readFileSync(path.join(this.agentDir, 'daemon.json'), 'utf8'));
+            if (info && typeof info.pid === 'number' && info.pid > 0 && info.commands === true) {
+                process.kill(info.pid, 'SIGUSR1');
+            }
+        } catch {
+            // No daemon, or it is gone: the next drain tick reads the file.
+        }
+    }
+
+    private watchReveal(): void {
+        if (this.revealWatcher || this.disposed || !this.corgiPresent()) {
+            return;
+        }
+        const dir = path.dirname(this.revealFile);
+        try {
+            fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+            this.revealWatcher = fs.watch(dir, (_event, filename) => {
+                if (filename && filename.toString() === path.basename(this.revealFile)) {
+                    void this.handleReveal();
+                }
+            });
+            this.revealWatcher.on('error', () => {
+                this.revealWatcher?.close();
+                this.revealWatcher = undefined;
+            });
+        } catch {
+            this.revealWatcher = undefined;
+        }
+        // A request that arrived before the watcher did.
+        void this.handleReveal();
+    }
+
+    async handleReveal(): Promise<void> {
+        let request: RevealRequest;
+        try {
+            request = JSON.parse(fs.readFileSync(this.revealFile, 'utf8'));
+            fs.unlinkSync(this.revealFile);
+        } catch {
+            return;
+        }
+        if (!request || request.windowId !== this.windowId) {
+            return;
+        }
+        await this.reveal(request);
+    }
+
+    async reveal(request: RevealRequest): Promise<void> {
+        if (request.panel) {
+            await revealClaudePanel();
+            return;
+        }
+        if (request.shellPid) {
+            for (const t of vscode.window.terminals) {
+                if ((await t.processId) === request.shellPid) {
+                    t.show(false);
+                    return;
+                }
+            }
+        }
+        // The tab is gone or unknown: at least bring the terminal area up.
+        await vscode.commands.executeCommand('workbench.action.terminal.focus');
+    }
+
+    dispose(): void {
+        this.disposed = true;
+        if (this.reportTimer) {
+            clearTimeout(this.reportTimer);
+        }
+        this.revealWatcher?.close();
+        for (const d of this.disposables) {
+            d.dispose();
+        }
+        try {
+            fs.unlinkSync(this.windowFile);
+            this.nudgeDaemon();
+        } catch {
+            // Never written, or already gone.
+        }
+    }
+}
+
+/**
+ * Picks the command that focuses the Claude Code panel out of the commands
+ * actually registered: the configured id, then the known candidates, then
+ * any claude-* command whose name says "focus" ("Claude Code: Focus input"
+ * is the palette entry the docs name, bound to Cmd+Esc).
+ */
+export function pickClaudePanelCommand(available: Iterable<string>, configured: string): string | undefined {
+    const ids = new Set(available);
+    for (const id of [configured.trim(), ...claudePanelCommands]) {
+        if (id && ids.has(id)) {
+            return id;
+        }
+    }
+    const claude = [...ids].filter((id) => /^claude[-.]/i.test(id));
+    return claude.find((id) => /focus.?input/i.test(id)) ?? claude.find((id) => /focus/i.test(id)) ?? claude.find((id) => /open/i.test(id));
+}
+
+/** Brings the Claude Code extension's panel forward. */
+export async function revealClaudePanel(): Promise<boolean> {
+    const configured = vscode.workspace.getConfiguration('corgi').get<string>('claudePanelCommand', '');
+    const id = pickClaudePanelCommand(await vscode.commands.getCommands(true), configured);
+    if (!id) {
+        return false;
+    }
+    try {
+        await vscode.commands.executeCommand(id);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export function registerAgentWindow(context: vscode.ExtensionContext): void {
+    if (!vscode.workspace.getConfiguration('corgi').get<boolean>('sessionTracking', true)) {
+        context.environmentVariableCollection.clear();
+        return;
+    }
+    const window = new AgentWindow(context);
+    window.start();
+    context.subscriptions.push(window);
+}
