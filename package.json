@@ -370,6 +370,11 @@
           "type": "string",
           "default": "",
           "description": "Command id that focuses the Claude Code extension's panel, used when a tracked session runs in the panel rather than a terminal. Leave empty to try the known ids."
+        },
+        "corgi.claudeCommand": {
+          "type": "string",
+          "default": "claude",
+          "description": "Command run in the new terminal that `corgi agent new` (a Stream Deck '+' key) opens in this window. Change it to pass flags, e.g. `claude --model opus`."
         }
       }
     }
