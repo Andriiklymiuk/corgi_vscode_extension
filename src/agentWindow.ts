@@ -71,6 +71,59 @@ export const claudePanelCommands = [
     'workbench.view.extension.claude-code',
 ];
 
+/**
+ * A window id that survives a restart. The environment variable collection
+ * is persistent: VS Code applies last run's value to the terminals it
+ * restores before this extension activates. An id that changed every launch
+ * would leave those terminals pointing at a window that no longer exists,
+ * so the id lives in workspaceState and is reused. An empty window has no
+ * workspace of its own to remember it in and falls back to the launch id.
+ */
+export function stableWindowId(context: vscode.ExtensionContext): string {
+    if (!(vscode.workspace.workspaceFolders ?? []).length) {
+        return vscode.env.sessionId;
+    }
+    const key = 'corgi.windowId';
+    const saved = context.workspaceState.get<string>(key);
+    if (saved) {
+        return saved;
+    }
+    const id = 'w-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    void context.workspaceState.update(key, id);
+    return id;
+}
+
+/** VS Code's setting that decides whether an OSC title reaches the tab. */
+const TAB_TITLE_SETTING = 'terminal.integrated.tabs.title';
+const TAB_TITLE_ASKED = 'corgi.tabTitleAsked';
+
+/**
+ * corgi's tab-title hook writes "▲ repo NEEDS YOU" as the terminal title,
+ * but VS Code's default tab title is ${process} — the word "claude". Offer
+ * ${sequence} once, only when corgi agent mode is in use, and remember the
+ * answer either way.
+ */
+export async function offerTabTitles(context: vscode.ExtensionContext): Promise<void> {
+    if (context.globalState.get<boolean>(TAB_TITLE_ASKED)) {
+        return;
+    }
+    const config = vscode.workspace.getConfiguration();
+    const inspected = config.inspect<string>(TAB_TITLE_SETTING);
+    if (inspected?.globalValue !== undefined || inspected?.workspaceValue !== undefined) {
+        await context.globalState.update(TAB_TITLE_ASKED, true);
+        return;
+    }
+    const choice = await vscode.window.showInformationMessage(
+        'corgi can show each Claude Code session\'s status in its terminal tab (● repo, ▲ repo NEEDS YOU). ' +
+        'That needs the tab title set to ${sequence}.',
+        'Show status in tabs', 'Not now',
+    );
+    await context.globalState.update(TAB_TITLE_ASKED, true);
+    if (choice === 'Show status in tabs') {
+        await config.update(TAB_TITLE_SETTING, '${sequence}', vscode.ConfigurationTarget.Global);
+    }
+}
+
 export class AgentWindow implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
     private readonly agentDir: string;
@@ -81,7 +134,7 @@ export class AgentWindow implements vscode.Disposable {
 
     constructor(private readonly context: vscode.ExtensionContext, agentDir?: string) {
         this.agentDir = agentDir ?? corgiAgentDir();
-        this.windowId = vscode.env.sessionId;
+        this.windowId = stableWindowId(context);
     }
 
     get windowFile(): string {
@@ -144,6 +197,7 @@ export class AgentWindow implements vscode.Disposable {
         this.nudgeDaemon();
         // A reveal watcher could not be armed before the directory existed.
         this.watchReveal();
+        void offerTabTitles(this.context);
     }
 
     async buildRecord(): Promise<WindowRecord> {

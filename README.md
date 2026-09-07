@@ -98,5 +98,6 @@ This extension is the half that lives inside each VS Code window:
 - it tells the daemon which terminal tabs (and which extension host, for the Claude Code panel) this window has;
 - when `corgi agent focus <session>` or a Stream Deck key asks for it, it reveals that exact terminal tab or the Claude Code panel.
 
+It also offers, once, to set `terminal.integrated.tabs.title` to `${sequence}`, which is what lets a tab read `▲ repo NEEDS YOU` instead of "claude".
 Nothing happens until `corgi agent` has been used on the machine, and `corgi.sessionTracking: false` turns it off.
 If the Claude Code panel does not come forward, set `corgi.claudePanelCommand` to the command id that focuses it.
