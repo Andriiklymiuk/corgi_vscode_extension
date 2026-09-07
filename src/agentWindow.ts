@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Session tracking companion for `corgi agent track`.
@@ -88,7 +89,7 @@ export function stableWindowId(context: vscode.ExtensionContext): string {
     if (saved) {
         return saved;
     }
-    const id = 'w-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    const id = 'w-' + randomUUID();
     void context.workspaceState.update(key, id);
     return id;
 }
@@ -267,7 +268,7 @@ export class AgentWindow implements vscode.Disposable {
         } catch {
             return;
         }
-        if (!request || request.windowId !== this.windowId) {
+        if (request?.windowId !== this.windowId) {
             return;
         }
         await this.reveal(request);
