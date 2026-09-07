@@ -39,6 +39,9 @@ interface RevealRequest {
     sessionId?: string;
     shellPid?: number;
     panel?: boolean;
+    /** Open a fresh terminal in folder and run claude: the deck's "+" key. */
+    new?: boolean;
+    folder?: string;
 }
 
 /** Where corgi keeps agent-mode state: the same rules as corgi's NativeDataDir. */
@@ -275,6 +278,10 @@ export class AgentWindow implements vscode.Disposable {
     }
 
     async reveal(request: RevealRequest): Promise<void> {
+        if (request.new) {
+            this.openClaudeTerminal(request.folder);
+            return;
+        }
         if (request.panel) {
             await revealClaudePanel();
             return;
@@ -289,6 +296,20 @@ export class AgentWindow implements vscode.Disposable {
         }
         // The tab is gone or unknown: at least bring the terminal area up.
         await vscode.commands.executeCommand('workbench.action.terminal.focus');
+    }
+
+    /**
+     * A new integrated terminal running claude, in the folder the daemon
+     * named (one this window reported open) or the first workspace folder.
+     * The terminal opening reports the window again, and the session's own
+     * first hook seats it on a key.
+     */
+    openClaudeTerminal(folder?: string): void {
+        const cwd = folder || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const command = vscode.workspace.getConfiguration('corgi').get<string>('claudeCommand', 'claude').trim() || 'claude';
+        const terminal = vscode.window.createTerminal({ name: 'claude', cwd });
+        terminal.show(false);
+        terminal.sendText(command, true);
     }
 
     dispose(): void {
