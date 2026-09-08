@@ -106,6 +106,8 @@ It also reads the board itself:
 - a toast with a **Go** button when a session in *another* window starts waiting for you, shown only by the focused window (`corgi.agentToasts`);
 - commands: **Corgi Agent: Sessions** (`corgi.agent.sessions`, pick and focus), **New Claude Code session in this window** (`corgi.agent.new`), **Go to the session that needs you** (`corgi.agent.next`), **Send text to the front session** (`corgi.agent.send`), **Talk to the front session** (`corgi.agent.talk`, presses Ctrl+Y in the session's terminal — the panel has no command for it, so it tells you the key).
 
+The **Agent sessions** view in the Corgi side bar shows the same board as a tree: workspaces, their sessions, status, what each is doing and its context fill. Click focuses; a session waiting on a permission gets Allow and Deny inline; the context menu sets a note or dismisses.
+
 It also offers, once, to set `terminal.integrated.tabs.title` to `${sequence}`, which is what lets a tab read `▲ repo NEEDS YOU` instead of "claude".
 Nothing happens until `corgi agent` has been used on the machine, and `corgi.sessionTracking: false` turns it off.
 If the Claude Code panel does not come forward, set `corgi.claudePanelCommand` to the command id that focuses it.
