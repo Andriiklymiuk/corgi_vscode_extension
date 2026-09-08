@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { AgentNode, AgentSessionsTree } from './agentTree';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -29,6 +30,9 @@ export class AgentBoardWatcher implements vscode.Disposable {
     private poll: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
     private board: Board | undefined;
+    private readonly boardChanged = new vscode.EventEmitter<Board | undefined>();
+    /** Fires after every board read, for views that draw it. */
+    readonly onDidChangeBoard = this.boardChanged.event;
     private lastMtimeMs = -1;
     private readonly toasted = new Set<string>();
     private disposed = false;
@@ -101,6 +105,7 @@ export class AgentBoardWatcher implements vscode.Disposable {
             mtimeMs = fs.statSync(this.boardFile).mtimeMs;
         } catch {
             this.board = undefined;
+            this.boardChanged.fire(undefined);
             this.lastMtimeMs = -1;
             this.render();
             return;
@@ -118,6 +123,7 @@ export class AgentBoardWatcher implements vscode.Disposable {
         }
         this.board = next;
         this.render();
+        this.boardChanged.fire(next);
         this.toast(previous, next);
     }
 
@@ -309,8 +315,44 @@ export async function talkToSession(board: Board | undefined, windowId: string):
 export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: string, windowId: string): AgentBoardWatcher {
     const watcher = new AgentBoardWatcher(agentDir, windowId);
     watcher.start();
+    const tree = new AgentSessionsTree(watcher);
+    const sessionOf = (node: AgentNode | undefined): BoardSession | undefined => (node?.kind === 'session' ? node.session : undefined);
     context.subscriptions.push(
         watcher,
+        tree,
+        vscode.window.registerTreeDataProvider('corgiAgentSessions', tree),
+        vscode.commands.registerCommand('corgi.agent.focusNode', async (node: AgentNode) => {
+            const s = sessionOf(node);
+            if (s) {
+                await focusSession(s.id);
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.dismiss', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to take off the board');
+            if (s) {
+                await corgiAgent(['dismiss', s.id], 'corgi could not dismiss the session');
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.note', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to put a note on');
+            if (!s) {
+                return;
+            }
+            const note = await vscode.window.showInputBox({ prompt: `Note under ${sessionName(s)} (empty clears it)`, value: s.note ?? '' });
+            if (note === undefined) {
+                return;
+            }
+            await corgiAgent(note.trim() ? ['note', s.id, note.trim()] : ['note', s.id, '--clear'], 'corgi could not set the note');
+        }),
+        vscode.commands.registerCommand('corgi.agent.answer', async (node: AgentNode, answer: 'allow' | 'deny' = 'allow') => {
+            const s = sessionOf(node);
+            if (s) {
+                await corgiAgent(['answer', s.id, answer], 'corgi could not answer the prompt');
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.deny', async (node: AgentNode) => {
+            await vscode.commands.executeCommand('corgi.agent.answer', node, 'deny');
+        }),
         vscode.commands.registerCommand('corgi.agent.sessions', async () => {
             watcher.refresh();
             const s = await pickSession(watcher.current(), 'Claude Code session to bring forward');
