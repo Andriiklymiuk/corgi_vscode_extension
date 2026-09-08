@@ -97,7 +97,14 @@ This extension is the half that lives inside each VS Code window:
 - it puts `CORGI_VSCODE_WINDOW` into every integrated terminal, so a `claude` started there knows which window it is in;
 - it tells the daemon which terminal tabs (and which extension host, for the Claude Code panel) this window has;
 - when `corgi agent focus <session>` or a Stream Deck key asks for it, it reveals that exact terminal tab or the Claude Code panel;
-- when `corgi agent new` (the deck's "+" key) asks, it opens a fresh terminal running `claude` (`corgi.claudeCommand`) in this window.
+- when `corgi agent new` (the deck's "+" key) asks, it opens a fresh terminal running `claude` (`corgi.claudeCommand`) in this window;
+- when `corgi agent send <session> --enter "text"` asks, it types the text into that session's terminal tab as keystrokes (never as a shell command), and when a window has several Claude Code chat tabs it brings up the one the daemon names.
+
+It also reads the board itself:
+
+- a status bar item — `$(pulse) 2 · $(bell) 1 · 5h 62%` — with sessions working, sessions that need you (highlighted), and the tightest 5-hour usage limit across accounts; hover for every session's status, detail and context fill; click to pick a session (`corgi.agentStatusBar`);
+- a toast with a **Go** button when a session in *another* window starts waiting for you, shown only by the focused window (`corgi.agentToasts`);
+- commands: **Corgi Agent: Sessions** (`corgi.agent.sessions`, pick and focus), **New Claude Code session in this window** (`corgi.agent.new`), **Go to the session that needs you** (`corgi.agent.next`), **Send text to the front session** (`corgi.agent.send`), **Talk to the front session** (`corgi.agent.talk`, presses Ctrl+Y in the session's terminal — the panel has no command for it, so it tells you the key).
 
 It also offers, once, to set `terminal.integrated.tabs.title` to `${sequence}`, which is what lets a tab read `▲ repo NEEDS YOU` instead of "claude".
 Nothing happens until `corgi agent` has been used on the machine, and `corgi.sessionTracking: false` turns it off.

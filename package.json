@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "1.16.13",
+  "version": "1.17.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -290,6 +290,28 @@
       {
         "command": "corgi.cleanFromRoot",
         "title": "Clean"
+      },
+      {
+        "command": "corgi.agent.sessions",
+        "title": "Corgi Agent: Sessions (focus one)",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "corgi.agent.new",
+        "title": "Corgi Agent: New Claude Code session in this window",
+        "icon": "$(add)"
+      },
+      {
+        "command": "corgi.agent.next",
+        "title": "Corgi Agent: Go to the session that needs you"
+      },
+      {
+        "command": "corgi.agent.send",
+        "title": "Corgi Agent: Send text to the front session"
+      },
+      {
+        "command": "corgi.agent.talk",
+        "title": "Corgi Agent: Talk to the front session (push-to-talk)"
       }
     ],
     "viewsContainers": {
@@ -375,6 +397,16 @@
           "type": "string",
           "default": "claude",
           "description": "Command run in the new terminal that `corgi agent new` (a Stream Deck '+' key) opens in this window. Change it to pass flags, e.g. `claude --model opus`."
+        },
+        "corgi.agentStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the corgi agent session board in the status bar: sessions working, sessions that need you, and the tightest 5-hour usage limit. Hidden while the board is empty. Click it to pick a session."
+        },
+        "corgi.agentToasts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a notification with a Go button when a Claude Code session in another window starts waiting for you. Only the focused window shows it."
         }
       }
     }
