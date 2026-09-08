@@ -34,8 +34,9 @@ interface WindowRecord {
     /** When this window last came to the front, and the shell of its active terminal tab. */
     focusedAt?: string;
     activeShellPid?: number;
-    /** True while the Claude Code panel is the active editor tab. */
+    /** True while the Claude Code panel is the active editor tab, and how many Claude Code tabs are open. */
     panelActive?: boolean;
+    claudeTabs?: number;
     updatedAt: string;
 }
 
@@ -240,6 +241,7 @@ export class AgentWindow implements vscode.Disposable {
             focusedAt: this.focusedAt,
             activeShellPid: activeShellPid || undefined,
             panelActive: claudePanelActive() || undefined,
+            claudeTabs: claudeTabCount(),
             updatedAt: new Date().toISOString(),
         };
     }
@@ -354,7 +356,24 @@ export class AgentWindow implements vscode.Disposable {
 
 /** The Claude Code panel is the active editor tab (its webview id is claudeVSCodePanel). */
 function claudePanelActive(): boolean {
-    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return isClaudeTab(vscode.window.tabGroups.activeTabGroup.activeTab);
+}
+
+/** Open Claude Code chat tabs across every editor group. The side bar view is not a tab. */
+function claudeTabCount(): number {
+    let n = 0;
+    for (const group of vscode.window.tabGroups.all) {
+        for (const tab of group.tabs) {
+            if (isClaudeTab(tab)) {
+                n++;
+            }
+        }
+    }
+    return n;
+}
+
+function isClaudeTab(tab: vscode.Tab | undefined): boolean {
+    const input = tab?.input;
     return input instanceof vscode.TabInputWebview && /claude/i.test(input.viewType);
 }
 
