@@ -34,6 +34,8 @@ interface WindowRecord {
     /** When this window last came to the front, and the shell of its active terminal tab. */
     focusedAt?: string;
     activeShellPid?: number;
+    /** True while the Claude Code panel is the active editor tab. */
+    panelActive?: boolean;
     updatedAt: string;
 }
 
@@ -166,6 +168,8 @@ export class AgentWindow implements vscode.Disposable {
             vscode.window.onDidOpenTerminal(() => this.scheduleReport()),
             vscode.window.onDidCloseTerminal(() => this.scheduleReport()),
             vscode.window.onDidChangeActiveTerminal(() => this.scheduleReport()),
+            vscode.window.tabGroups.onDidChangeTabs(() => this.scheduleReport()),
+            vscode.window.tabGroups.onDidChangeTabGroups(() => this.scheduleReport()),
             vscode.window.onDidChangeWindowState((state) => {
                 if (state.focused) {
                     this.focusedAt = new Date().toISOString();
@@ -235,6 +239,7 @@ export class AgentWindow implements vscode.Disposable {
             terminals,
             focusedAt: this.focusedAt,
             activeShellPid: activeShellPid || undefined,
+            panelActive: claudePanelActive() || undefined,
             updatedAt: new Date().toISOString(),
         };
     }
@@ -345,6 +350,12 @@ export class AgentWindow implements vscode.Disposable {
             // Never written, or already gone.
         }
     }
+}
+
+/** The Claude Code panel is the active editor tab (its webview id is claudeVSCodePanel). */
+function claudePanelActive(): boolean {
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return input instanceof vscode.TabInputWebview && /claude/i.test(input.viewType);
 }
 
 /**
