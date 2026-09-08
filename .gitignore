@@ -3,4 +3,5 @@ dist
 .env
 
 *.vsix
-.DS_STOREtsconfig.tsbuildinfo
+.DS_STORE
+tsconfig.tsbuildinfo
