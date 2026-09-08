@@ -31,6 +31,9 @@ interface WindowRecord {
     extHostPid: number;
     folders: string[];
     terminals: { name: string; shellPid: number }[];
+    /** When this window last came to the front, and the shell of its active terminal tab. */
+    focusedAt?: string;
+    activeShellPid?: number;
     updatedAt: string;
 }
 
@@ -135,6 +138,7 @@ export class AgentWindow implements vscode.Disposable {
     private reportTimer: NodeJS.Timeout | undefined;
     private revealWatcher: fs.FSWatcher | undefined;
     private disposed = false;
+    private focusedAt: string | undefined;
 
     constructor(private readonly context: vscode.ExtensionContext, agentDir?: string) {
         this.agentDir = agentDir ?? corgiAgentDir();
@@ -155,9 +159,19 @@ export class AgentWindow implements vscode.Disposable {
         this.context.environmentVariableCollection.replace('CORGI_VSCODE_WINDOW', this.windowId);
         this.context.environmentVariableCollection.description = 'corgi: lets `corgi agent focus` find this window';
 
+        if (vscode.window.state.focused) {
+            this.focusedAt = new Date().toISOString();
+        }
         this.disposables.push(
             vscode.window.onDidOpenTerminal(() => this.scheduleReport()),
             vscode.window.onDidCloseTerminal(() => this.scheduleReport()),
+            vscode.window.onDidChangeActiveTerminal(() => this.scheduleReport()),
+            vscode.window.onDidChangeWindowState((state) => {
+                if (state.focused) {
+                    this.focusedAt = new Date().toISOString();
+                    this.scheduleReport();
+                }
+            }),
             vscode.workspace.onDidChangeWorkspaceFolders(() => this.scheduleReport()),
         );
         this.scheduleReport();
@@ -212,12 +226,15 @@ export class AgentWindow implements vscode.Disposable {
                 terminals.push({ name: t.name, shellPid: pid });
             }
         }
+        const activeShellPid = await vscode.window.activeTerminal?.processId;
         return {
             id: this.windowId,
             app: vscode.env.appName,
             extHostPid: process.pid,
             folders: (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath),
             terminals,
+            focusedAt: this.focusedAt,
+            activeShellPid: activeShellPid || undefined,
             updatedAt: new Date().toISOString(),
         };
     }
