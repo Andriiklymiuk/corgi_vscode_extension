@@ -193,8 +193,25 @@ interface SessionPick extends vscode.QuickPickItem {
     session: BoardSession;
 }
 
-function pickItems(board: Board | undefined, now = new Date()): SessionPick[] {
-    return sortForPick(liveSessions(board)).map((s) => {
+/** Sessions grouped by workspace, a separator per workspace; needs-input first within each. */
+function pickItems(board: Board | undefined, now = new Date()): (SessionPick | vscode.QuickPickItem)[] {
+    const groups = new Map<string, BoardSession[]>();
+    for (const s of sortForPick(liveSessions(board))) {
+        const key = s.label || s.display || '?';
+        groups.set(key, [...(groups.get(key) ?? []), s]);
+    }
+    const out: (SessionPick | vscode.QuickPickItem)[] = [];
+    for (const key of [...groups.keys()].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))) {
+        if (groups.size > 1) {
+            out.push({ label: key, kind: vscode.QuickPickItemKind.Separator });
+        }
+        out.push(...sessionItems(groups.get(key) ?? [], now));
+    }
+    return out;
+}
+
+function sessionItems(sessions: BoardSession[], now: Date): SessionPick[] {
+    return sessions.map((s) => {
         const meta: string[] = [statusWord(s.status)];
         if (s.pending?.tool) {
             meta.push(`asks ${s.pending.tool}`);
@@ -221,12 +238,12 @@ function pickItems(board: Board | undefined, now = new Date()): SessionPick[] {
 
 export async function pickSession(board: Board | undefined, placeHolder: string): Promise<BoardSession | undefined> {
     const items = pickItems(board);
-    if (!items.length) {
+    if (!items.some((i) => 'session' in i)) {
         void vscode.window.showInformationMessage('corgi agent: no Claude Code sessions on the board.');
         return undefined;
     }
     const picked = await vscode.window.showQuickPick(items, { placeHolder, matchOnDescription: true, matchOnDetail: true });
-    return picked?.session;
+    return picked && 'session' in picked ? picked.session : undefined;
 }
 
 /** The session to act on without asking: the one in front when it is on the board. */

@@ -6,6 +6,10 @@ All extension changes are here
 All corgi cli changes are here
 [corgi cli changelog](https://github.com/Andriiklymiuk/corgi/releases)
 
+## 1.17.1
+
+- Session quick pick grouped by workspace, a separator per workspace.
+
 ## 1.17.0
 
 - Board in the window: a status bar item with working / needs-you counts and the tightest 5h usage limit (`corgi.agentStatusBar`), a session quick pick (`corgi.agent.sessions`), `corgi.agent.new`, `corgi.agent.next`, `corgi.agent.send`, `corgi.agent.talk`, and a Go toast when a session in another window starts waiting (`corgi.agentToasts`).
