@@ -48,6 +48,8 @@ interface RevealRequest {
     /** Open a fresh terminal in folder and run claude: the deck's "+" key. */
     new?: boolean;
     folder?: string;
+    /** What that terminal runs (corgi agent claude, which picks the folder's account); else the claudeCommand setting. */
+    command?: string;
 }
 
 /** Where corgi keeps agent-mode state: the same rules as corgi's NativeDataDir. */
@@ -303,7 +305,7 @@ export class AgentWindow implements vscode.Disposable {
 
     async reveal(request: RevealRequest): Promise<void> {
         if (request.new) {
-            this.openClaudeTerminal(request.folder);
+            this.openClaudeTerminal(request.folder, request.command);
             return;
         }
         if (request.panel) {
@@ -328,9 +330,9 @@ export class AgentWindow implements vscode.Disposable {
      * The terminal opening reports the window again, and the session's own
      * first hook seats it on a key.
      */
-    openClaudeTerminal(folder?: string): void {
+    openClaudeTerminal(folder?: string, command?: string): void {
         const cwd = folder || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const command = vscode.workspace.getConfiguration('corgi').get<string>('claudeCommand', 'claude').trim() || 'claude';
+        command = command?.trim() || vscode.workspace.getConfiguration('corgi').get<string>('claudeCommand', 'claude').trim() || 'claude';
         const terminal = vscode.window.createTerminal({ name: 'claude', cwd });
         terminal.show(false);
         terminal.sendText(command, true);
@@ -359,8 +361,15 @@ function claudePanelActive(): boolean {
     return isClaudeTab(vscode.window.tabGroups.activeTabGroup.activeTab);
 }
 
-/** Open Claude Code chat tabs across every editor group. The side bar view is not a tab. */
-function claudeTabCount(): number {
+/**
+ * Open Claude Code chat tabs across every editor group. The side bar view is
+ * not a tab, so when Claude Code is set to live there the count would be a
+ * lie; undefined then, and corgi drops nothing.
+ */
+function claudeTabCount(): number | undefined {
+    if (vscode.workspace.getConfiguration('claudeCode').get<string>('preferredLocation') === 'sidebar') {
+        return undefined;
+    }
     let n = 0;
     for (const group of vscode.window.tabGroups.all) {
         for (const tab of group.tabs) {
