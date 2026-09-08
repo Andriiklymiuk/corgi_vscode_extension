@@ -11,7 +11,8 @@ import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
 import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
 import { registerCorgiAi } from './ai';
-import { registerAgentWindow } from './agentWindow';
+import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
+import { registerAgentBoard } from './agentStatus';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
@@ -104,6 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registerCorgiCommands(context);
     registerCorgiAi(context);
     registerAgentWindow(context);
+    registerAgentBoard(context, corgiAgentDir(), stableWindowId(context));
 
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {

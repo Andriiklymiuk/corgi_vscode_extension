@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { matchTabByTitle } from './agentBoard';
 
 /**
  * Session tracking companion for `corgi agent track`.
@@ -50,6 +51,11 @@ interface RevealRequest {
     folder?: string;
     /** What that terminal runs (corgi agent claude, which picks the folder's account); else the claudeCommand setting. */
     command?: string;
+    /** Type text into the session's terminal after showing it (`corgi agent send`); enter adds Return. */
+    text?: string;
+    enter?: boolean;
+    /** Which Claude Code chat tab to bring up when the window has several; the tab label. */
+    title?: string;
 }
 
 /** Where corgi keeps agent-mode state: the same rules as corgi's NativeDataDir. */
@@ -309,6 +315,9 @@ export class AgentWindow implements vscode.Disposable {
             return;
         }
         if (request.panel) {
+            if (request.title && await activateClaudeTab(request.title)) {
+                return;
+            }
             await revealClaudePanel();
             return;
         }
@@ -316,11 +325,15 @@ export class AgentWindow implements vscode.Disposable {
             for (const t of vscode.window.terminals) {
                 if ((await t.processId) === request.shellPid) {
                     t.show(false);
+                    if (request.text) {
+                        typeIntoTerminal(t, request.text, request.enter === true);
+                    }
                     return;
                 }
             }
         }
         // The tab is gone or unknown: at least bring the terminal area up.
+        // Text never goes anywhere but the terminal it was meant for.
         await vscode.commands.executeCommand('workbench.action.terminal.focus');
     }
 
@@ -354,6 +367,69 @@ export class AgentWindow implements vscode.Disposable {
             // Never written, or already gone.
         }
     }
+}
+
+/**
+ * Keystrokes for the TUI in a terminal, never a shell command: shouldExecute
+ * stays false and Enter is a literal carriage return, which Claude Code
+ * reads as the Return key (a trailing newline would be a paste).
+ */
+export function typeIntoTerminal(terminal: vscode.Terminal, text: string, enter: boolean): void {
+    terminal.sendText(text + (enter ? '\r' : ''), false);
+}
+
+/** Open Claude Code chat tabs with where they sit: group index (tabGroups.all order) and tab index within it. */
+export function claudeTabs(): { label: string; groupIndex: number; tabIndex: number; group: vscode.TabGroup; tab: vscode.Tab }[] {
+    const out: { label: string; groupIndex: number; tabIndex: number; group: vscode.TabGroup; tab: vscode.Tab }[] = [];
+    vscode.window.tabGroups.all.forEach((group, groupIndex) => {
+        group.tabs.forEach((tab, tabIndex) => {
+            if (isClaudeTab(tab)) {
+                out.push({ label: tab.label, groupIndex, tabIndex, group, tab });
+            }
+        });
+    });
+    return out;
+}
+
+/** VS Code's focus-group commands are named, not numbered; index in tabGroups.all order. */
+export const focusGroupCommands = [
+    'workbench.action.focusFirstEditorGroup',
+    'workbench.action.focusSecondEditorGroup',
+    'workbench.action.focusThirdEditorGroup',
+    'workbench.action.focusFourthEditorGroup',
+    'workbench.action.focusFifthEditorGroup',
+    'workbench.action.focusSixthEditorGroup',
+    'workbench.action.focusSeventhEditorGroup',
+    'workbench.action.focusEighthEditorGroup',
+];
+
+/**
+ * Brings the chat tab whose label is title to the front: focus its editor
+ * group, then open the editor at its index there. There is no tab API for
+ * this, so it goes through the workbench commands; false when no tab
+ * matches or the commands are not there.
+ */
+export async function activateClaudeTab(title: string): Promise<boolean> {
+    const match = matchTabByTitle(claudeTabs(), title);
+    if (!match) {
+        return false;
+    }
+    if (match.tab.isActive && match.group.isActive) {
+        return true;
+    }
+    const focusGroup = focusGroupCommands[match.groupIndex];
+    if (!focusGroup) {
+        return false;
+    }
+    try {
+        await vscode.commands.executeCommand(focusGroup);
+        await vscode.commands.executeCommand('workbench.action.openEditorAtIndex', match.tabIndex);
+    } catch {
+        return false;
+    }
+    // Not the generic panel-focus command here: with several chat tabs open
+    // that is what picked the wrong one.
+    return true;
 }
 
 /** The Claude Code panel is the active editor tab (its webview id is claudeVSCodePanel). */
