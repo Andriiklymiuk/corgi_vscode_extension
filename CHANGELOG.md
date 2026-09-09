@@ -6,6 +6,10 @@ All extension changes are here
 All corgi cli changes are here
 [corgi cli changelog](https://github.com/Andriiklymiuk/corgi/releases)
 
+## 1.17.5
+
+- README: pictures of the Agent sessions view, the status bar item, the toast and the quick pick, drawn from the extension's own labels (`npm run showcase`).
+
 ## 1.17.4
 
 - Status bar item keeps the normal background; only the text tints when a session needs you.
