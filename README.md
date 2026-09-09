@@ -88,26 +88,55 @@ Credits:
 - <a href="https://www.freepik.com/free-vector/cute-corgi-dog-astronaut-floating-space-cartoon-vector-icon-illustration-animal-science-icon-concept-isolated-premium-vector-flat-cartoon-style_22271104.htm#query=corgi%20icon&position=7&from_view=keyword">Corgi
   image by catalyststuff</a>
 
-## Session tracking for `corgi agent`
+## Claude Code sessions
 
-With [corgi agent mode](https://github.com/Andriiklymiuk/corgi/blob/main/docs/agent.md) the corgi daemon
-keeps a board of every Claude Code session on the machine — for a Stream Deck, or `corgi agent sessions`.
-This extension is the half that lives inside each VS Code window:
+With [corgi agent mode](https://github.com/Andriiklymiuk/corgi/blob/main/docs/agent.md)
+the corgi daemon keeps a board of every Claude Code session on the machine.
+This extension shows it inside each VS Code window and lets you act on it.
 
-- it puts `CORGI_VSCODE_WINDOW` into every integrated terminal, so a `claude` started there knows which window it is in;
-- it tells the daemon which terminal tabs (and which extension host, for the Claude Code panel) this window has;
-- when `corgi agent focus <session>` or a Stream Deck key asks for it, it reveals that exact terminal tab or the Claude Code panel;
-- when `corgi agent new` (the deck's "+" key) asks, it opens a fresh terminal running `claude` (`corgi.claudeCommand`) in this window;
-- when `corgi agent send <session> --enter "text"` asks, it types the text into that session's terminal tab as keystrokes (never as a shell command), and when a window has several Claude Code chat tabs it brings up the one the daemon names.
+<p align="center"><img src="docs/media/window.png" width="800" alt="VS Code with the Agent sessions view, a session asking for permission in the terminal, the status bar item and a toast with a Go button"></p>
 
-It also reads the board itself:
+**Agent sessions** view in the Corgi side bar: workspaces, their sessions,
+what each is doing, its context fill, how long since it changed. Click to
+focus that terminal tab or Claude Code panel. A session waiting on a
+permission gets **Allow** and **Deny** inline. Right-click to set a note or
+dismiss.
 
-- a status bar item — `$(pulse) 2 · $(bell) 1 · 5h 62%` — with sessions working, sessions that need you (highlighted), and the tightest 5-hour usage limit across accounts; hover for every session's status, detail and context fill; click to pick a session (`corgi.agentStatusBar`);
-- a toast with a **Go** button when a session in *another* window starts waiting for you, shown only by the focused window (`corgi.agentToasts`);
-- commands: **Corgi Agent: Sessions** (`corgi.agent.sessions`, pick and focus), **New Claude Code session in this window** (`corgi.agent.new`), **Go to the session that needs you** (`corgi.agent.next`), **Send text to the front session** (`corgi.agent.send`), **Talk to the front session** (`corgi.agent.talk`, presses Ctrl+Y in the session's terminal — the panel has no command for it, so it tells you the key).
+<p align="center"><img src="docs/media/story.gif" width="800" alt="A session asks, the row turns to needs you with Allow and Deny, Allow is clicked, the session works on and finishes"></p>
 
-The **Agent sessions** view in the Corgi side bar shows the same board as a tree: workspaces, their sessions, status, what each is doing and its context fill. Click focuses; a session waiting on a permission gets Allow and Deny inline; the context menu sets a note or dismisses.
+**Status bar**: `⌁ 3 · 🔔 1 · 5h 62%` — sessions working, sessions that
+need you (the text tints when there are any), the tightest 5-hour usage
+limit across accounts. Hover for every session. Click to pick one.
 
-It also offers, once, to set `terminal.integrated.tabs.title` to `${sequence}`, which is what lets a tab read `▲ repo NEEDS YOU` instead of "claude".
-Nothing happens until `corgi agent` has been used on the machine, and `corgi.sessionTracking: false` turns it off.
-If the Claude Code panel does not come forward, set `corgi.claudePanelCommand` to the command id that focuses it.
+<p align="center"><img src="docs/media/statusbar.png" width="600" alt="The status bar item: 3 working, 1 needs you, 5h 62 percent"></p>
+
+**A toast with Go** when a session in *another* window starts waiting, shown
+only by the window in front (`corgi.agentToasts`).
+
+<p align="center"><img src="docs/media/toast.png" width="435" alt="Toast: acme-api needs you: Bash go test, with a Go button"></p>
+
+**Commands** (Shift+Cmd+P): **Corgi Agent: Sessions** picks one to focus,
+grouped by workspace; **New Claude Code session in this window**; **Go to the
+session that needs you**; **Send text to the front session**; **Talk to the
+front session** (presses Ctrl+Y in its terminal).
+
+<p align="center"><img src="docs/media/quickpick.png" width="700" alt="The sessions quick pick, grouped by workspace, each with status, what it does, context and account"></p>
+
+Under the hood the extension puts `CORGI_VSCODE_WINDOW` into every
+integrated terminal so a `claude` started there knows its window, tells the
+daemon which terminal tabs and Claude Code panels this window has, and
+reveals the exact tab when `corgi agent focus`, a Stream Deck key or
+corgi-bar asks. `corgi agent new` opens a fresh `claude` terminal here
+(`corgi.claudeCommand`); `corgi agent send` types text into a session's
+terminal as keystrokes, never as a shell command.
+
+It also offers, once, to set `terminal.integrated.tabs.title` to
+`${sequence}`, so a tab reads `▲ acme-api NEEDS YOU` instead of "claude".
+Nothing happens until `corgi agent` has been used on the machine;
+`corgi.sessionTracking: false` turns it off. If the Claude Code panel does
+not come forward, set `corgi.claudePanelCommand` to the command that
+focuses it.
+
+The same board lives in the menu bar with
+[corgi-bar](https://github.com/Andriiklymiuk/corgi-bar) and on Stream Deck
+keys with [Corgi Agent Deck](https://github.com/Andriiklymiuk/corgi-agent-deck).
