@@ -143,7 +143,8 @@ export class AgentBoardWatcher implements vscode.Disposable {
         const needsInput = typeof this.board.needsInput === 'number'
             ? this.board.needsInput
             : sessions.filter((s) => s.status === 'needs_input').length;
-        this.item.backgroundColor = needsInput > 0 ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
+        this.item.backgroundColor = undefined;
+        this.item.color = needsInput > 0 ? new vscode.ThemeColor("statusBarItem.warningForeground") : undefined;
         this.item.show();
     }
 

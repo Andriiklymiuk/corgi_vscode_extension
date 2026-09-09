@@ -6,6 +6,10 @@ All extension changes are here
 All corgi cli changes are here
 [corgi cli changelog](https://github.com/Andriiklymiuk/corgi/releases)
 
+## 1.17.4
+
+- Status bar item keeps the normal background; only the text tints when a session needs you.
+
 ## 1.17.3
 
 - Typed text is submitted: Enter goes as a raw key after the paste, not inside it.
