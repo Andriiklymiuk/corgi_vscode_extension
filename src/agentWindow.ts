@@ -370,12 +370,18 @@ export class AgentWindow implements vscode.Disposable {
 }
 
 /**
- * Keystrokes for the TUI in a terminal, never a shell command: shouldExecute
- * stays false and Enter is a literal carriage return, which Claude Code
- * reads as the Return key (a trailing newline would be a paste).
+ * Keystrokes for the TUI in a terminal, never a shell command. sendText
+ * arrives as a bracketed paste, inside which a carriage return is a newline
+ * in the input box, not a submit: so the text goes as a paste and Enter goes
+ * afterwards as a raw key sequence to the terminal just shown.
  */
 export function typeIntoTerminal(terminal: vscode.Terminal, text: string, enter: boolean): void {
-    terminal.sendText(text + (enter ? '\r' : ''), false);
+    terminal.sendText(text, false);
+    if (enter) {
+        setTimeout(() => {
+            void vscode.commands.executeCommand('workbench.action.terminal.sendSequence', { text: '\r' });
+        }, 120);
+    }
 }
 
 /** Open Claude Code chat tabs with where they sit: group index (tabGroups.all order) and tab index within it. */
