@@ -6,6 +6,10 @@ All extension changes are here
 All corgi cli changes are here
 [corgi cli changelog](https://github.com/Andriiklymiuk/corgi/releases)
 
+## 1.17.3
+
+- Typed text is submitted: Enter goes as a raw key after the paste, not inside it.
+
 ## 1.17.2
 
 - Agent sessions view in the Corgi side bar: grouped by workspace, click to focus, Allow/Deny inline on a pending permission, note and dismiss in the context menu.
