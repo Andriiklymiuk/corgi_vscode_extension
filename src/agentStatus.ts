@@ -316,6 +316,20 @@ export async function talkToSession(board: Board | undefined, windowId: string):
     void vscode.window.showInformationMessage('Press Cmd+D (Ctrl+D) in the Claude Code panel to talk.');
 }
 
+/**
+ * Registering a tree fails when the window still holds an older manifest of this
+ * extension — an in-place upgrade does that until the window is reloaded. One
+ * missing view must not take the rest of the board down with it.
+ */
+export function registerView(id: string, provider: vscode.TreeDataProvider<any>): vscode.Disposable {
+    try {
+        return vscode.window.registerTreeDataProvider(id, provider);
+    } catch (err) {
+        console.warn(`corgi: view ${id} is not available in this window (reload to get it back): ${err}`);
+        return new vscode.Disposable(() => { });
+    }
+}
+
 export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: string, windowId: string): AgentBoardWatcher {
     const watcher = new AgentBoardWatcher(agentDir, windowId);
     watcher.start();
@@ -328,13 +342,13 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
     // The tracker inbox beside the sessions: tickets, reviews and red builds
     // the watch has seen and nobody has dealt with.
     const inbox = new WatchInboxTree();
-    context.subscriptions.push(inbox, inbox.start(), vscode.window.registerTreeDataProvider('corgiWatchInbox', inbox));
+    context.subscriptions.push(inbox, inbox.start(), registerView('corgiWatchInbox', inbox));
     const tree = new AgentSessionsTree(watcher);
     const sessionOf = (node: AgentNode | undefined): BoardSession | undefined => (node?.kind === 'session' ? node.session : undefined);
     context.subscriptions.push(
         watcher,
         tree,
-        vscode.window.registerTreeDataProvider('corgiAgentSessions', tree),
+        registerView('corgiAgentSessions', tree),
         vscode.commands.registerCommand('corgi.agent.focusNode', async (node: AgentNode) => {
             const s = sessionOf(node);
             if (s) {

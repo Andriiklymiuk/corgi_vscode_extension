@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.13.1",
+  "version": "2.13.2",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -135,6 +135,14 @@
         "view": "corgiTreeView",
         "contents": "Corgi cli is not installed.\nInstall corgi to get started. It relies on [Homebrew](https://brew.sh), so make sure it is installed too.\n[$(cloud-download)Install Corgi](command:corgi.installWithHomebrew)\nYou can also check corgi cli repo for more info.\n[$(github-alt)Corgi repo](https://github.com/Andriiklymiuk/corgi)\n",
         "when": "corgiNotInstalled"
+      },
+      {
+        "view": "corgiWatchInbox",
+        "contents": "Nothing is waiting on you.\nThe watch puts tickets, review requests, comments and red builds here as it finds them.\n[$(refresh)Check again](command:corgi.agent.inboxRefresh)\n"
+      },
+      {
+        "view": "corgiAgentSessions",
+        "contents": "No agent session is running.\n[$(add)Start a session](command:corgi.agent.new)\n"
       }
     ],
     "keybindings": [
