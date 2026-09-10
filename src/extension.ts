@@ -12,7 +12,7 @@ import { convertToRawUrl } from './utils/convertToRawUrl';
 import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
 import { registerCorgiAi } from './ai';
 import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
-import { registerAgentBoard } from './agentStatus';
+import { registerAgentBoard, registerView } from './agentStatus';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
@@ -78,7 +78,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
 export async function activate(context: vscode.ExtensionContext) {
     const diagnostics = vscode.languages.createDiagnosticCollection('corgi');
     const corgiTreeProvider = new CorgiTreeProvider();
-    vscode.window.registerTreeDataProvider('corgiTreeView', corgiTreeProvider);
+    context.subscriptions.push(registerView('corgiTreeView', corgiTreeProvider));
 
     checkCorgiInstallation(corgiTreeProvider);
 
