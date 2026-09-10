@@ -115,9 +115,20 @@ next limit queues again.
 `corgi.autoContinue.graceSeconds` waits past the reset (default 60) because
 the limit lifts on Anthropic's clock, not this machine's.
 
+**Watch what runs for you.** `corgi agent watch --auto` fixes tickets and
+review comments headless, in the background — a run takes minutes and only
+speaks when it is over, so the editor gave no sign anything was happening.
+Now the status bar spins with what it is on (`HUM-1338 7m`), a progress
+notification follows each run, and when one opens a pull request it offers
+to open it. Afterwards the bar reports what came out
+(`1 from the watch`). Click it for the list: pick a row to open its PR.
+
+`corgi.watchFixes.statusBar` and `corgi.watchFixes.progress` turn each half
+off.
+
 **Commands** (Shift+Cmd+P): Corgi Agent: Sessions (pick one to focus), New
 Claude Code session in this window, Go to the session that needs you, Send
-text to the front session, Talk to the front session, Auto-continue queue.
+text to the front session, Talk to the front session, Auto-continue queue, What the watch worked on.
 
 <p align="center"><img src="docs/media/quickpick.png" width="700" alt="The sessions quick pick, grouped by workspace"></p>
 
