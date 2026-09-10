@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "1.19.0",
+  "version": "2.13.1",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -346,6 +346,15 @@
         "command": "corgi.agent.watchFixes",
         "title": "Corgi Agent: What the watch worked on (open a PR)",
         "category": "Corgi"
+      },
+      {
+        "command": "corgi.agent.inboxRefresh",
+        "title": "Corgi: Refresh the watch inbox",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "corgi.agent.inboxOpen",
+        "title": "Corgi: Open this item"
       }
     ],
     "viewsContainers": {
@@ -362,6 +371,11 @@
         {
           "id": "corgiTreeView",
           "name": "Woof"
+        },
+        {
+          "id": "corgiWatchInbox",
+          "name": "Inbox",
+          "contextualTitle": "Corgi watch inbox"
         },
         {
           "id": "corgiAgentSessions",
@@ -402,6 +416,11 @@
         {
           "command": "corgi.agent.new",
           "when": "view == corgiAgentSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "corgi.agent.inboxRefresh",
+          "when": "view == corgiWatchInbox",
           "group": "navigation"
         }
       ],

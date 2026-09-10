@@ -1,0 +1,99 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const run = promisify(execFile);
+
+/** One thing the watch saw that is still waiting on a person. */
+export interface InboxItem {
+    key: string;
+    ref?: string;
+    kind?: string;
+    workspace?: string;
+    title?: string;
+    url?: string;
+    state?: string;
+    at?: string;
+}
+
+const KIND_LABEL: Record<string, string> = {
+    'issue.new': 'issue',
+    'issue.comment': 'comment',
+    'pr.comment': 'PR comment',
+    'pr.review': 'PR review',
+    'ci.failed': 'red build',
+};
+
+export function kindLabel(item: InboxItem): string {
+    return KIND_LABEL[item.kind ?? ''] ?? item.kind ?? '';
+}
+
+export function itemName(item: InboxItem): string {
+    return item.ref?.trim() || item.key;
+}
+
+/** "READY TO DEV · 20m" — the column it sits in and how long it has waited. */
+export function itemDetail(item: InboxItem, now: number): string {
+    const bits = [kindLabel(item)];
+    if (item.state) {
+        bits.push(item.state);
+    }
+    const waited = elapsed(item.at, now);
+    if (waited) {
+        bits.push(waited);
+    }
+    return bits.filter(Boolean).join(' · ');
+}
+
+export function elapsed(at: string | undefined, now: number): string {
+    if (!at) {
+        return '';
+    }
+    const started = Date.parse(at);
+    if (Number.isNaN(started)) {
+        return '';
+    }
+    const minutes = Math.max(0, Math.floor((now - started) / 60_000));
+    if (minutes < 60) {
+        return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+        return minutes % 60 === 0 ? `${hours}h` : `${hours}h ${minutes % 60}m`;
+    }
+    return `${Math.floor(hours / 24)}d`;
+}
+
+/** Only an https link is worth opening. */
+export function openableUrl(item: InboxItem): string | undefined {
+    return item.url && /^https:\/\//.test(item.url) ? item.url : undefined;
+}
+
+/** Items grouped by workspace, alphabetically, newest first inside each. */
+export function groupByWorkspace(items: InboxItem[]): { workspace: string; items: InboxItem[] }[] {
+    const groups = new Map<string, InboxItem[]>();
+    for (const item of items) {
+        const key = item.workspace?.trim() || 'elsewhere';
+        groups.set(key, [...(groups.get(key) ?? []), item]);
+    }
+    return [...groups.entries()]
+        .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
+        .map(([workspace, list]) => ({
+            workspace,
+            items: list.sort((a, b) => Date.parse(b.at ?? '') - Date.parse(a.at ?? '')),
+        }));
+}
+
+/**
+ * Reads the inbox from corgi itself rather than the events file: the CLI
+ * already drops what was dismissed and prefers a column someone moved a
+ * ticket to, and those rules should live in one place.
+ */
+export async function readInbox(corgi = 'corgi'): Promise<InboxItem[]> {
+    try {
+        const { stdout } = await run(corgi, ['agent', 'watch', '--json'], { timeout: 10_000 });
+        const parsed = JSON.parse(stdout) as { events?: InboxItem[] };
+        return (parsed.events ?? []).filter((e) => e && typeof e.key === 'string' && e.key !== '');
+    } catch {
+        return []; // no corgi, no watch, half-written output: an empty inbox, never a crash
+    }
+}

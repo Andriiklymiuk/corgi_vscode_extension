@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AgentNode, AgentSessionsTree } from './agentTree';
+import { WatchInboxTree } from './watchInboxTree';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -324,6 +325,10 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
     watchFixes.start();
     context.subscriptions.push(watchFixes);
     context.subscriptions.push(autoContinue, watcher.onDidChangeBoard((board) => autoContinue.update(board)));
+    // The tracker inbox beside the sessions: tickets, reviews and red builds
+    // the watch has seen and nobody has dealt with.
+    const inbox = new WatchInboxTree();
+    context.subscriptions.push(inbox, inbox.start(), vscode.window.registerTreeDataProvider('corgiWatchInbox', inbox));
     const tree = new AgentSessionsTree(watcher);
     const sessionOf = (node: AgentNode | undefined): BoardSession | undefined => (node?.kind === 'session' ? node.session : undefined);
     context.subscriptions.push(
