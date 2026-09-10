@@ -8,6 +8,7 @@ import {
 } from './agentBoard';
 import { runCorgi } from './corgiExec';
 import { revealClaudePanel } from './agentWindow';
+import { AutoContinueWatcher } from './autoContinueWatcher';
 
 /**
  * The board side of agent mode inside a VS Code window: a status bar item
@@ -316,6 +317,9 @@ export async function talkToSession(board: Board | undefined, windowId: string):
 export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: string, windowId: string): AgentBoardWatcher {
     const watcher = new AgentBoardWatcher(agentDir, windowId);
     watcher.start();
+    const autoContinue = new AutoContinueWatcher();
+    autoContinue.start();
+    context.subscriptions.push(autoContinue, watcher.onDidChangeBoard((board) => autoContinue.update(board)));
     const tree = new AgentSessionsTree(watcher);
     const sessionOf = (node: AgentNode | undefined): BoardSession | undefined => (node?.kind === 'session' ? node.session : undefined);
     context.subscriptions.push(

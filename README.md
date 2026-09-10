@@ -99,9 +99,25 @@ waiting. Only the front window shows it (`corgi.agentToasts`).
 
 <p align="center"><img src="docs/media/toast.png" width="435" alt="Toast: acme-api needs you: Bash go test, with a Go button"></p>
 
+**Auto-continue when limits reset.** A session that stops on a usage limit
+sits dead until someone notices. Turn on `corgi.autoContinue.enabled` and
+corgi sends one message to each limited session the moment its window
+resets — no second extension, no daemon of its own.
+
+It is off by default, and it never resumes anything quietly: while
+something is queued, the status bar shows what and how long
+(`api in 47m`, or `2 queued, next in 12m`). Click it to see the list and
+cancel a session that should stay stopped, cancel all of them, or turn the
+whole thing off. A cancelled session is only cancelled for this wait: its
+next limit queues again.
+
+`corgi.autoContinue.message` is what gets typed (default `continue`).
+`corgi.autoContinue.graceSeconds` waits past the reset (default 60) because
+the limit lifts on Anthropic's clock, not this machine's.
+
 **Commands** (Shift+Cmd+P): Corgi Agent: Sessions (pick one to focus), New
 Claude Code session in this window, Go to the session that needs you, Send
-text to the front session, Talk to the front session.
+text to the front session, Talk to the front session, Auto-continue queue.
 
 <p align="center"><img src="docs/media/quickpick.png" width="700" alt="The sessions quick pick, grouped by workspace"></p>
 

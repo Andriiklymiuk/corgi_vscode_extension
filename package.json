@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "1.17.6",
+  "version": "1.18.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -336,6 +336,11 @@
       {
         "command": "corgi.agent.focusNode",
         "title": "Corgi Agent: Focus session"
+      },
+      {
+        "command": "corgi.agent.autoContinue",
+        "title": "Corgi Agent: Auto-continue queue (cancel a resume)",
+        "category": "Corgi"
       }
     ],
     "viewsContainers": {
@@ -475,6 +480,23 @@
           "type": "boolean",
           "default": true,
           "description": "Show a notification with a Go button when a Claude Code session in another window starts waiting for you. Only the focused window shows it."
+        },
+        "corgi.autoContinue.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Resume a Claude Code session that stopped on a usage limit, the moment its window resets. Corgi sends one message (`corgi.autoContinue.message`) to each limited session. Off by default. What is queued shows in the status bar, and any session can be cancelled from there before it is sent."
+        },
+        "corgi.autoContinue.message": {
+          "type": "string",
+          "default": "continue",
+          "markdownDescription": "What to type into a session when its limit resets."
+        },
+        "corgi.autoContinue.graceSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "maximum": 3600,
+          "markdownDescription": "Seconds to wait past the reset time before typing. The limit lifts on Anthropic's clock, not this machine's, so a small margin avoids sending into a window that has not opened yet."
         }
       }
     }
