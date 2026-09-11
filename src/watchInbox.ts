@@ -15,6 +15,8 @@ export interface InboxItem {
     at?: string;
     /** Why unattended runs leave this ticket alone: the breaker tripped, or someone blocked it by hand. */
     blocked?: string;
+    /** The live session on the ticket: opened for it by Work on it, or on a branch named after it. */
+    session?: { id: string; label: string; status: string };
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
@@ -39,10 +41,14 @@ export function itemName(item: InboxItem): string {
 }
 
 /** "READY TO DEV · 20m" — the column it sits in and how long it has waited; a blocked one says why first. */
+const STATUS_WORD: Record<string, string> = { needs_input: 'needs you', working: 'working', done: 'done', stale: 'idle', limited: 'limit' };
+
 export function itemDetail(item: InboxItem, now: number): string {
     const bits = [kindLabel(item)];
     if (item.blocked) {
         bits.push(`blocked: ${item.blocked}`);
+    } else if (item.session) {
+        bits.push(`session ${item.session.label} · ${STATUS_WORD[item.session.status] ?? item.session.status}`);
     } else if (item.author && item.body) {
         bits.push(`${item.author}: ${item.body}`);
     }
