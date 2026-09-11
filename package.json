@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.14.0",
+  "version": "2.14.1",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -398,6 +398,11 @@
         "title": "Corgi: Hidden workspaces\u2026"
       },
       {
+        "command": "corgi.agent.inboxWorkOn",
+        "title": "Corgi: Work on it (a session with the fix prompt)",
+        "icon": "$(play)"
+      },
+      {
         "command": "corgi.agent.inboxIgnore",
         "title": "Corgi: Ignore (out of the inbox everywhere)",
         "icon": "$(eye-closed)"
@@ -560,8 +565,18 @@
           "group": "0_open@1"
         },
         {
+          "command": "corgi.agent.inboxWorkOn",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem.*Issue/",
+          "group": "inline@0"
+        },
+        {
+          "command": "corgi.agent.inboxWorkOn",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem.*Issue/",
+          "group": "0_open@0"
+        },
+        {
           "command": "corgi.agent.inboxUnblock",
-          "when": "view == corgiWatchInbox && viewItem == corgiInboxItemBlocked",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItemBlocked/",
           "group": "1_act@0"
         },
         {
@@ -612,6 +627,10 @@
         },
         {
           "command": "corgi.agent.inboxOpen",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxWorkOn",
           "when": "false"
         },
         {

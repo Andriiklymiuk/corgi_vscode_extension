@@ -59,6 +59,21 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
                     void vscode.env.openExternal(vscode.Uri.parse(url));
                 }
             }),
+            // Work on it: a real session on the ticket, with the prompt an
+            // unattended run would have had — the page's and the phone's button.
+            vscode.commands.registerCommand('corgi.agent.inboxWorkOn', async (node?: InboxNode) => {
+                const item = itemOf(node);
+                if (!item?.key) {
+                    return;
+                }
+                const r = await runCorgi(['agent', 'watch', 'work', item.key]);
+                if (!r.ok) {
+                    void vscode.window.showWarningMessage(`corgi could not start a session on ${itemName(item)}: ${r.stderr.trim() || r.stdout.trim()}`);
+                    return;
+                }
+                void vscode.window.setStatusBarMessage(`corgi: opening a session on ${itemName(item)}…`, 5000);
+                setTimeout(() => void this.refresh(), 2500);
+            }),
             vscode.commands.registerCommand('corgi.agent.inboxIgnore', async (node?: InboxNode) => {
                 const item = itemOf(node);
                 if (item) {
@@ -143,7 +158,8 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
         el.iconPath = item.blocked
             ? new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
             : new vscode.ThemeIcon(ICONS[item.kind ?? ''] ?? 'circle-outline');
-        el.contextValue = item.blocked ? 'corgiInboxItemBlocked' : 'corgiInboxItem';
+        // Markers the menus key on: Blocked shows Unblock, Issue shows Work on it.
+        el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') ? 'Issue' : ''}`;
         const url = openableUrl(item);
         if (url) {
             el.command = { command: 'corgi.agent.inboxOpen', title: 'Open', arguments: [node] };
