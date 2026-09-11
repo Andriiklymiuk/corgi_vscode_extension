@@ -132,8 +132,11 @@ diff far past its budget — turns red with the reason, and the right-click
 menu offers **Fresh from a handoff**: a clean session, same account, picking
 up from the handoff it leaves. A limited one says when the daemon continues
 it. The menu also has Send…, Allow always, Open pull request and Copy
-session id. The inbox shows a blocked ticket in red with the reason and
-**Unblock**; every item has Ignore (also inline), Assign to me and Move….
+session id. In the inbox, an issue has **Work on it** (also inline): a real
+session on the ticket, in its own checkout, with the prompt an unattended run
+would have had — `corgi agent watch work ABC-123`. A blocked ticket is red
+with the reason and **Unblock**; every item has Ignore (also inline), Assign
+to me and Move….
 
 **Reload** (↻ on either view) is a real reload: the daemon rescans sessions
 and polls every tracker now, and the phone, the menu bar and this editor
