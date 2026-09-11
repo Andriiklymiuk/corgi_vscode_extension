@@ -74,6 +74,28 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
                 void vscode.window.setStatusBarMessage(`corgi: opening a session on ${itemName(item)}…`, 5000);
                 setTimeout(() => void this.refresh(), 2500);
             }),
+            // A pull request of mine, from the row: out of draft, merged, closed.
+            ...(['ready', 'merge', 'close'] as const).map((verb) =>
+                vscode.commands.registerCommand(`corgi.agent.inboxPr${verb[0].toUpperCase()}${verb.slice(1)}`, async (node?: InboxNode) => {
+                    const item = itemOf(node);
+                    if (!item?.key || !item.pr) {
+                        return;
+                    }
+                    if (verb !== 'ready') {
+                        const ok = await vscode.window.showWarningMessage(`${verb === 'merge' ? 'Merge' : 'Close without merging'} ${item.pr}?`, { modal: true }, verb === 'merge' ? 'Merge' : 'Close');
+                        if (!ok) {
+                            return;
+                        }
+                    }
+                    const r = await runCorgi(['agent', 'watch', 'pr', verb, item.key]);
+                    if (!r.ok) {
+                        void vscode.window.showWarningMessage(`corgi could not change the pull request: ${r.stderr.trim() || r.stdout.trim()}`);
+                    } else {
+                        void vscode.window.setStatusBarMessage(`corgi: ${r.stdout.trim()}`, 5000);
+                    }
+                    await this.refresh();
+                }),
+            ),
             vscode.commands.registerCommand('corgi.agent.inboxIgnore', async (node?: InboxNode) => {
                 const item = itemOf(node);
                 if (item) {
@@ -168,7 +190,7 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
               ? new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
               : new vscode.ThemeIcon(ICONS[item.kind ?? ''] ?? 'circle-outline');
         // Markers the menus key on: Blocked shows Unblock, Issue shows Work on it.
-        el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') || item.kind === 'task' ? 'Issue' : ''}`;
+        el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') || item.kind === 'task' ? 'Issue' : ''}${item.pr ? 'Pr' : ''}`;
         const url = openableUrl(item);
         if (url) {
             el.command = { command: 'corgi.agent.inboxOpen', title: 'Open', arguments: [node] };

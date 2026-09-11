@@ -136,7 +136,9 @@ session id. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
 would have had — `corgi agent watch work ABC-123`. A blocked ticket is red
 with the reason and **Unblock**; every item has Ignore (also inline), Assign
-to me and Move….
+to me and Move…. A row about a pull request of yours — corgi's run's, a
+session's, or your own — has **ready for review**, **merge** and **close**
+(`corgi agent watch pr ready ABC-123`).
 
 **Reload** (↻ on either view) is a real reload: the daemon rescans sessions
 and polls every tracker now, and the phone, the menu bar and this editor
