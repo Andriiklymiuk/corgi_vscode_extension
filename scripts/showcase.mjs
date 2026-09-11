@@ -36,14 +36,16 @@ const statusWord = { working: "working", needs_input: "needs you", done: "done",
 
 /** A tree row the way agentTree.ts builds it: icon, name, then "status · what · ctx · elapsed". */
 const treeSession = (s, hover) => {
-	const meta = [statusWord[s.status]];
-	if (s.pending) meta.push(`asks ${s.pending}`);
+	const meta = [s.drift ? "drifting" : statusWord[s.status]];
+	if (s.drift) meta.push(s.drift);
+	else if (s.pending) meta.push(`asks ${s.pending}`);
 	else if (s.note) meta.push(`"${s.note}"`);
 	else if (s.detail) meta.push(s.detail);
 	if (s.ctx) meta.push(`ctx ${s.ctx}%`);
 	if (s.elapsed) meta.push(s.elapsed);
-	const color = s.status === "needs_input" ? yellow : fg;
-	return `<div class="ti s${hover ? " hover" : ""}${s.pressed ? " pressed" : ""}"><i class="ic">${ico[statusIcon[s.status]](color)}</i><span class="lbl">${s.title ?? s.name}</span><span class="desc">${meta.join(" · ")}</span>${s.pending && hover ? `<span class="inline"><i class="${s.pressed === "allow" ? "on" : ""}" title="Allow">${ico.check(green)}</i><i title="Deny">${ico.x(red)}</i></span>` : ""}</div>`;
+	const color = s.drift ? red : s.status === "needs_input" ? yellow : fg;
+	const icon = s.drift ? ico.warning(red) : ico[statusIcon[s.status]](color);
+	return `<div class="ti s${hover ? " hover" : ""}${s.pressed ? " pressed" : ""}"><i class="ic">${icon}</i><span class="lbl">${s.title ?? s.name}</span><span class="desc">${meta.join(" · ")}</span>${s.pending && hover ? `<span class="inline"><i class="${s.pressed === "allow" ? "on" : ""}" title="Allow">${ico.check(green)}</i><i title="Deny">${ico.x(red)}</i></span>` : ""}</div>`;
 };
 const treeGroup = (g, hover) => `<div class="ti g"><i class="tw">${ico.chev(fg)}</i><i class="ic">${ico.folder(fg)}</i><span class="lbl">${g.label}</span><span class="desc">${g.sessions.length}</span></div>${g.sessions.map((s) => treeSession(s, hover === s.name)).join("")}`;
 
@@ -84,7 +86,8 @@ const boardAt = (t) => {
 		] },
 		{ label: "acme-api", sessions: [acme] },
 		{ label: "web", sessions: [{ name: "web", status: "working", detail: "Bash npm test", ctx: 58, elapsed: "13m" }] },
-		{ label: "mobile", sessions: [{ name: "mobile", status: "limited", detail: "resets 1:10pm" }] },
+		{ label: "mobile", sessions: [{ name: "mobile", status: "limited", detail: "continues 1:10pm" }] },
+		{ label: "search", sessions: [{ name: "search", status: "working", drift: "context 91% full — /compact, or fresh from a handoff", ctx: 91, elapsed: "41m" }] },
 	];
 	const needs = t === 1 || t === 2 ? 1 : 0;
 	const working = t >= 4 ? 2 : 3;

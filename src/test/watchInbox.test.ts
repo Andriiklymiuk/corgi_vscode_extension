@@ -50,3 +50,11 @@ describe('watchInbox', () => {
         assert.strictEqual(groups.reduce((n, g) => n + g.items.length, 0), items.length);
     });
 });
+
+describe('blocked items and who said what', () => {
+    it('a blocked item says why first; a comment says who', () => {
+        assert.ok(itemDetail({ key: 'k', kind: 'issue.comment', blocked: '2 runs failed', state: 'Todo', at: new Date().toISOString() }, Date.now()).startsWith('comment · blocked: 2 runs failed'));
+        assert.ok(itemDetail({ key: 'k', kind: 'pr.review', author: 'maria', body: 'nit: name', at: new Date().toISOString() }, Date.now()).includes('maria: nit: name'));
+        assert.strictEqual(kindLabel({ key: 'k', kind: 'review.requested' }), 'review asked');
+    });
+});

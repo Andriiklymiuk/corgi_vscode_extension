@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Board, BoardSession, formatElapsed, liveSessions, sessionName, statusRank, statusWord } from './agentBoard';
+import { Board, BoardSession, formatElapsed, isDrifting, limitLine, liveSessions, sessionName, statusRank, statusWord } from './agentBoard';
 import type { AgentBoardWatcher } from './agentStatus';
 
 /** A workspace heading or one session under it. */
@@ -58,13 +58,22 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
         }
         const s = node.session;
         const item = new vscode.TreeItem(s.title || sessionName(s), vscode.TreeItemCollapsibleState.None);
-        const meta = [statusWord(s.status)];
-        if (s.pending?.tool) {
+        const drifting = isDrifting(s);
+        const meta = [drifting ? 'drifting' : statusWord(s.status)];
+        // The line after the status, in order: the drift reason, the
+        // permission, the note, the limit, what it is doing, the branch.
+        if (drifting) {
+            meta.push(s.drift![0]);
+        } else if (s.pending?.tool) {
             meta.push(`asks ${s.pending.tool}`);
         } else if (s.note) {
             meta.push(`"${s.note}"`);
+        } else if (limitLine(s)) {
+            meta.push(limitLine(s));
         } else if (s.detail) {
             meta.push(s.detail);
+        } else if (s.branch) {
+            meta.push(s.branch);
         }
         if (typeof s.context?.percent === 'number' && s.context.percent > 0) {
             meta.push(`ctx ${s.context.percent}%`);
@@ -74,10 +83,23 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
             meta.push(elapsed);
         }
         item.description = meta.join(' · ');
-        item.tooltip = [s.display || s.label, s.cwd, s.profile ? `account ${s.profile}` : '', s.host?.kind].filter(Boolean).join('\n');
-        item.iconPath = new vscode.ThemeIcon(icons[s.status ?? ''] ?? 'circle-outline',
-            s.status === 'needs_input' ? new vscode.ThemeColor('notificationsWarningIcon.foreground') : undefined);
-        item.contextValue = s.pending ? 'corgiAgentSessionPending' : 'corgiAgentSession';
+        item.tooltip = [
+            s.display || s.label,
+            s.cwd,
+            s.branch ? `branch ${s.branch}` : '',
+            s.profile ? `account ${s.profile}` : '',
+            s.host?.kind,
+            s.summary ? `\n${s.summary}` : '',
+            s.pr ? `\n${s.pr}` : '',
+            drifting ? `\ndrifting:\n${s.drift!.join('\n')}` : '',
+        ].filter(Boolean).join('\n');
+        item.iconPath = drifting
+            ? new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
+            : new vscode.ThemeIcon(icons[s.status ?? ''] ?? 'circle-outline',
+                s.status === 'needs_input' ? new vscode.ThemeColor('notificationsWarningIcon.foreground') : undefined);
+        // The context value carries what the row can do: Pending gets Allow /
+        // Deny inline, Drift gets Fresh, Pr gets Open pull request.
+        item.contextValue = ['corgiAgentSession', s.pending ? 'Pending' : '', drifting ? 'Drift' : '', s.pr ? 'Pr' : ''].join('');
         item.command = { command: 'corgi.agent.focusNode', title: 'Focus', arguments: [node] };
         return item;
     }

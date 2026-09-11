@@ -4,7 +4,7 @@ import { WatchInboxTree } from './watchInboxTree';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-    Board, BoardSession, boardTooltip, formatElapsed, liveSessions, newlyNeedingInput, nextSession, readBoard,
+    Board, BoardSession, boardTooltip, formatElapsed, hideWorkspaces, liveSessions, newlyNeedingInput, nextSession, readBoard,
     sessionName, sortForPick, statusBarText, statusWord,
 } from './agentBoard';
 import { runCorgi } from './corgiExec';
@@ -59,6 +59,10 @@ export class AgentBoardWatcher implements vscode.Disposable {
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (e.affectsConfiguration('corgi.agentStatusBar')) {
                     this.render();
+                }
+                if (e.affectsConfiguration('corgi.agent.hiddenWorkspaces')) {
+                    this.lastMtimeMs = -1;
+                    this.refresh();
                 }
             }),
         );
@@ -120,7 +124,7 @@ export class AgentBoardWatcher implements vscode.Disposable {
         }
         this.lastMtimeMs = mtimeMs;
         const previous = this.board;
-        const next = readBoard(this.boardFile);
+        const next = hideWorkspaces(readBoard(this.boardFile), hiddenWorkspaces());
         if (!next) {
             return;
         }
@@ -345,6 +349,7 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
     context.subscriptions.push(inbox, inbox.start(), registerView('corgiWatchInbox', inbox));
     const tree = new AgentSessionsTree(watcher);
     const sessionOf = (node: AgentNode | undefined): BoardSession | undefined => (node?.kind === 'session' ? node.session : undefined);
+    const setHidden = (list: string[]) => vscode.workspace.getConfiguration('corgi').update('agent.hiddenWorkspaces', list, vscode.ConfigurationTarget.Global);
     context.subscriptions.push(
         watcher,
         tree,
@@ -421,6 +426,86 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
             watcher.refresh();
             await talkToSession(watcher.current(), windowId);
         }),
+        // The reload button is a real reload: the daemon rescans and polls
+        // every tracker now; this view, the phone and the menu bar all re-read.
+        vscode.commands.registerCommand('corgi.agent.refresh', async () => {
+            await corgiAgent(['refresh'], 'corgi could not refresh');
+            setTimeout(() => {
+                watcher.refresh();
+                void vscode.commands.executeCommand('corgi.agent.inboxRefresh', { quiet: true });
+            }, 1500);
+        }),
+        vscode.commands.registerCommand('corgi.agent.sendTo', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to send to');
+            if (!s) {
+                return;
+            }
+            const text = await vscode.window.showInputBox({ prompt: `Send to ${sessionName(s)}`, placeHolder: 'Typed into the session and sent with Enter', ignoreFocusOut: true });
+            if (!text?.trim()) {
+                return;
+            }
+            await corgiAgent(['send', s.id, '--enter', '--', text], `corgi could not type into ${sessionName(s)}`);
+        }),
+        vscode.commands.registerCommand('corgi.agent.always', async (node: AgentNode) => {
+            const s = sessionOf(node);
+            if (s) {
+                await corgiAgent(['answer', s.id, 'always'], 'corgi could not answer the prompt');
+            }
+        }),
+        // The way out of a drift: a clean session started from a handoff, same account.
+        vscode.commands.registerCommand('corgi.agent.fresh', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to restart clean from a handoff');
+            if (!s) {
+                return;
+            }
+            const why = (s.drift ?? []).join('\n');
+            const ok = await vscode.window.showWarningMessage(`Restart ${sessionName(s)} clean from a handoff?`, { modal: true, detail: why || 'It leaves a handoff first.' }, 'Fresh');
+            if (ok === 'Fresh') {
+                await corgiAgent(['carry', s.id, '--fresh'], 'corgi could not restart it');
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.openPr', async (node: AgentNode) => {
+            const s = sessionOf(node);
+            if (s?.pr && /^https:\/\//.test(s.pr)) {
+                await vscode.env.openExternal(vscode.Uri.parse(s.pr));
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.copyId', async (node: AgentNode) => {
+            const s = sessionOf(node);
+            if (s) {
+                await vscode.env.clipboard.writeText(s.id);
+            }
+        }),
+        // Hidden workspaces: for showing the editor to someone. A group's
+        // sessions, its inbox and its runs leave the views; nothing on the
+        // machine changes.
+        vscode.commands.registerCommand('corgi.agent.hideWorkspace', async (node?: AgentNode) => {
+            const name = node?.kind === 'group' ? node.label : await vscode.window.showInputBox({ prompt: 'Workspace to hide (its id or session label)' });
+            if (!name?.trim()) {
+                return;
+            }
+            const cur = hiddenWorkspaces();
+            if (!cur.includes(name.trim())) {
+                await setHidden([...cur, name.trim()]);
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.hiddenWorkspaces', async () => {
+            const cur = hiddenWorkspaces();
+            if (!cur.length) {
+                void vscode.window.showInformationMessage('corgi agent: no hidden workspaces. Right-click a workspace in the sessions view to hide it.');
+                return;
+            }
+            const picked = await vscode.window.showQuickPick(cur.map((w) => ({ label: w, picked: true })), { canPickMany: true, placeHolder: 'Hidden workspaces — uncheck to show again' });
+            if (picked) {
+                await setHidden(picked.map((p) => p.label));
+            }
+        }),
     );
     return watcher;
+}
+
+/** The workspaces tucked away in this editor, from settings. */
+export function hiddenWorkspaces(): string[] {
+    const list = vscode.workspace.getConfiguration('corgi').get<string[]>('agent.hiddenWorkspaces', []);
+    return Array.isArray(list) ? list.filter((w) => typeof w === 'string' && w.trim()).map((w) => w.trim()) : [];
 }

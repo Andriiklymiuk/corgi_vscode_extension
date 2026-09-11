@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.13.2",
+  "version": "2.14.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -363,6 +363,56 @@
       {
         "command": "corgi.agent.inboxOpen",
         "title": "Corgi: Open this item"
+      },
+      {
+        "command": "corgi.agent.refresh",
+        "title": "Corgi: Reload everything (rescan sessions, poll every tracker now)",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "corgi.agent.sendTo",
+        "title": "Corgi: Send text to this session\u2026"
+      },
+      {
+        "command": "corgi.agent.always",
+        "title": "Corgi: Allow always"
+      },
+      {
+        "command": "corgi.agent.fresh",
+        "title": "Corgi: Fresh from a handoff"
+      },
+      {
+        "command": "corgi.agent.openPr",
+        "title": "Corgi: Open pull request"
+      },
+      {
+        "command": "corgi.agent.copyId",
+        "title": "Corgi: Copy session id"
+      },
+      {
+        "command": "corgi.agent.hideWorkspace",
+        "title": "Corgi: Hide this workspace (showcase)"
+      },
+      {
+        "command": "corgi.agent.hiddenWorkspaces",
+        "title": "Corgi: Hidden workspaces\u2026"
+      },
+      {
+        "command": "corgi.agent.inboxIgnore",
+        "title": "Corgi: Ignore (out of the inbox everywhere)",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "corgi.agent.inboxUnblock",
+        "title": "Corgi: Unblock (let unattended runs work it again)"
+      },
+      {
+        "command": "corgi.agent.inboxAssign",
+        "title": "Corgi: Assign to me"
+      },
+      {
+        "command": "corgi.agent.inboxMove",
+        "title": "Corgi: Move to another column\u2026"
       }
     ],
     "viewsContainers": {
@@ -430,6 +480,11 @@
           "command": "corgi.agent.inboxRefresh",
           "when": "view == corgiWatchInbox",
           "group": "navigation"
+        },
+        {
+          "command": "corgi.agent.refresh",
+          "when": "view == corgiAgentSessions",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -468,6 +523,66 @@
           "command": "corgi.agent.dismiss",
           "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
           "group": "1_edit@2"
+        },
+        {
+          "command": "corgi.agent.always",
+          "when": "view == corgiAgentSessions && viewItem =~ /Pending/",
+          "group": "0_answer@1"
+        },
+        {
+          "command": "corgi.agent.sendTo",
+          "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
+          "group": "1_edit@0"
+        },
+        {
+          "command": "corgi.agent.fresh",
+          "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
+          "group": "1_edit@3"
+        },
+        {
+          "command": "corgi.agent.openPr",
+          "when": "view == corgiAgentSessions && viewItem =~ /Pr/",
+          "group": "2_open@1"
+        },
+        {
+          "command": "corgi.agent.copyId",
+          "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
+          "group": "3_copy@1"
+        },
+        {
+          "command": "corgi.agent.hideWorkspace",
+          "when": "view == corgiAgentSessions && viewItem == corgiAgentGroup",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "corgi.agent.inboxOpen",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem/",
+          "group": "0_open@1"
+        },
+        {
+          "command": "corgi.agent.inboxUnblock",
+          "when": "view == corgiWatchInbox && viewItem == corgiInboxItemBlocked",
+          "group": "1_act@0"
+        },
+        {
+          "command": "corgi.agent.inboxAssign",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem/",
+          "group": "1_act@1"
+        },
+        {
+          "command": "corgi.agent.inboxMove",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem/",
+          "group": "1_act@2"
+        },
+        {
+          "command": "corgi.agent.inboxIgnore",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem/",
+          "group": "inline@1"
+        },
+        {
+          "command": "corgi.agent.inboxIgnore",
+          "when": "view == corgiWatchInbox && viewItem =~ /corgiInboxItem/",
+          "group": "2_gone@1"
         }
       ],
       "commandPalette": [
@@ -481,6 +596,38 @@
         },
         {
           "command": "corgi.agent.deny",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.always",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.openPr",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.copyId",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxOpen",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxIgnore",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxUnblock",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxAssign",
+          "when": "false"
+        },
+        {
+          "command": "corgi.agent.inboxMove",
           "when": "false"
         }
       ]
@@ -539,6 +686,14 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Also raise a progress notification for each running fix, and offer to open the pull request when it finishes. Turn this off to keep it to the status bar."
+        },
+        "corgi.agent.hiddenWorkspaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Workspaces tucked away while this editor is shown to someone: their sessions, inbox items and runs leave the views and the status bar, and nothing about them toasts. By workspace id, session label, or a folder's last path component. Nothing on the machine changes. Right-click a workspace in the sessions view to add one; `Corgi: Hidden workspaces\u2026` to bring them back."
         }
       }
     }
