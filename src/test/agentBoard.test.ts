@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import {
-    Board, BoardSession, boardTooltip, formatElapsed, lowestHeadroomAccount, matchTabByTitle,
-    newlyNeedingInput, nextSession, sessionSummary, sortForPick, statusBarText,
+    Board, BoardSession, boardTooltip, formatElapsed, hideWorkspaces, isDrifting, isHiddenWorkspace, limitLine,
+    lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, sessionSummary, sortForPick, statusBarText,
 } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
@@ -119,5 +119,35 @@ describe('matchTabByTitle', () => {
         assert.strictEqual(matchTabByTitle(tabs, 'LOGIN')?.label, 'Fix the login bug');
         assert.strictEqual(matchTabByTitle(tabs, 'nothing like it'), undefined);
         assert.strictEqual(matchTabByTitle(tabs, '  '), undefined);
+    });
+});
+
+describe('drift, limits and hidden workspaces', () => {
+    it('limitLine says when the daemon continues, or that the API hiccuped', () => {
+        const soon = new Date(Date.now() + 3_600_000).toISOString();
+        assert.ok(limitLine({ id: 'a', status: 'limited', resumeAt: soon, resumes: 2 }).startsWith('continues '));
+        assert.ok(limitLine({ id: 'a', status: 'limited', resumeAt: soon, resumes: 2 }).endsWith('· 2 so far'));
+        assert.strictEqual(limitLine({ id: 'a', status: 'limited', limit: 'overload' }), 'API overloaded — retried on its own');
+        assert.strictEqual(limitLine({ id: 'a', status: 'limited', resumeAt: '0001-01-01T00:00:00Z' }), '', 'a zero time is not a time');
+        assert.strictEqual(limitLine({ id: 'a', status: 'working', resumeAt: soon }), '');
+    });
+
+    it('a hidden workspace takes its sessions and the counts with it', () => {
+        const board = {
+            needsInput: 1, working: 1, frontSession: 'a',
+            sessions: [
+                { id: 'a', label: 'secret', cwd: '/home/me/dev/secret', status: 'needs_input' },
+                { id: 'b', label: 'api', cwd: '/home/me/dev/api', status: 'working' },
+            ],
+        };
+        const hidden = hideWorkspaces(board, ['secret']);
+        assert.deepStrictEqual(hidden?.sessions?.map((s) => s.id), ['b']);
+        assert.strictEqual(hidden?.needsInput, 0);
+        assert.strictEqual(hidden?.working, 1);
+        assert.strictEqual(hidden?.frontSession, undefined);
+        assert.strictEqual(hideWorkspaces(board, []), board, 'nothing hidden, the same board');
+        assert.ok(isHiddenWorkspace('/home/me/dev/secret', ['secret']), 'by the folder\'s last path component too');
+        assert.ok(isDrifting({ id: 'a', drift: ['context 91% full'] }));
+        assert.ok(!isDrifting({ id: 'a', drift: [] }));
     });
 });

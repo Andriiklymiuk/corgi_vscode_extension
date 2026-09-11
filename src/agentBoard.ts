@@ -26,6 +26,72 @@ export interface BoardSession {
     pending?: { tool?: string; subject?: string; at?: string };
     note?: string;
     stuck?: boolean;
+    /** The cwd's branch as of the last prompt, what Claude last said, the last pull request it linked. */
+    branch?: string;
+    summary?: string;
+    pr?: string;
+    turnStartedAt?: string;
+    /** Which limit a limited session hit ("quota" | "overload"), when the daemon continues it, how many times it has. */
+    limit?: string;
+    resumeAt?: string;
+    resumes?: number;
+    /** What the daemon concluded a person should look at: a context nearly full, a tool failing on repeat, a diff past its budget. */
+    drift?: string[];
+}
+
+export function isDrifting(s: BoardSession): boolean {
+    return Array.isArray(s.drift) && s.drift.length > 0;
+}
+
+/** "continues 12:50 · 2 so far" for a limited session the daemon plans to continue; "API overloaded" for a hiccup. */
+export function limitLine(s: BoardSession, now: Date = new Date()): string {
+    if (s.status !== 'limited') {
+        return '';
+    }
+    if (s.limit === 'overload') {
+        return 'API overloaded — retried on its own';
+    }
+    const at = s.resumeAt ? new Date(s.resumeAt) : undefined;
+    if (!at || Number.isNaN(at.getTime()) || at.getFullYear() < 2000 || at <= now) {
+        return '';
+    }
+    const clock = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `continues ${clock}${s.resumes ? ` · ${s.resumes} so far` : ''}`;
+}
+
+/** A workspace is hidden by its id or label, or by the last path component of a folder. */
+export function isHiddenWorkspace(name: string | undefined, hidden: readonly string[]): boolean {
+    if (!name || hidden.length === 0) {
+        return false;
+    }
+    if (hidden.includes(name)) {
+        return true;
+    }
+    const base = name.split('/').filter(Boolean).pop() ?? name;
+    return hidden.includes(base);
+}
+
+/**
+ * The same board without the sessions of hidden workspaces and with the
+ * counts recomputed — what every view reads while the screen is shown to
+ * someone. Nothing on the machine changes.
+ */
+export function hideWorkspaces(board: Board | undefined, hidden: readonly string[]): Board | undefined {
+    if (!board || hidden.length === 0) {
+        return board;
+    }
+    const sessions = (board.sessions ?? []).filter((s) => s && !isHiddenWorkspace(s.label, hidden) && !isHiddenWorkspace(s.cwd, hidden));
+    if (sessions.length === (board.sessions ?? []).length) {
+        return board;
+    }
+    const gone = new Set((board.sessions ?? []).filter((s) => !sessions.includes(s)).map((s) => s.id));
+    return {
+        ...board,
+        sessions,
+        needsInput: sessions.filter((s) => s.status === 'needs_input').length,
+        working: sessions.filter((s) => s.status === 'working').length,
+        frontSession: board.frontSession && gone.has(board.frontSession) ? undefined : board.frontSession,
+    };
 }
 
 export interface LimitWindow {

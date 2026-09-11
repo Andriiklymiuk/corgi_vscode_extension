@@ -13,6 +13,11 @@ export interface InboxItem {
     url?: string;
     state?: string;
     at?: string;
+    /** Why unattended runs leave this ticket alone: the breaker tripped, or someone blocked it by hand. */
+    blocked?: string;
+    /** Who said what, for a comment or a review. */
+    author?: string;
+    body?: string;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -20,7 +25,9 @@ const KIND_LABEL: Record<string, string> = {
     'issue.comment': 'comment',
     'pr.comment': 'PR comment',
     'pr.review': 'PR review',
+    'review.requested': 'review asked',
     'ci.failed': 'red build',
+    routine: 'routine',
 };
 
 export function kindLabel(item: InboxItem): string {
@@ -31,9 +38,14 @@ export function itemName(item: InboxItem): string {
     return item.ref?.trim() || item.key;
 }
 
-/** "READY TO DEV · 20m" — the column it sits in and how long it has waited. */
+/** "READY TO DEV · 20m" — the column it sits in and how long it has waited; a blocked one says why first. */
 export function itemDetail(item: InboxItem, now: number): string {
     const bits = [kindLabel(item)];
+    if (item.blocked) {
+        bits.push(`blocked: ${item.blocked}`);
+    } else if (item.author && item.body) {
+        bits.push(`${item.author}: ${item.body}`);
+    }
     if (item.state) {
         bits.push(item.state);
     }
@@ -88,12 +100,16 @@ export function groupByWorkspace(items: InboxItem[]): { workspace: string; items
  * already drops what was dismissed and prefers a column someone moved a
  * ticket to, and those rules should live in one place.
  */
-export async function readInbox(corgi = 'corgi'): Promise<InboxItem[]> {
+export async function readInbox(corgi = 'corgi', hidden: readonly string[] = []): Promise<InboxItem[]> {
     try {
         const { stdout } = await run(corgi, ['agent', 'watch', '--json'], { timeout: 10_000 });
         const parsed = JSON.parse(stdout) as { events?: InboxItem[] };
-        return (parsed.events ?? []).filter((e) => e && typeof e.key === 'string' && e.key !== '');
+        return (parsed.events ?? []).filter((e) => e && typeof e.key === 'string' && e.key !== '' && !hiddenWorkspace(e.workspace, hidden));
     } catch {
         return []; // no corgi, no watch, half-written output: an empty inbox, never a crash
     }
+}
+
+function hiddenWorkspace(name: string | undefined, hidden: readonly string[]): boolean {
+    return !!name && (hidden.includes(name) || hidden.includes(name.split('/').filter(Boolean).pop() ?? name));
 }

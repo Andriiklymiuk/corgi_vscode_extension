@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { isHiddenWorkspace } from './agentBoard';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
@@ -70,7 +71,8 @@ export class WatchFixesWatcher implements vscode.Disposable {
             return;
         }
         this.watch();
-        this.fixes = readFixes(fixesPath(this.agentDir));
+        const hidden = vscode.workspace.getConfiguration('corgi').get<string[]>('agent.hiddenWorkspaces', []) ?? [];
+        this.fixes = readFixes(fixesPath(this.agentDir)).filter((r) => !isHiddenWorkspace(r.workspace, hidden));
         this.render();
         this.announce();
     }

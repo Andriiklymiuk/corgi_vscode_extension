@@ -126,9 +126,28 @@ to open it. Afterwards the bar reports what came out
 `corgi.watchFixes.statusBar` and `corgi.watchFixes.progress` turn each half
 off.
 
+**A row says what is wrong, and offers the way out.** A session the daemon
+thinks is drifting — context nearly full, the same tool failing on repeat, a
+diff far past its budget — turns red with the reason, and the right-click
+menu offers **Fresh from a handoff**: a clean session, same account, picking
+up from the handoff it leaves. A limited one says when the daemon continues
+it. The menu also has Send…, Allow always, Open pull request and Copy
+session id. The inbox shows a blocked ticket in red with the reason and
+**Unblock**; every item has Ignore (also inline), Assign to me and Move….
+
+**Reload** (↻ on either view) is a real reload: the daemon rescans sessions
+and polls every tracker now, and the phone, the menu bar and this editor
+re-read the same fresh picture.
+
+**Hidden workspaces**, for showing the editor to someone: right-click a
+workspace heading → *Hide this workspace*. Its sessions, inbox items and runs
+leave the views, the status bar and the toasts. `Corgi: Hidden workspaces…`
+brings them back; the list is `corgi.agent.hiddenWorkspaces`. Nothing on the
+machine changes.
+
 **Commands** (Shift+Cmd+P): Corgi Agent: Sessions (pick one to focus), New
 Claude Code session in this window, Go to the session that needs you, Send
-text to the front session, Talk to the front session, Auto-continue queue, What the watch worked on.
+text to the front session, Talk to the front session, Auto-continue queue, What the watch worked on, Reload everything, Hidden workspaces….
 
 <p align="center"><img src="docs/media/quickpick.png" width="700" alt="The sessions quick pick, grouped by workspace"></p>
 
