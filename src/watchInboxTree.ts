@@ -66,7 +66,7 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
                 if (!item?.key) {
                     return;
                 }
-                const r = await runCorgi(['agent', 'watch', 'work', item.key]);
+                const r = await runCorgi(['agent', 'watch', 'work', item.key, '--from', 'editor']);
                 if (!r.ok) {
                     void vscode.window.showWarningMessage(`corgi could not start a session on ${itemName(item)}: ${r.stderr.trim() || r.stdout.trim()}`);
                     return;
@@ -99,11 +99,18 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
                 if (!item?.ref) {
                     return;
                 }
-                const columns = await this.columns(item.workspace);
+                // A task carries its own columns; a tracker ticket's come from the board.
+                const columns = item.columns?.length ? item.columns : await this.columns(item.workspace);
                 const status = columns.length
                     ? await vscode.window.showQuickPick(columns, { placeHolder: `Move ${itemName(item)} to` })
                     : await vscode.window.showInputBox({ prompt: `Move ${itemName(item)} to which column?` });
-                if (status) {
+                if (status && item.kind === 'task') {
+                    const r = await runCorgi(['agent', 'task', 'move', item.ref, status]);
+                    if (!r.ok) {
+                        void vscode.window.showWarningMessage(`corgi could not move it: ${r.stderr.trim() || r.stdout.trim()}`);
+                    }
+                    await this.refresh();
+                } else if (status) {
                     await act(['move', item.ref, status, ...(item.workspace ? ['--workspace', item.workspace] : [])], 'corgi could not move it');
                 }
             }),
@@ -161,7 +168,7 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
               ? new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
               : new vscode.ThemeIcon(ICONS[item.kind ?? ''] ?? 'circle-outline');
         // Markers the menus key on: Blocked shows Unblock, Issue shows Work on it.
-        el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') ? 'Issue' : ''}`;
+        el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') || item.kind === 'task' ? 'Issue' : ''}`;
         const url = openableUrl(item);
         if (url) {
             el.command = { command: 'corgi.agent.inboxOpen', title: 'Open', arguments: [node] };
