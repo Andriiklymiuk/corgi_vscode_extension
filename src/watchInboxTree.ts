@@ -157,7 +157,9 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
         el.tooltip = [item.title || itemName(item), item.author && item.body ? `\n${item.author}: ${item.body}` : '', item.blocked ? `\nblocked: ${item.blocked}` : ''].filter(Boolean).join('\n');
         el.iconPath = item.blocked
             ? new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
-            : new vscode.ThemeIcon(ICONS[item.kind ?? ''] ?? 'circle-outline');
+            : item.session
+              ? new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
+              : new vscode.ThemeIcon(ICONS[item.kind ?? ''] ?? 'circle-outline');
         // Markers the menus key on: Blocked shows Unblock, Issue shows Work on it.
         el.contextValue = `corgiInboxItem${item.blocked ? 'Blocked' : ''}${(item.kind ?? '').startsWith('issue.') ? 'Issue' : ''}`;
         const url = openableUrl(item);
