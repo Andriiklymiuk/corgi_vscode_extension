@@ -17,6 +17,10 @@ export interface InboxItem {
     blocked?: string;
     /** The live session on the ticket: opened for it by Work on it, or on a branch named after it. */
     session?: { id: string; label: string; status: string };
+    /** Work on it pressed, and by whom, while the session is on its way. */
+    picked?: { at: string; by: string };
+    /** A task's own columns (a tracker ticket's come from the board). */
+    columns?: string[];
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
@@ -30,6 +34,7 @@ const KIND_LABEL: Record<string, string> = {
     'review.requested': 'review asked',
     'ci.failed': 'red build',
     routine: 'routine',
+    task: 'task',
 };
 
 export function kindLabel(item: InboxItem): string {
@@ -49,6 +54,9 @@ export function itemDetail(item: InboxItem, now: number): string {
         bits.push(`blocked: ${item.blocked}`);
     } else if (item.session) {
         bits.push(`session ${item.session.label} · ${STATUS_WORD[item.session.status] ?? item.session.status}`);
+    } else if (item.picked) {
+        const from = item.picked.by === 'cli' ? 'command line' : item.picked.by === 'page' ? 'page' : item.picked.by === 'editor' ? 'editor' : 'phone';
+        bits.push(`picked from the ${from} · waiting for a session`);
     } else if (item.author && item.body) {
         bits.push(`${item.author}: ${item.body}`);
     }
