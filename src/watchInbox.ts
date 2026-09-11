@@ -21,6 +21,8 @@ export interface InboxItem {
     picked?: { at: string; by: string };
     /** A task's own columns (a tracker ticket's come from the board). */
     columns?: string[];
+    /** The pull request of mine this row lets me mark ready, merge or close. */
+    pr?: string;
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
