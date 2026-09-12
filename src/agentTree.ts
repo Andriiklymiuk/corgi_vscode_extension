@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { Board, BoardSession, changesLine, formatElapsed, formatTokens, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
+import * as path from 'node:path';
+import { Board, BoardSession, botTitle, changesLine, formatElapsed, formatTokens, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, readBots, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import type { AgentBoardWatcher } from './agentStatus';
 
 /** A workspace heading or one session under it. */
@@ -57,7 +58,9 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
             return item;
         }
         const s = node.session;
-        const item = new vscode.TreeItem(s.title || sessionName(s), vscode.TreeItemCollapsibleState.None);
+        // A bot's session carries the bot's name.
+        const bot = s.bot ? readBots(path.dirname(this.watcher.boardFile)).find((b) => b.name === s.bot) : undefined;
+        const item = new vscode.TreeItem(bot ? botTitle(bot) : s.title || sessionName(s), vscode.TreeItemCollapsibleState.None);
         const drifting = isDrifting(s);
         const crossing = isCrossing(s);
         const meta = [drifting ? 'drifting' : statusWord(s.status)];
