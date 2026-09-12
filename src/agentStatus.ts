@@ -360,6 +360,12 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
                 await focusSession(s.id);
             }
         }),
+        vscode.commands.registerCommand('corgi.agent.interrupt', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to interrupt (Escape: the turn stops, the session waits)');
+            if (s) {
+                await corgiAgent(['interrupt', s.id], 'corgi could not interrupt the session');
+            }
+        }),
         vscode.commands.registerCommand('corgi.agent.dismiss', async (node: AgentNode) => {
             const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to take off the board');
             if (s) {

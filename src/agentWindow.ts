@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { matchTabByTitle } from './agentBoard';
+import { matchTabByTitle, isKeySequence } from './agentBoard';
 
 /**
  * Session tracking companion for `corgi agent track`.
@@ -376,6 +376,12 @@ export class AgentWindow implements vscode.Disposable {
  * afterwards as a raw key sequence to the terminal just shown.
  */
 export function typeIntoTerminal(terminal: vscode.Terminal, text: string, enter: boolean): void {
+    if (isKeySequence(text)) {
+        // Escape (deny, interrupt), Return: a key, not a paste — a paste
+        // wraps it in bracketed-paste marks and the TUI reads it as text.
+        void vscode.commands.executeCommand('workbench.action.terminal.sendSequence', { text });
+        return;
+    }
     terminal.sendText(text, false);
     if (enter) {
         setTimeout(() => {

@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
+import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -173,5 +173,16 @@ describe('drift, limits and hidden workspaces', () => {
         assert.strictEqual(spendLine({ id: 'a', spend: { tokens: 980_000 } }), '980k');
         assert.strictEqual(spendLine({ id: 'a', spend: { tokens: 52_300_000 }, cap: 50_000_000, overCap: true }), '52.3M over budget');
         assert.ok(sessionSummary({ id: 'a', display: 'api', status: 'working', spend: { tokens: 1_200_000 }, overCap: true }).includes('1.2M over budget'));
+    });
+});
+
+describe('isKeySequence', () => {
+    it('tells a key press from text to paste', () => {
+        assert.ok(isKeySequence('\x1b'), 'Escape');
+        assert.ok(isKeySequence('\r'), 'Return');
+        assert.ok(isKeySequence('2\r'), 'always');
+        assert.ok(!isKeySequence('continue'));
+        assert.ok(!isKeySequence('2'), 'a digit alone is text');
+        assert.ok(!isKeySequence(''));
     });
 });
