@@ -138,7 +138,9 @@ amber with a merge icon and names it — *⚠ api·2 on registry.go* — so work
 crossing streams is seen here, not at merge time. What it has cost sits
 there too (*52.3M*, cache reads included), and turns into *52.3M over
 budget* with a red icon once it passes the budget `corgi agent cap 50M`
-gave it (corgi 2.20.9+). The menu also has Send…,
+gave it (corgi 2.20.9+). A working row has **Interrupt** — Escape into
+the session, as you would press it: the turn stops, the session waits,
+nothing is closed (`corgi agent interrupt`, corgi 2.20.10+). The menu also has Send…,
 Allow always, Open pull request and Copy session id. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
 would have had — `corgi agent watch work ABC-123` — and **Work on it in a

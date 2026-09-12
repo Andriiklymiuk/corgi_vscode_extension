@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.17.0",
+  "version": "2.18.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -332,6 +332,11 @@
         "icon": "$(close)"
       },
       {
+        "command": "corgi.agent.interrupt",
+        "title": "Corgi Agent: Interrupt session (Escape)",
+        "icon": "$(debug-stop)"
+      },
+      {
         "command": "corgi.agent.note",
         "title": "Corgi Agent: Note on session",
         "icon": "$(note)"
@@ -549,6 +554,11 @@
           "command": "corgi.agent.dismiss",
           "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
           "group": "1_edit@2"
+        },
+        {
+          "command": "corgi.agent.interrupt",
+          "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession.*Working/",
+          "group": "0_answer@3"
         },
         {
           "command": "corgi.agent.always",

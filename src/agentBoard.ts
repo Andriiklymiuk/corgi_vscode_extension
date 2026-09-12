@@ -401,3 +401,8 @@ export function matchTabByTitle<T extends { label: string }>(tabs: T[], title: s
         ?? tabs.find((t) => t.label.toLowerCase().startsWith(lower))
         ?? tabs.find((t) => t.label.toLowerCase().includes(lower));
 }
+
+/** Control characters only — Escape, Return, "2" then Return — are keys to press, never text to paste. */
+export function isKeySequence(text: string): boolean {
+    return text.length > 0 && text.length <= 4 && /^[\x00-\x1f0-9]+$/.test(text) && /[\x00-\x1f]/.test(text);
+}

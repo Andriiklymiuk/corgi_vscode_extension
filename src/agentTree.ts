@@ -120,7 +120,7 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
                     s.status === 'needs_input' ? new vscode.ThemeColor('notificationsWarningIcon.foreground') : undefined);
         // The context value carries what the row can do: Pending gets Allow /
         // Deny inline, Drift gets Fresh, Pr gets Open pull request.
-        item.contextValue = ['corgiAgentSession', s.pending ? 'Pending' : '', drifting ? 'Drift' : '', s.pr ? 'Pr' : ''].join('');
+        item.contextValue = ['corgiAgentSession', s.pending ? 'Pending' : '', drifting ? 'Drift' : '', s.pr ? 'Pr' : '', s.status === 'working' ? 'Working' : ''].join('');
         item.command = { command: 'corgi.agent.focusNode', title: 'Focus', arguments: [node] };
         return item;
     }
