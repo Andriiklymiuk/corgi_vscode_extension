@@ -4,7 +4,7 @@ import { WatchInboxTree } from './watchInboxTree';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-    Board, BoardSession, boardTooltip, formatElapsed, hideWorkspaces, liveSessions, newlyNeedingInput, nextSession, readBoard,
+    Board, BoardSession, boardTooltip, botTitle, formatElapsed, hideWorkspaces, liveSessions, newlyNeedingInput, nextSession, readBoard, readBots,
     sessionName, sortForPick, statusBarText, statusWord,
 } from './agentBoard';
 import { isolateArgs, runCorgi } from './corgiExec';
@@ -404,6 +404,40 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
         }),
         vscode.commands.registerCommand('corgi.agent.newIsolated', async () => {
             await corgiAgent(['new', '--window', windowId, '--isolate'], 'corgi could not start a session');
+        }),
+        // A bot: its workspace, its persona, its last conversation resumed.
+        vscode.commands.registerCommand('corgi.agent.openBot', async () => {
+            const bots = readBots(agentDir);
+            if (!bots.length) {
+                void vscode.window.showInformationMessage('No bots yet: corgi agent bot add reviewer --workspace api --soul "You review pull requests."');
+                return;
+            }
+            const pick = await vscode.window.showQuickPick(
+                bots.map((b) => ({ label: botTitle(b), description: [b.workspace, b.model, b.profile, b.isolate ? 'own worktree' : '', b.lastSession ? 'resumes' : ''].filter(Boolean).join(' · '), bot: b })),
+                { placeHolder: 'Open a bot in this window' },
+            );
+            if (pick) {
+                await corgiAgent(['bot', 'open', pick.bot.name, '--window', windowId], `corgi could not open ${pick.label}`);
+            }
+        }),
+        // The chief: one question about the board, a few lines back.
+        vscode.commands.registerCommand('corgi.agent.ask', async () => {
+            const question = await vscode.window.showInputBox({ prompt: 'Ask the chief about the board', placeHolder: 'what should I look at first?', ignoreFocusOut: true });
+            if (!question?.trim()) {
+                return;
+            }
+            await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'corgi: asking the chief…' }, async () => {
+                const r = await runCorgi(['agent', 'ask', question.trim()]);
+                if (!r.ok) {
+                    void vscode.window.showWarningMessage(`corgi could not ask: ${(r.stderr || r.stdout).trim()}`);
+                    return;
+                }
+                const answer = r.stdout.trim();
+                const choice = await vscode.window.showInformationMessage(answer, { modal: true, detail: question.trim() }, 'Copy');
+                if (choice === 'Copy') {
+                    await vscode.env.clipboard.writeText(answer);
+                }
+            });
         }),
         vscode.commands.registerCommand('corgi.agent.next', async () => {
             watcher.refresh();

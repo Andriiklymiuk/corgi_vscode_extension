@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.18.0",
+  "version": "2.19.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -315,6 +315,16 @@
         "icon": "$(git-branch)"
       },
       {
+        "command": "corgi.agent.openBot",
+        "title": "Corgi Agent: Open a bot (workspace, persona, last conversation)",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "corgi.agent.ask",
+        "title": "Corgi Agent: Ask the chief about the board",
+        "icon": "$(sparkle)"
+      },
+      {
         "command": "corgi.agent.next",
         "title": "Corgi Agent: Go to the session that needs you"
       },
@@ -504,6 +514,16 @@
         },
         {
           "command": "corgi.agent.new",
+          "when": "view == corgiAgentSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "corgi.agent.openBot",
+          "when": "view == corgiAgentSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "corgi.agent.ask",
           "when": "view == corgiAgentSessions",
           "group": "navigation"
         },

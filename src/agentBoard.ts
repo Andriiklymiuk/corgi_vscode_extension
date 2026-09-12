@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 /**
  * The session board corgi's daemon publishes at <agent dir>/sessions.json:
@@ -43,6 +44,8 @@ export interface BoardSession {
     overlap?: { id?: string; session?: string; files?: string[]; sameCheckout?: boolean }[];
     /** The last test command the session ran, and how it went. */
     tests?: { ok?: boolean; at?: string; cmd?: string };
+    /** The bot this session runs as (corgi agent bot, 2.20.13). */
+    bot?: string;
     /** What it has cost, the budget it runs under, and whether it passed it (corgi 2.20.9). */
     spend?: { tokens?: number; turns?: number; at?: string };
     cap?: number;
@@ -190,6 +193,30 @@ export interface Board {
     noticeAt?: string;
     accounts?: BoardAccount[] | null;
 }
+
+/** A named session you come back to (corgi agent bot); the soul stays on the machine. */
+export interface Bot {
+    name: string;
+    title?: string;
+    workspace: string;
+    model?: string;
+    profile?: string;
+    isolate?: boolean;
+    color?: string;
+    lastSession?: string;
+}
+
+/** The bots beside the board: <agent dir>/bots.json. */
+export function readBots(agentDir: string): Bot[] {
+    try {
+        const store = JSON.parse(fs.readFileSync(path.join(agentDir, 'bots.json'), 'utf8'));
+        return Array.isArray(store?.bots) ? store.bots.filter((b: Bot) => b && b.name) : [];
+    } catch {
+        return [];
+    }
+}
+
+export const botTitle = (b: Bot): string => (b.title && b.title.trim()) || b.name;
 
 export function readBoard(file: string): Board | undefined {
     try {
