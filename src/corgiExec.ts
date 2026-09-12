@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
+import * as vscode from 'vscode';
 
 /**
  * Runs the corgi binary without a terminal. The extension host's PATH is
@@ -49,4 +50,9 @@ export function runCorgi(args: string[], cwd?: string): Promise<CorgiResult> {
         };
         run(resolved ?? 'corgi', true);
     });
+}
+
+/** `--isolate` when the setting asks every session to get a worktree of its own. */
+export function isolateArgs(): string[] {
+    return vscode.workspace.getConfiguration('corgi').get<boolean>('agentIsolate', false) ? ['--isolate'] : [];
 }

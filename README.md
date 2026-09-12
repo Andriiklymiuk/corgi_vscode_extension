@@ -138,7 +138,12 @@ amber with a merge icon and names it — *⚠ api·2 on registry.go* — so work
 crossing streams is seen here, not at merge time. The menu also has Send…,
 Allow always, Open pull request and Copy session id. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
-would have had — `corgi agent watch work ABC-123`. A blocked ticket is red
+would have had — `corgi agent watch work ABC-123` — and **Work on it in a
+worktree of its own**: the same session on `corgi/ABC-123` under
+`corgi_services/.worktrees`, so it never shares a checkout with another
+(`--isolate`, corgi 2.20.8+; `corgi.agentIsolate` makes every session from
+here start that way, and the sessions view's **New … in a worktree of its
+own** does it for a blank session). A blocked ticket is red
 with the reason and **Unblock**; every item has Ignore (also inline), Assign
 to me and Move…. A row about a pull request of yours — corgi's run's, a
 session's, or your own — has **ready for review**, **merge** and **close**

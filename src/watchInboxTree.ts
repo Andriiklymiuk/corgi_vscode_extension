@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { InboxItem, groupByWorkspace, itemDetail, itemName, openableUrl, readInbox } from './watchInbox';
-import { corgiBinary, runCorgi } from './corgiExec';
+import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 
 const POLL_MS = 60_000;
 
@@ -61,19 +61,21 @@ export class WatchInboxTree implements vscode.TreeDataProvider<InboxNode>, vscod
             }),
             // Work on it: a real session on the ticket, with the prompt an
             // unattended run would have had — the page's and the phone's button.
-            vscode.commands.registerCommand('corgi.agent.inboxWorkOn', async (node?: InboxNode) => {
-                const item = itemOf(node);
-                if (!item?.key) {
-                    return;
-                }
-                const r = await runCorgi(['agent', 'watch', 'work', item.key, '--from', 'editor']);
-                if (!r.ok) {
-                    void vscode.window.showWarningMessage(`corgi could not start a session on ${itemName(item)}: ${r.stderr.trim() || r.stdout.trim()}`);
-                    return;
-                }
-                void vscode.window.setStatusBarMessage(`corgi: opening a session on ${itemName(item)}…`, 5000);
-                setTimeout(() => void this.refresh(), 2500);
-            }),
+            ...([['corgi.agent.inboxWorkOn', undefined], ['corgi.agent.inboxWorkOnIsolated', '--isolate']] as const).map(([id, flag]) =>
+                vscode.commands.registerCommand(id, async (node?: InboxNode) => {
+                    const item = itemOf(node);
+                    if (!item?.key) {
+                        return;
+                    }
+                    const r = await runCorgi(['agent', 'watch', 'work', item.key, '--from', 'editor', ...(flag ? [flag] : isolateArgs())]);
+                    if (!r.ok) {
+                        void vscode.window.showWarningMessage(`corgi could not start a session on ${itemName(item)}: ${r.stderr.trim() || r.stdout.trim()}`);
+                        return;
+                    }
+                    void vscode.window.setStatusBarMessage(`corgi: opening a session on ${itemName(item)}${flag ? ' in its own worktree' : ''}…`, 5000);
+                    setTimeout(() => void this.refresh(), 2500);
+                }),
+            ),
             // A pull request of mine, from the row: out of draft, merged, closed.
             ...(['ready', 'merge', 'close'] as const).map((verb) =>
                 vscode.commands.registerCommand(`corgi.agent.inboxPr${verb[0].toUpperCase()}${verb.slice(1)}`, async (node?: InboxNode) => {

@@ -7,7 +7,7 @@ import {
     Board, BoardSession, boardTooltip, formatElapsed, hideWorkspaces, liveSessions, newlyNeedingInput, nextSession, readBoard,
     sessionName, sortForPick, statusBarText, statusWord,
 } from './agentBoard';
-import { runCorgi } from './corgiExec';
+import { isolateArgs, runCorgi } from './corgiExec';
 import { revealClaudePanel } from './agentWindow';
 import { AutoContinueWatcher } from './autoContinueWatcher';
 import { WatchFixesWatcher } from './watchFixesWatcher';
@@ -394,7 +394,10 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
             }
         }),
         vscode.commands.registerCommand('corgi.agent.new', async () => {
-            await corgiAgent(['new', '--window', windowId], 'corgi could not start a session');
+            await corgiAgent(['new', '--window', windowId, ...isolateArgs()], 'corgi could not start a session');
+        }),
+        vscode.commands.registerCommand('corgi.agent.newIsolated', async () => {
+            await corgiAgent(['new', '--window', windowId, '--isolate'], 'corgi could not start a session');
         }),
         vscode.commands.registerCommand('corgi.agent.next', async () => {
             watcher.refresh();
