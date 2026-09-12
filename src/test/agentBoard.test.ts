@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, sessionSummary, sortForPick, statusBarText, testsLine } from '../agentBoard';
+import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -165,5 +165,13 @@ describe('drift, limits and hidden workspaces', () => {
         assert.ok(!isCrossing({ id: 'c' }));
         const summary = sessionSummary(s);
         assert.ok(summary.includes('4 files · 120 lines') && summary.includes('tests ✗ go test') && summary.includes('⚠ api·2 on registry.go'), summary);
+    });
+
+    it('what it has cost reads as one word, and says over budget once it passed its cap', () => {
+        assert.strictEqual(spendLine({ id: 'a' }), '');
+        assert.strictEqual(spendLine({ id: 'a', spend: { tokens: 52_300_000 } }), '52.3M');
+        assert.strictEqual(spendLine({ id: 'a', spend: { tokens: 980_000 } }), '980k');
+        assert.strictEqual(spendLine({ id: 'a', spend: { tokens: 52_300_000 }, cap: 50_000_000, overCap: true }), '52.3M over budget');
+        assert.ok(sessionSummary({ id: 'a', display: 'api', status: 'working', spend: { tokens: 1_200_000 }, overCap: true }).includes('1.2M over budget'));
     });
 });

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Board, BoardSession, changesLine, formatElapsed, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, sessionName, statusRank, statusWord, testsLine } from './agentBoard';
+import { Board, BoardSession, changesLine, formatElapsed, formatTokens, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import type { AgentBoardWatcher } from './agentStatus';
 
 /** A workspace heading or one session under it. */
@@ -87,6 +87,9 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
         if (testsLine(s)) {
             meta.push(testsLine(s));
         }
+        if (spendLine(s)) {
+            meta.push(spendLine(s));
+        }
         if (typeof s.context?.percent === 'number' && s.context.percent > 0) {
             meta.push(`ctx ${s.context.percent}%`);
         }
@@ -107,8 +110,9 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
             s.changes?.touched?.length ? `\ntouching: ${s.changes.touched.join(', ')}` : '',
             crossing ? `\ncrossing streams:\n${(s.overlap ?? []).map(o => o.sameCheckout ? `same checkout as ${o.session}` : `${o.session} on ${(o.files ?? []).join(', ')}`).join('\n')}` : '',
             s.tests ? `\n${testsLine(s)}${s.tests.at ? ` · ${formatElapsed(s.tests.at)}` : ''}` : '',
+            s.spend?.tokens ? `\nspent ${formatTokens(s.spend.tokens)} tokens${s.spend.turns ? ` over ${s.spend.turns} turns` : ''}${s.cap ? ` · budget ${formatTokens(s.cap)}` : ''}${s.overCap ? ' · OVER BUDGET' : ''}` : '',
         ].filter(Boolean).join('\n');
-        item.iconPath = drifting
+        item.iconPath = drifting || s.overCap
             ? new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
             : crossing
                 ? new vscode.ThemeIcon('git-merge', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
