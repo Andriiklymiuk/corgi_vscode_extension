@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Board, BoardSession, formatElapsed, isDrifting, limitLine, liveSessions, sessionName, statusRank, statusWord } from './agentBoard';
+import { Board, BoardSession, changesLine, formatElapsed, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, sessionName, statusRank, statusWord, testsLine } from './agentBoard';
 import type { AgentBoardWatcher } from './agentStatus';
 
 /** A workspace heading or one session under it. */
@@ -59,11 +59,15 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
         const s = node.session;
         const item = new vscode.TreeItem(s.title || sessionName(s), vscode.TreeItemCollapsibleState.None);
         const drifting = isDrifting(s);
+        const crossing = isCrossing(s);
         const meta = [drifting ? 'drifting' : statusWord(s.status)];
-        // The line after the status, in order: the drift reason, the
-        // permission, the note, the limit, what it is doing, the branch.
+        // The line after the status, in order: the drift reason, who else is
+        // on its files, the permission, the note, the limit, what it is
+        // doing, the branch.
         if (drifting) {
             meta.push(s.drift![0]);
+        } else if (crossing) {
+            meta.push(`⚠ ${overlapLine(s)}`);
         } else if (s.pending?.tool) {
             meta.push(`asks ${s.pending.tool}`);
         } else if (s.note) {
@@ -74,6 +78,14 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
             meta.push(s.detail);
         } else if (s.branch) {
             meta.push(s.branch);
+        }
+        // The branch in one line, and the last test run: what an operator
+        // reads before opening the diff.
+        if (changesLine(s)) {
+            meta.push(changesLine(s));
+        }
+        if (testsLine(s)) {
+            meta.push(testsLine(s));
         }
         if (typeof s.context?.percent === 'number' && s.context.percent > 0) {
             meta.push(`ctx ${s.context.percent}%`);
@@ -92,11 +104,16 @@ export class AgentSessionsTree implements vscode.TreeDataProvider<AgentNode>, vs
             s.summary ? `\n${s.summary}` : '',
             s.pr ? `\n${s.pr}` : '',
             drifting ? `\ndrifting:\n${s.drift!.join('\n')}` : '',
+            s.changes?.touched?.length ? `\ntouching: ${s.changes.touched.join(', ')}` : '',
+            crossing ? `\ncrossing streams:\n${(s.overlap ?? []).map(o => o.sameCheckout ? `same checkout as ${o.session}` : `${o.session} on ${(o.files ?? []).join(', ')}`).join('\n')}` : '',
+            s.tests ? `\n${testsLine(s)}${s.tests.at ? ` · ${formatElapsed(s.tests.at)}` : ''}` : '',
         ].filter(Boolean).join('\n');
         item.iconPath = drifting
             ? new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
-            : new vscode.ThemeIcon(icons[s.status ?? ''] ?? 'circle-outline',
-                s.status === 'needs_input' ? new vscode.ThemeColor('notificationsWarningIcon.foreground') : undefined);
+            : crossing
+                ? new vscode.ThemeIcon('git-merge', new vscode.ThemeColor('notificationsWarningIcon.foreground'))
+                : new vscode.ThemeIcon(icons[s.status ?? ''] ?? 'circle-outline',
+                    s.status === 'needs_input' ? new vscode.ThemeColor('notificationsWarningIcon.foreground') : undefined);
         // The context value carries what the row can do: Pending gets Allow /
         // Deny inline, Drift gets Fresh, Pr gets Open pull request.
         item.contextValue = ['corgiAgentSession', s.pending ? 'Pending' : '', drifting ? 'Drift' : '', s.pr ? 'Pr' : ''].join('');
