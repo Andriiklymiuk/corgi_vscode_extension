@@ -43,6 +43,10 @@ export interface BoardSession {
     overlap?: { id?: string; session?: string; files?: string[]; sameCheckout?: boolean }[];
     /** The last test command the session ran, and how it went. */
     tests?: { ok?: boolean; at?: string; cmd?: string };
+    /** What it has cost, the budget it runs under, and whether it passed it (corgi 2.20.9). */
+    spend?: { tokens?: number; turns?: number; at?: string };
+    cap?: number;
+    overCap?: boolean;
 }
 
 export function isDrifting(s: BoardSession): boolean {
@@ -85,6 +89,29 @@ export function testsLine(s: BoardSession): string {
         return '';
     }
     return s.tests.ok ? 'tests ✓' : `tests ✗ ${s.tests.cmd ?? ''}`.trim();
+}
+
+/** A token count in one word: 52.3M, 980k, 412. */
+export function formatTokens(n: number): string {
+    if (n >= 1e9) {
+        return `${(n / 1e9).toFixed(1)}B`;
+    }
+    if (n >= 1e6) {
+        return `${(n / 1e6).toFixed(1)}M`;
+    }
+    if (n >= 1e3) {
+        return `${Math.floor(n / 1e3)}k`;
+    }
+    return `${n}`;
+}
+
+/** "52.3M" for what the session has cost; "52.3M over budget" once it passed its cap. */
+export function spendLine(s: BoardSession): string {
+    const n = s.spend?.tokens ?? 0;
+    if (n <= 0) {
+        return '';
+    }
+    return s.overCap ? `${formatTokens(n)} over budget` : formatTokens(n);
 }
 
 /** "continues 12:50 · 2 so far" for a limited session the daemon plans to continue; "API overloaded" for a hiccup. */
@@ -278,6 +305,9 @@ export function sessionSummary(s: BoardSession, now: Date = new Date()): string 
     }
     if (testsLine(s)) {
         bits.push(testsLine(s));
+    }
+    if (spendLine(s)) {
+        bits.push(spendLine(s));
     }
     if (isCrossing(s)) {
         bits.push(`⚠ ${overlapLine(s)}`);
