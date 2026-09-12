@@ -1,8 +1,5 @@
 import * as assert from 'node:assert';
-import {
-    Board, BoardSession, boardTooltip, formatElapsed, hideWorkspaces, isDrifting, isHiddenWorkspace, limitLine,
-    lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, sessionSummary, sortForPick, statusBarText,
-} from '../agentBoard';
+import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, sessionSummary, sortForPick, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -149,5 +146,24 @@ describe('drift, limits and hidden workspaces', () => {
         assert.ok(isHiddenWorkspace('/home/me/dev/secret', ['secret']), 'by the folder\'s last path component too');
         assert.ok(isDrifting({ id: 'a', drift: ['context 91% full'] }));
         assert.ok(!isDrifting({ id: 'a', drift: [] }));
+    });
+
+    it('the branch, the crossing and the last test run each read as one line', () => {
+        const s = {
+            id: 'a', display: 'api', status: 'working',
+            changes: { files: 4, lines: 120, touched: ['registry.go', 'a.go'] },
+            overlap: [{ id: 'b', session: 'api·2', files: ['registry.go', 'b.go', 'c.go'] }],
+            tests: { ok: false, cmd: 'go test' },
+        };
+        assert.strictEqual(changesLine(s), '4 files · 120 lines');
+        assert.ok(isCrossing(s));
+        assert.strictEqual(overlapLine(s), 'api·2 on registry.go, b.go, …');
+        assert.strictEqual(testsLine(s), 'tests ✗ go test');
+        assert.strictEqual(overlapLine({ id: 'b', overlap: [{ id: 'a', session: 'api', sameCheckout: true }] }), 'same checkout as api');
+        assert.strictEqual(testsLine({ id: 'c', tests: { ok: true, cmd: 'bun test' } }), 'tests ✓');
+        assert.strictEqual(changesLine({ id: 'c', changes: { files: 0, lines: 0 } }), '', 'an empty diff is no line');
+        assert.ok(!isCrossing({ id: 'c' }));
+        const summary = sessionSummary(s);
+        assert.ok(summary.includes('4 files · 120 lines') && summary.includes('tests ✗ go test') && summary.includes('⚠ api·2 on registry.go'), summary);
     });
 });

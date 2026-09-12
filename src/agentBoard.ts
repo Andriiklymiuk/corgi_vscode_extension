@@ -37,10 +37,54 @@ export interface BoardSession {
     resumes?: number;
     /** What the daemon concluded a person should look at: a context nearly full, a tool failing on repeat, a diff past its budget. */
     drift?: string[];
+    /** What the branch has built up since it left main, measured once a minute. */
+    changes?: { files?: number; lines?: number; touched?: string[]; at?: string };
+    /** Other live sessions in the same repository on the same files — or in the same working tree. */
+    overlap?: { id?: string; session?: string; files?: string[]; sameCheckout?: boolean }[];
+    /** The last test command the session ran, and how it went. */
+    tests?: { ok?: boolean; at?: string; cmd?: string };
 }
 
 export function isDrifting(s: BoardSession): boolean {
     return Array.isArray(s.drift) && s.drift.length > 0;
+}
+
+/** "4 files · 120 lines" — the branch in one line; "" when there is no diff. */
+export function changesLine(s: BoardSession): string {
+    const c = s.changes;
+    if (!c || (!c.files && !c.lines)) {
+        return '';
+    }
+    const files = c.files ?? 0;
+    const lines = c.lines ?? 0;
+    return `${files} file${files === 1 ? '' : 's'} · ${lines} line${lines === 1 ? '' : 's'}`;
+}
+
+/** Whether another session in the same repository is on this one's files. */
+export function isCrossing(s: BoardSession): boolean {
+    return Array.isArray(s.overlap) && s.overlap.length > 0;
+}
+
+/** "api·2 on registry.go, b.go, …" or "same checkout as api·2" — the first crossing; "" when none. */
+export function overlapLine(s: BoardSession): string {
+    const first = s.overlap?.[0];
+    if (!first) {
+        return '';
+    }
+    if (first.sameCheckout) {
+        return `same checkout as ${first.session ?? '?'}`;
+    }
+    const files = first.files ?? [];
+    const shown = files.length > 2 ? [...files.slice(0, 2), '…'] : files;
+    return `${first.session ?? '?'} on ${shown.join(', ')}`;
+}
+
+/** "tests ✓" or "tests ✗ go test"; "" when the session has not run any. */
+export function testsLine(s: BoardSession): string {
+    if (!s.tests) {
+        return '';
+    }
+    return s.tests.ok ? 'tests ✓' : `tests ✗ ${s.tests.cmd ?? ''}`.trim();
 }
 
 /** "continues 12:50 · 2 so far" for a limited session the daemon plans to continue; "API overloaded" for a hiccup. */
@@ -228,6 +272,15 @@ export function sessionSummary(s: BoardSession, now: Date = new Date()): string 
     }
     if (s.note) {
         bits.push(`"${s.note}"`);
+    }
+    if (changesLine(s)) {
+        bits.push(changesLine(s));
+    }
+    if (testsLine(s)) {
+        bits.push(testsLine(s));
+    }
+    if (isCrossing(s)) {
+        bits.push(`⚠ ${overlapLine(s)}`);
     }
     return `${sessionName(s)} — ${bits.join(' / ')}`;
 }

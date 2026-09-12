@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.14.4",
+  "version": "2.15.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -404,15 +404,15 @@
       },
       {
         "command": "corgi.agent.inboxPrReady",
-        "title": "Corgi: Pull request — ready for review"
+        "title": "Corgi: Pull request \u2014 ready for review"
       },
       {
         "command": "corgi.agent.inboxPrMerge",
-        "title": "Corgi: Pull request — merge"
+        "title": "Corgi: Pull request \u2014 merge"
       },
       {
         "command": "corgi.agent.inboxPrClose",
-        "title": "Corgi: Pull request — close without merging"
+        "title": "Corgi: Pull request \u2014 close without merging"
       },
       {
         "command": "corgi.agent.inboxIgnore",

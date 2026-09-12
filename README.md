@@ -131,8 +131,12 @@ thinks is drifting — context nearly full, the same tool failing on repeat, a
 diff far past its budget — turns red with the reason, and the right-click
 menu offers **Fresh from a handoff**: a clean session, same account, picking
 up from the handoff it leaves. A limited one says when the daemon continues
-it. The menu also has Send…, Allow always, Open pull request and Copy
-session id. In the inbox, an issue has **Work on it** (also inline): a real
+it. Every working row also carries what its branch has built up (*4 files ·
+120 lines*) and its last test run (*tests ✓* / *tests ✗ go test*); when
+another session in the same repository is on the same files the row turns
+amber with a merge icon and names it — *⚠ api·2 on registry.go* — so work
+crossing streams is seen here, not at merge time. The menu also has Send…,
+Allow always, Open pull request and Copy session id. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
 would have had — `corgi agent watch work ABC-123`. A blocked ticket is red
 with the reason and **Unblock**; every item has Ignore (also inline), Assign
