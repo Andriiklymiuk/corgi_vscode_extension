@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.21.0",
+  "version": "2.22.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -352,6 +352,16 @@
         "icon": "$(note)"
       },
       {
+        "command": "corgi.agent.sendSelection",
+        "title": "Corgi Agent: Send selection to a session",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "corgi.agent.chat",
+        "title": "Corgi Agent: Chat with a session beside the code",
+        "icon": "$(comment)"
+      },
+      {
         "command": "corgi.agent.answer",
         "title": "Corgi Agent: Allow the pending permission",
         "icon": "$(check)"
@@ -484,6 +494,13 @@
       ]
     },
     "menus": {
+      "editor/context": [
+        {
+          "command": "corgi.agent.sendSelection",
+          "when": "editorHasSelection",
+          "group": "corgi@1"
+        }
+      ],
       "editor/title": [
         {
           "command": "corgi.run",
@@ -564,6 +581,11 @@
           "command": "corgi.agent.deny",
           "when": "view == corgiAgentSessions && viewItem == corgiAgentSessionPending",
           "group": "inline@2"
+        },
+        {
+          "command": "corgi.agent.chat",
+          "when": "view == corgiAgentSessions && viewItem =~ /corgiAgentSession/",
+          "group": "inline@0"
         },
         {
           "command": "corgi.agent.note",

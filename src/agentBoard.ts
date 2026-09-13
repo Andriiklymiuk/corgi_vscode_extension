@@ -50,6 +50,28 @@ export interface BoardSession {
     spend?: { tokens?: number; turns?: number; at?: string };
     cap?: number;
     overCap?: boolean;
+    /** The workspace's policy at work (corgi 2.22): the last done-when run, main having moved, the agent's CLI, one of several tries. */
+    gate?: { ok?: boolean; cmd?: string; fails?: number };
+    behind?: { commits?: number; conflicts?: string[]; upstream?: string };
+    agent?: string;
+    attempt?: string;
+}
+
+/** "not done · go test" / "done ✓" from the last done-when run; "" without one. */
+export function gateLine(s: BoardSession): string {
+    if (!s.gate) {
+        return '';
+    }
+    return s.gate.ok ? 'done ✓' : `not done · ${s.gate.cmd ?? 'checks'}${(s.gate.fails ?? 0) > 1 ? ` ×${s.gate.fails}` : ''}`;
+}
+
+/** "main moved 12 · conflicts in api.go" — "" when main has not moved. */
+export function behindLine(s: BoardSession): string {
+    if (!s.behind?.commits) {
+        return '';
+    }
+    const files = (s.behind.conflicts ?? []).map((f) => f.split('/').pop()).slice(0, 3).join(', ');
+    return `main moved ${s.behind.commits}${files ? ` · conflicts in ${files}` : ''}`;
 }
 
 export function isDrifting(s: BoardSession): boolean {
@@ -339,6 +361,18 @@ export function sessionSummary(s: BoardSession, now: Date = new Date()): string 
     if (isCrossing(s)) {
         bits.push(`⚠ ${overlapLine(s)}`);
     }
+    if (gateLine(s)) {
+        bits.push(gateLine(s));
+    }
+    if (behindLine(s)) {
+        bits.push(behindLine(s));
+    }
+    if (s.attempt) {
+        bits.push(`try ${s.attempt.split('/')[1]} on ${s.attempt.split('/')[0]}`);
+    }
+    if (s.agent) {
+        bits.push(s.agent);
+    }
     return `${sessionName(s)} — ${bits.join(' / ')}`;
 }
 
@@ -432,4 +466,34 @@ export function matchTabByTitle<T extends { label: string }>(tabs: T[], title: s
 /** Control characters only — Escape, Return, "2" then Return — are keys to press, never text to paste. */
 export function isKeySequence(text: string): boolean {
     return text.length > 0 && text.length <= 4 && /^[\x00-\x1f0-9]+$/.test(text) && /[\x00-\x1f]/.test(text);
+}
+
+/**
+ * The live session whose branch touched this file: its cwd (or the folder
+ * it started in) is the root the touched paths are relative to. The first
+ * that matches, needs-input and working before done.
+ */
+export function sessionOnFile(board: Board | undefined, file: string): BoardSession | undefined {
+    const order: Record<string, number> = { needs_input: 0, working: 1, done: 2, stale: 3 };
+    const live = liveSessions(board).filter((s) => s.changes?.touched?.length);
+    live.sort((a, b) => (order[a.status ?? ''] ?? 9) - (order[b.status ?? ''] ?? 9));
+    for (const s of live) {
+        const root = s.cwd;
+        if (!root) {
+            continue;
+        }
+        for (const touched of s.changes?.touched ?? []) {
+            if (path.resolve(root, touched) === file) {
+                return s;
+            }
+        }
+    }
+    return undefined;
+}
+
+/** A quote for a session: "api/x.go:12-14", the lines under ">", a blank line for the words. */
+export function quoteLines(rel: string, line: number, end: number, code: string): string {
+    const where = end > line ? `${rel}:${line}-${end}` : `${rel}:${line}`;
+    const quoted = code.replace(/\s+$/, '').split('\n').map((l) => `> ${l}`).join('\n');
+    return `${where}\n${quoted}\n\n`;
 }
