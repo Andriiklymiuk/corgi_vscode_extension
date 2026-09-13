@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, kindLabel, openableUrl } from '../watchInbox';
+import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, kindLabel, openableUrl, pullLine, pullReady } from '../watchInbox';
 
 const NOW = Date.parse('2026-09-10T18:00:00Z');
 const at = (minutesAgo: number) => new Date(NOW - minutesAgo * 60_000).toISOString();
@@ -21,6 +21,16 @@ describe('watchInbox', () => {
         assert.strictEqual(itemDetail({ key: 'a', kind: 'issue.new', state: 'Ready', at: at(20) }, NOW), 'issue · Ready · 20m');
         assert.strictEqual(itemDetail({ key: 'a', kind: 'pr.review', at: at(90) }, NOW), 'PR review · 1h 30m');
         assert.strictEqual(itemDetail({ key: 'a', kind: 'issue.new' }, NOW), 'issue');
+    });
+
+    it('says how the pull request stands, over its bare state', () => {
+        const ready = { key: 'a', kind: 'pr.review', state: 'open', pull: { state: 'open', checks: 'passing', review: 'approved' }, at: at(5) };
+        assert.strictEqual(itemDetail(ready, NOW), 'PR review · ready to merge · checks ✓ · approved · 5m');
+        const red = { key: 'b', kind: 'ci.failed', state: 'open', pull: { state: 'open', checks: 'failing', review: 'changes' } };
+        assert.strictEqual(itemDetail(red, NOW), 'red build · checks ✗ · changes requested');
+        assert.strictEqual(pullReady({ state: 'open', checks: 'none', review: 'approved' }), true);
+        assert.strictEqual(pullReady({ state: 'draft', checks: 'passing', review: 'approved' }), false);
+        assert.strictEqual(pullLine(undefined), '');
     });
 
     it('measures the wait, and says nothing when it cannot', () => {

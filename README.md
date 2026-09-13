@@ -156,7 +156,9 @@ own** does it for a blank session). A blocked ticket is red
 with the reason and **Unblock**; every item has Ignore (also inline), Assign
 to me and Move…. A row about a pull request of yours — corgi's run's, a
 session's, or your own — has **ready for review**, **merge** and **close**
-(`corgi agent watch pr ready ABC-123`).
+(`corgi agent watch pr ready ABC-123`), and its line says how it stands:
+*ready to merge · checks ✓ · approved*, or *checks ✗ · changes requested*
+(corgi 2.20.19 reads that from GitHub or GitLab once a round).
 
 **Reload** (↻ on either view) is a real reload: the daemon rescans sessions
 and polls every tracker now, and the phone, the menu bar and this editor
