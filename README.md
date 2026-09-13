@@ -145,7 +145,19 @@ bot's row carries the bot's name. The sparkle asks the chief:
 A working row has **Interrupt** — Escape into
 the session, as you would press it: the turn stops, the session waits,
 nothing is closed (`corgi agent interrupt`, corgi 2.20.10+). The menu also has Send…,
-Allow always, Open pull request and Copy session id. In the inbox, an issue has **Work on it** (also inline): a real
+Allow always, Open pull request and Copy session id. **Chat** (the speech
+bubble on a row, or *Corgi Agent: Chat with a session beside the code*)
+opens the conversation in a panel next to the editor — what it said, the
+tools it ran, a box for the next message, Allow / Deny / Stop — through
+`corgi agent transcript` and `corgi agent send` (corgi 2.22+). Select lines
+in any file and the editor's context menu has **Send selection to a
+session**: the file and line, the code quoted, your words after it. And when
+the file in front of you is one another live session's branch touched, the
+status bar and the first line say so — *api·auth is editing this file* —
+click to bring it forward. A row also says *not done · go test* when the
+workspace's done-when check went red after the session stopped, *main moved
+12 · conflicts in total.ts*, *try 2 on WEB-88* for a fan-out, and the
+agent's name for a session that is not Claude Code. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
 would have had — `corgi agent watch work ABC-123` — and **Work on it in a
 worktree of its own**: the same session on `corgi/ABC-123` under

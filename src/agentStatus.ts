@@ -10,6 +10,8 @@ import {
 import { isolateArgs, runCorgi } from './corgiExec';
 import { revealClaudePanel } from './agentWindow';
 import { AutoContinueWatcher } from './autoContinueWatcher';
+import { AgentChatPanel } from './agentChat';
+import { OverlapMarks, quoteSelection } from './agentOverlap';
 import { WatchFixesWatcher } from './watchFixesWatcher';
 
 /**
@@ -343,6 +345,9 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
     watchFixes.start();
     context.subscriptions.push(watchFixes);
     context.subscriptions.push(autoContinue, watcher.onDidChangeBoard((board) => autoContinue.update(board)));
+    const overlap = new OverlapMarks();
+    overlap.update(watcher.current());
+    context.subscriptions.push(overlap, watcher.onDidChangeBoard((board) => overlap.update(board)));
     // The tracker inbox beside the sessions: tickets, reviews and red builds
     // the watch has seen and nobody has dealt with.
     const inbox = new WatchInboxTree();
@@ -371,6 +376,33 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
             if (s) {
                 await corgiAgent(['dismiss', s.id], 'corgi could not dismiss the session');
             }
+        }),
+        vscode.commands.registerCommand('corgi.agent.chat', async (node: AgentNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to chat with beside the code');
+            if (s) {
+                AgentChatPanel.show(s);
+            }
+        }),
+        vscode.commands.registerCommand('corgi.agent.focusSession', async (id: string) => {
+            await focusSession(id);
+        }),
+        vscode.commands.registerCommand('corgi.agent.sendSelection', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.selection.isEmpty) {
+                void vscode.window.showInformationMessage('Select the lines to point a session at first.');
+                return;
+            }
+            const s = await pickSession(watcher.current(), 'Session to show this to');
+            if (!s) {
+                return;
+            }
+            const root = vscode.workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath;
+            const quote = quoteSelection(editor.document, editor.selection, root);
+            const words = await vscode.window.showInputBox({ prompt: `To ${sessionName(s)} — what about these lines? (Enter sends; empty sends the lines alone)`, placeHolder: 'this is wrong because…' });
+            if (words === undefined) {
+                return;
+            }
+            await corgiAgent(['send', s.id, '--enter', quote + words.trim()], 'corgi could not send it');
         }),
         vscode.commands.registerCommand('corgi.agent.note', async (node: AgentNode) => {
             const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to put a note on');

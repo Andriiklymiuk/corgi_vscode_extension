@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { Board, BoardSession, boardTooltip, changesLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
+import { Board, BoardSession, behindLine, boardTooltip, changesLine, gateLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, quoteLines, sessionOnFile, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -184,5 +184,41 @@ describe('isKeySequence', () => {
         assert.ok(!isKeySequence('continue'));
         assert.ok(!isKeySequence('2'), 'a digit alone is text');
         assert.ok(!isKeySequence(''));
+    });
+});
+
+describe('sessionOnFile', () => {
+    it('names the live session whose branch touched the file, needs-input first', () => {
+        const board: Board = {
+            sessions: [
+                session('done-one', 'done', { cwd: '/repo', changes: { files: 1, touched: ['api/x.go'] } }),
+                session('working-one', 'working', { cwd: '/repo', changes: { files: 2, touched: ['api/x.go', 'api/y.go'] } }),
+                session('elsewhere', 'needs_input', { cwd: '/other', changes: { files: 1, touched: ['api/x.go'] } }),
+                session('gone-one', 'gone', { cwd: '/repo', changes: { files: 1, touched: ['api/z.go'] } }),
+            ],
+        } as Board;
+        assert.strictEqual(sessionOnFile(board, '/repo/api/x.go')?.id, 'working-one');
+        assert.strictEqual(sessionOnFile(board, '/repo/api/y.go')?.id, 'working-one');
+        assert.strictEqual(sessionOnFile(board, '/repo/api/z.go'), undefined);
+        assert.strictEqual(sessionOnFile(undefined, '/repo/api/x.go'), undefined);
+    });
+});
+
+describe('quoteLines', () => {
+    it('names the file and lines and quotes the code', () => {
+        assert.strictEqual(quoteLines('api/x.go', 12, 12, 'return nil\n'), 'api/x.go:12\n> return nil\n\n');
+        assert.strictEqual(quoteLines('api/x.go', 12, 14, 'a\nb\nc'), 'api/x.go:12-14\n> a\n> b\n> c\n\n');
+    });
+});
+
+describe('the policy lines', () => {
+    it('say the gate, main moved, the try and the agent', () => {
+        const s = session('a', 'done', { gate: { ok: false, cmd: 'go test ./...', fails: 2 }, behind: { commits: 12, conflicts: ['src/cart/total.ts'] }, attempt: 'WEB-88/2', agent: 'codex' });
+        assert.strictEqual(gateLine(s), 'not done · go test ./... ×2');
+        assert.strictEqual(behindLine(s), 'main moved 12 · conflicts in total.ts');
+        const line = sessionSummary(s);
+        assert.ok(line.includes('not done · go test ./... ×2') && line.includes('main moved 12') && line.includes('try 2 on WEB-88') && line.includes('codex'), line);
+        assert.strictEqual(gateLine(session('b', 'done', { gate: { ok: true } })), 'done ✓');
+        assert.strictEqual(behindLine(session('c', 'done')), '');
     });
 });
