@@ -25,6 +25,8 @@ export interface InboxItem {
     pr?: string;
     /** How that pull request stands — checks, approval — as the forge told the daemon (corgi 2.20.19). */
     pull?: PullStatus;
+    /** The session this row was typed into, and when (corgi 2.21). */
+    handed?: { at?: string; to: string; label?: string; by?: string };
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
@@ -90,6 +92,8 @@ export function itemDetail(item: InboxItem, now: number): string {
     const bits = [kindLabel(item)];
     if (item.blocked) {
         bits.push(`blocked: ${item.blocked}`);
+    } else if (item.handed) {
+        bits.push(`handed to ${item.handed.label ?? item.handed.to}${item.handed.by && item.handed.by !== 'daemon' ? ` from the ${item.handed.by}` : ''}`);
     } else if (item.session) {
         bits.push(`session ${item.session.label} · ${STATUS_WORD[item.session.status] ?? item.session.status}`);
     } else if (item.picked) {
