@@ -23,9 +23,45 @@ export interface InboxItem {
     columns?: string[];
     /** The pull request of mine this row lets me mark ready, merge or close. */
     pr?: string;
+    /** How that pull request stands — checks, approval — as the forge told the daemon (corgi 2.20.19). */
+    pull?: PullStatus;
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
+}
+
+export interface PullStatus {
+    state: string;
+    checks?: string;
+    review?: string;
+}
+
+/** Open, checks green or absent, approved: nothing between it and Merge — the daemon's own rule. */
+export function pullReady(p?: PullStatus): boolean {
+    return !!p && p.state === 'open' && (!p.checks || p.checks === 'passing' || p.checks === 'none') && p.review === 'approved';
+}
+
+/** "ready to merge · checks ✓ · approved", "checks ✗ · changes requested", or nothing. */
+export function pullLine(p?: PullStatus): string {
+    if (!p) {
+        return '';
+    }
+    const parts: string[] = [];
+    if (p.checks === 'passing') {
+        parts.push('checks ✓');
+    } else if (p.checks === 'failing') {
+        parts.push('checks ✗');
+    } else if (p.checks === 'pending') {
+        parts.push('checks running');
+    }
+    if (p.review === 'approved') {
+        parts.push('approved');
+    } else if (p.review === 'changes') {
+        parts.push('changes requested');
+    } else if (p.review === 'pending') {
+        parts.push('review pending');
+    }
+    return pullReady(p) ? ['ready to merge', ...parts].join(' · ') : parts.join(' · ');
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -62,7 +98,12 @@ export function itemDetail(item: InboxItem, now: number): string {
     } else if (item.author && item.body) {
         bits.push(`${item.author}: ${item.body}`);
     }
-    if (item.state) {
+    // The pull request's standing says more than its state: "ready to
+    // merge" beats "open".
+    const standing = pullLine(item.pull);
+    if (standing) {
+        bits.push(standing);
+    } else if (item.state) {
         bits.push(item.state);
     }
     const waited = elapsed(item.at, now);
