@@ -33,6 +33,11 @@ describe('watchInbox', () => {
         assert.strictEqual(pullLine(undefined), '');
     });
 
+    it('says which session a row was handed to', () => {
+        const row = { key: 'a', kind: 'pr.review', session: { id: 's1', label: 'api·auth', status: 'working' }, handed: { to: 's1', label: 'api·auth', by: 'daemon' } };
+        assert.strictEqual(itemDetail(row, NOW), 'PR review · handed to api·auth');
+    });
+
     it('measures the wait, and says nothing when it cannot', () => {
         assert.strictEqual(elapsed(at(5), NOW), '5m');
         assert.strictEqual(elapsed(at(120), NOW), '2h');
