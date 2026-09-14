@@ -33,6 +33,15 @@ describe('watchInbox', () => {
         assert.strictEqual(pullLine(undefined), '');
     });
 
+    it('prints the daemon standing word over reading the pull request (corgi 2.23)', () => {
+        const conflicts = { key: 'a', kind: 'pr.review', state: 'open', pull: { state: 'open', checks: 'passing', review: 'approved' }, standing: { word: 'conflicts', why: 'main moved 4 · conflicts in x.go' } };
+        assert.strictEqual(itemDetail(conflicts, NOW), 'PR review · conflicts · main moved 4 · conflicts in x.go');
+        const quiet = { key: 'b', kind: 'issue.new', state: 'Todo', standing: { word: 'working' } };
+        assert.strictEqual(itemDetail(quiet, NOW), 'issue · Todo', 'working is the plain course of things: the state stays');
+        const blocked = { key: 'c', kind: 'issue.new', blocked: 'no token', standing: { word: 'blocked', why: 'no token' } };
+        assert.strictEqual(itemDetail(blocked, NOW), 'issue · blocked: no token', 'blocked already has its own line');
+    });
+
     it('says which session a row was handed to', () => {
         const row = { key: 'a', kind: 'pr.review', session: { id: 's1', label: 'api·auth', status: 'working' }, handed: { to: 's1', label: 'api·auth', by: 'daemon' } };
         assert.strictEqual(itemDetail(row, NOW), 'PR review · handed to api·auth');
