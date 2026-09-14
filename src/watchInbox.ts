@@ -27,6 +27,8 @@ export interface InboxItem {
     pull?: PullStatus;
     /** The session this row was typed into, and when (corgi 2.21). */
     handed?: { at?: string; to: string; label?: string; by?: string };
+    /** Where the row stands in the daemon's one word and clause, from its ladder (corgi 2.23). */
+    standing?: Standing;
     /** Who said what, for a comment or a review. */
     author?: string;
     body?: string;
@@ -36,6 +38,26 @@ export interface PullStatus {
     state: string;
     checks?: string;
     review?: string;
+}
+
+export interface Standing {
+    word: string;
+    why?: string;
+}
+
+/** The words worth a line of their own on a row — something to act on, not the plain course of things. */
+const LOUD = new Set(['merged', 'closed', 'blocked', 'needs you', 'at a limit', 'checks failing', 'changes requested', 'conflicts', 'tests failing', 'ready to merge', 'approved', 'draft', 'in review']);
+
+/** The daemon's word on the row when it sent one and it is loud; the pull request read here for a daemon before 2.23. */
+export function standingLine(item: Pick<InboxItem, 'standing' | 'pull' | 'blocked'>): string {
+    if (item.standing) {
+        const s = item.standing;
+        if (!LOUD.has(s.word) || s.word === 'blocked') {
+            return '';
+        }
+        return s.why ? `${s.word} · ${s.why}` : s.word;
+    }
+    return pullLine(item.pull);
 }
 
 /** Open, checks green or absent, approved: nothing between it and Merge — the daemon's own rule. */
@@ -102,9 +124,9 @@ export function itemDetail(item: InboxItem, now: number): string {
     } else if (item.author && item.body) {
         bits.push(`${item.author}: ${item.body}`);
     }
-    // The pull request's standing says more than its state: "ready to
+    // The daemon's word on the row says more than its state: "ready to
     // merge" beats "open".
-    const standing = pullLine(item.pull);
+    const standing = standingLine(item);
     if (standing) {
         bits.push(standing);
     } else if (item.state) {
