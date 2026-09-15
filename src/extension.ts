@@ -9,6 +9,7 @@ import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from 
 import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
+import { insideFolder } from './utils/insideFolder';
 import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
 import { registerCorgiAi } from './ai';
 import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
@@ -184,6 +185,12 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showErrorMessage('No links provided to run corgi or to show example in the web');
                 return;
             }
+            const go = await vscode.window.showWarningMessage(
+                `Download ${example.link} into this workspace and run corgi init + corgi run on it?`,
+                { modal: true, detail: 'A corgi-compose.yml can start services and run their commands. Only run examples you trust.' },
+                'Download and run',
+            );
+            if (go !== 'Download and run') { return; }
             const downloadPath = await downloadCorgiExample(example);
             if (!downloadPath) {
                 vscode.window.showErrorMessage('Example could not be downloaded. Aborting.');
@@ -196,6 +203,12 @@ export async function activate(context: vscode.ExtensionContext) {
             if (example && example.args && example.args[0]) {
                 example = example.args[0];
             }
+            const go = await vscode.window.showWarningMessage(
+                `Download ${example.link} into this workspace and run corgi fork --all on it?`,
+                { modal: true, detail: 'A corgi-compose.yml can start services and run their commands. Only run examples you trust.' },
+                'Download and run',
+            );
+            if (go !== 'Download and run') { return; }
             const downloadPath = await downloadCorgiExample(example);
             if (!downloadPath) {
                 vscode.window.showErrorMessage('Example could not be downloaded. Aborting.');
@@ -248,6 +261,10 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
     }
 
     const downloadPath = path.join(basePath, fileName);
+    if (!insideFolder(basePath, downloadPath) || (folderPath && !insideFolder(basePath, path.join(basePath, folderPath)))) {
+        vscode.window.showErrorMessage(`corgi: the example's path leaves the workspace (${example.path}). Not downloading.`);
+        return null;
+    }
 
     // Check if the folder exists, if not, create it
     if (folderPath) {
@@ -278,6 +295,10 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
                 const fileRawUrl = convertToRawUrl(fileLink);
                 const fileName = fileRawUrl.split('/').pop() || 'unknown_file';
                 const fileDownloadPath = path.join(mainFileDir, fileName);
+                if (!insideFolder(basePath, fileDownloadPath)) {
+                    vscode.window.showErrorMessage(`corgi: ${fileLink} would land outside the workspace. Skipped.`);
+                    continue;
+                }
                 try {
                     await downloadFile(fileRawUrl, fileDownloadPath);
                     vscode.window.showInformationMessage('Additional file downloaded successfully to ' + fileDownloadPath);
