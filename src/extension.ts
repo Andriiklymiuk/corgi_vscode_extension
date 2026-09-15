@@ -9,7 +9,7 @@ import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from 
 import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
-import { insideFolder } from './utils/insideFolder';
+import { insideFolder, plainFileName } from './utils/insideFolder';
 import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
 import { registerCorgiAi } from './ai';
 import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
@@ -242,6 +242,10 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
 
     const rawUrl = convertToRawUrl(link);
     let fileName = rawUrl.split('/').pop() || 'corgi-compose.yml';
+    if (!plainFileName.test(fileName)) {
+        vscode.window.showErrorMessage(`corgi: the example's file name is not plain (${fileName}). Not downloading.`);
+        return null;
+    }
 
     let folderPath = '';
 
@@ -295,8 +299,8 @@ const downloadCorgiExample = async (example: CorgiExample | any): Promise<string
                 const fileRawUrl = convertToRawUrl(fileLink);
                 const fileName = fileRawUrl.split('/').pop() || 'unknown_file';
                 const fileDownloadPath = path.join(mainFileDir, fileName);
-                if (!insideFolder(basePath, fileDownloadPath)) {
-                    vscode.window.showErrorMessage(`corgi: ${fileLink} would land outside the workspace. Skipped.`);
+                if (!plainFileName.test(fileName) || !insideFolder(basePath, fileDownloadPath)) {
+                    vscode.window.showErrorMessage(`corgi: ${fileLink} would land outside the workspace or has an odd name. Skipped.`);
                     continue;
                 }
                 try {
