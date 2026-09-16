@@ -78,15 +78,19 @@ The corgi daemon keeps a board of every Claude Code session on the machine
 ([corgi agent mode](https://github.com/Andriiklymiuk/corgi/blob/main/docs/agent.md)).
 This extension shows that board in VS Code.
 
-<p align="center"><img src="docs/media/window.png" width="800" alt="VS Code with the Agent sessions view, a permission prompt in the terminal, the status bar item and a toast with a Go button"></p>
+<p align="center"><img src="docs/media/window.png" width="800" alt="VS Code with the Corgi side bar: usage bars, the inbox, the sessions, a permission prompt in the terminal, the status bar item and a toast with a Go button"></p>
 
-**Agent sessions** view in the Corgi side bar. Workspaces, their sessions,
-what each one does, context fill, time since the last change. Click a
-session to focus its terminal tab or Claude Code panel. A session that waits
-for a permission gets **Allow** and **Deny** buttons. Right-click to add a
-note or dismiss.
+**The Corgi side bar** is one page: **Usage** (the 5-hour and 7-day
+limits of every account, as bars), **Inbox** (the tickets, review requests,
+comments and red builds the watch found and nobody dealt with), and
+**Sessions** (every Claude Code session, with a dot for its state, what it
+does, its diff and tests, context fill, time since the last change). Click
+a session to focus its terminal tab or Claude Code panel. Hover a row for
+its buttons: **Allow** and **Deny** when it asks, **Fresh** when it drifts,
+**Chat**, and `⋯` for the rest. The title bar has Run, Stop, Reload and `⋯`
+with every corgi command in one quick pick.
 
-<p align="center"><img src="docs/media/story.gif" width="800" alt="A session asks, Allow is clicked in the tree, the session finishes"></p>
+<p align="center"><img src="docs/media/story.gif" width="800" alt="A session asks, Allow is clicked in the side bar, the session finishes"></p>
 
 **Status bar**: `⌁ 3 · 🔔 1 · 5h 62%`. Sessions working, sessions that wait
 for you, the tightest 5-hour usage limit across accounts. The text turns
