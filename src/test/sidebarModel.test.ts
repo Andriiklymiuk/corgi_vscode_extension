@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { build, inboxRow, sessionRow, usageWindows } from '../sidebarModel';
+import { boardGroups, build, inboxRow, mutedLine, sessionRow, usageWindows, workspaceRows } from '../sidebarModel';
 import type { Board, BoardSession } from '../agentBoard';
 
 const now = new Date('2026-09-16T10:00:00Z');
@@ -50,26 +50,26 @@ describe('sidebarModel', () => {
     it('groups sessions by workspace only when there are two', () => {
         const one: Board = { sessions: [s({ id: '1' })] };
         const two: Board = { sessions: [s({ id: '1' }), s({ id: '2', label: 'web' })] };
-        assert.deepStrictEqual(build(one, [], [], [], now).sessions.map((g) => g.workspace), ['']);
-        assert.deepStrictEqual(build(two, [], [], [], now).sessions.map((g) => g.workspace), ['api', 'web']);
+        assert.deepStrictEqual(build({ board: one, inbox: [], hidden: [], bots: [], now }).sessions.map((g) => g.workspace), ['']);
+        assert.deepStrictEqual(build({ board: two, inbox: [], hidden: [], bots: [], now }).sessions.map((g) => g.workspace), ['api', 'web']);
     });
     it('puts needs-input first inside a workspace', () => {
         const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', status: 'needs_input' })] };
-        assert.deepStrictEqual(build(b, [], [], [], now).sessions[0].rows.map((r) => r.id), ['2', '1']);
+        assert.deepStrictEqual(build({ board: b, inbox: [], hidden: [], bots: [], now }).sessions[0].rows.map((r) => r.id), ['2', '1']);
     });
     it('drops hidden workspaces and counts the rest', () => {
         const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', label: 'web', status: 'needs_input' }), s({ id: '3', status: 'done' })] };
-        const st = build(b, [], ['web'], [], now);
+        const st = build({ board: b, inbox: [], hidden: ['web'], bots: [], now });
         assert.strictEqual(st.sessions[0].rows.length, 2);
-        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1 });
+        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1, board: 0 });
     });
     it('says when corgi is not installed', () => {
-        assert.strictEqual(build(undefined, [], [], [], now).installed, true);
-        assert.strictEqual(build(undefined, [], [], [], now, false).installed, false);
+        assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now }).installed, true);
+        assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now, installed: false }).installed, false);
     });
     it('leaves out an account without limits', () => {
         const b: Board = { accounts: [{ profile: 'a' }, { profile: 'b', limits: { fiveHour: { percent: 5 } } }] };
-        assert.deepStrictEqual(build(b, [], [], [], now).accounts.map((a) => a.profile), ['b']);
+        assert.deepStrictEqual(build({ board: b, inbox: [], hidden: [], bots: [], now }).accounts.map((a) => a.profile), ['b']);
     });
     it('marks a blocked inbox row bad with unblock, and an issue with work', () => {
         const r = inboxRow({ key: 'k', ref: 'IMP-1', kind: 'issue.new', blocked: 'breaker', url: 'https://t/1' }, now.getTime());
@@ -87,8 +87,46 @@ describe('sidebarModel', () => {
         assert.ok(!r.detail.endsWith('2h'));
     });
     it('groups the inbox by workspace only when there are two', () => {
-        const st = build(undefined, [{ key: 'a', workspace: 'api' }, { key: 'b', workspace: 'web' }], [], [], now);
+        const st = build({ board: undefined, inbox: [{ key: 'a', workspace: 'api' }, { key: 'b', workspace: 'web' }], hidden: [], bots: [], now });
         assert.deepStrictEqual(st.inbox.map((g) => g.workspace), ['api', 'web']);
         assert.strictEqual(st.counts.inbox, 2);
     });
 });
+    it('marks the front session', () => {
+        const b: Board = { sessions: [s({ id: '1' }), s({ id: '2' })], frontSession: '2' };
+        assert.deepStrictEqual(build({ board: b, inbox: [], hidden: [], bots: [], now }).sessions[0].rows.map((r) => r.front), [false, true]);
+    });
+    it('lists ended sessions apart', () => {
+        const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', status: 'gone' })] };
+        const st = build({ board: b, inbox: [], hidden: [], bots: [], now });
+        assert.strictEqual(st.sessions[0].rows.length, 1);
+        assert.deepStrictEqual(st.ended.map((r) => r.id), ['2']);
+    });
+    it('groups kanban cards by column in the board order', () => {
+        const groups = boardGroups([
+            { ref: 'B-2', title: 'later', column: 'Done', workspace: 'api', updatedAt: '2026-09-16T09:00:00Z' },
+            { ref: 'A-1', title: 'now', column: 'Running', fix: { running: true }, url: 'https://t/1' },
+            { ref: 'C-3', column: 'Blocked', why: 'breaker' },
+            { title: 'no ref no key' },
+        ], now.getTime());
+        assert.deepStrictEqual(groups.map((g) => g.column), ['Running', 'Blocked', 'Done']);
+        assert.strictEqual(groups[0].rows[0].tone, 'live');
+        assert.strictEqual(groups[0].rows[0].url, 'https://t/1');
+        assert.strictEqual(groups[1].rows[0].tone, 'bad');
+        assert.strictEqual(groups[2].rows[0].elapsed, '1h');
+    });
+    it('describes each workspace', () => {
+        const rows = workspaceRows([{ id: 'api' }, { id: 'web', status: 'missing' }], [{ workspace: 'api', action: 'fix', sources: ['linear'] }], new Set(['api']), new Set(['web']));
+        assert.strictEqual(rows[0].detail, 'supervised · watch fix · linear');
+        assert.strictEqual(rows[0].watch, 'fix');
+        assert.strictEqual(rows[1].detail, 'paused · missing');
+        assert.strictEqual(rows[1].tone, 'bad');
+    });
+    it('reads the daemon line and the mute', () => {
+        const st = build({ inbox: [], hidden: [], bots: [], now, daemon: { pid: 4, version: '2.28.10' }, mutedUntil: '2026-09-16T11:00:00Z\n' });
+        assert.strictEqual(st.daemon.running, true);
+        assert.strictEqual(st.daemon.version, '2.28.10');
+        assert.ok(st.daemon.muted.startsWith('muted until '));
+        assert.strictEqual(mutedLine('2026-09-16T09:00:00Z', now), '');
+        assert.strictEqual(build({ inbox: [], hidden: [], bots: [], now }).daemon.running, false);
+    });

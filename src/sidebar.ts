@@ -1,19 +1,21 @@
 import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { readBots } from './agentBoard';
 import { hiddenWorkspaces, type AgentBoardWatcher } from './agentStatus';
 import { isCorgiInstalled } from './corgiCommands';
 import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 import { page } from './sidebarHtml';
-import { build, InboxNode, SessionNode } from './sidebarModel';
+import { build, DaemonInfo, InboxNode, KanbanCard, SessionNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
 import { InboxItem, itemName, readInbox } from './watchInbox';
 
 /**
- * The Corgi sidebar: usage, the tracker inbox and the agent sessions on one
- * webview page. It draws what the board watcher and the inbox poll already
- * read; nothing here polls on its own beyond the inbox's minute. State goes
- * to the page only when it changed and only while the page is showing; the
- * page asks for it again when it comes back.
+ * The Corgi sidebar: the daemon line, usage, the tracker inbox, the kanban,
+ * the sessions and the workspaces on one webview page. It draws what the
+ * board watcher and one minute-poll read; state goes to the page only when
+ * it changed and only while the page is showing; the page asks for it again
+ * when it comes back.
  */
 
 const POLL_MS = 60_000;
@@ -24,16 +26,30 @@ const ALLOWED = new Set([
     'corgi.agent.focusNode', 'corgi.agent.chat', 'corgi.agent.answer', 'corgi.agent.deny', 'corgi.agent.fresh', 'corgi.agent.openPr',
     'corgi.agent.new', 'corgi.agent.newIsolated',
     'corgi.agent.inboxWorkOn', 'corgi.agent.inboxIgnore', 'corgi.agent.inboxUnblock',
+    'corgi.agent.mute', 'corgi.agent.unmute', 'corgi.agent.daemonRestart', 'corgi.agent.daemonStart',
+    'corgi.agent.addAccount', 'corgi.agent.addWorkspace', 'corgi.agent.workspaceOpen',
+    'corgi.agent.workspacePause', 'corgi.agent.workspaceResume', 'corgi.agent.watchEnable', 'corgi.agent.watchDisable',
     'corgi.sidebar.reload', 'corgi.installWithHomebrew',
 ]);
 
-type Node = SessionNode | InboxNode;
+type WorkspaceNode = { kind: 'workspace'; id: string };
+type Node = SessionNode | InboxNode | WorkspaceNode;
 type Message = { type: string; command?: string; node?: Node; url?: string };
+
+/** One read of everything the minute-poll fetches beside the inbox. */
+interface Snapshot {
+    items: InboxItem[];
+    cards: KanbanCard[];
+    workspaces: WorkspaceInfo[];
+    watched: WatchedWorkspace[];
+    running: string[];
+    paused: string[];
+}
 
 export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposable {
     static readonly viewId = 'corgiSidebar';
     private view: vscode.WebviewView | undefined;
-    private items: InboxItem[] = [];
+    private snap: Snapshot = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [] };
     private installed = true;
     private timer: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
@@ -73,6 +89,26 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         }
     }
 
+    /** The daemon's record and the mute, read from files: no process for a line of text. */
+    private daemonInfo(): { daemon: DaemonInfo; mutedUntil: string } {
+        let daemon: DaemonInfo = {};
+        try {
+            const info = JSON.parse(fs.readFileSync(path.join(this.agentDir, 'daemon.json'), 'utf8')) as DaemonInfo;
+            if (info && typeof info.pid === 'number') {
+                daemon = info;
+            }
+        } catch {
+            // no record: the daemon is off
+        }
+        let mutedUntil = '';
+        try {
+            mutedUntil = fs.readFileSync(path.join(this.agentDir, 'muted-until'), 'utf8');
+        } catch {
+            // not muted
+        }
+        return { daemon, mutedUntil };
+    }
+
     /** Rebuild the state; post it when it changed and the page is showing. */
     push(): void {
         if (this.debounce) {
@@ -83,7 +119,12 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             if (!this.view?.visible) {
                 return;
             }
-            const state = build(this.watcher.current(), this.items, hiddenWorkspaces(), readBots(this.agentDir), new Date(), this.installed);
+            const { daemon, mutedUntil } = this.daemonInfo();
+            const state = build({
+                board: this.watcher.current(), inbox: this.snap.items, hidden: hiddenWorkspaces(), bots: readBots(this.agentDir), now: new Date(),
+                installed: this.installed, daemon, mutedUntil, cards: this.snap.cards,
+                workspaces: this.snap.workspaces, watched: this.snap.watched, running: this.snap.running, paused: this.snap.paused,
+            });
             const json = JSON.stringify(state);
             if (json === this.lastJson) {
                 return;
@@ -95,7 +136,28 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
 
     async refresh(): Promise<void> {
         this.installed = await isCorgiInstalled();
-        this.items = this.installed ? await readInbox(corgiBinary(), hiddenWorkspaces()) : [];
+        if (!this.installed) {
+            this.snap = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [] };
+            this.push();
+            return;
+        }
+        const hidden = hiddenWorkspaces();
+        const [items, kanban, workspaces, watch, status] = await Promise.all([
+            readInbox(corgiBinary(), hidden),
+            corgiJSON<{ cards?: KanbanCard[] }>(['agent', 'kanban', '--json']),
+            corgiJSON<WorkspaceInfo[]>(['agent', 'workspaces', '--json']),
+            corgiJSON<{ workspaces?: WatchedWorkspace[] }>(['agent', 'watch', '--json']),
+            corgiJSON<{ workspaces?: { workspaceId: string; running?: boolean }[] }>(['agent', 'status', '--json']),
+        ]);
+        const supervised = status?.workspaces ?? [];
+        this.snap = {
+            items,
+            cards: (kanban?.cards ?? []).filter((c) => !hidden.includes(c.workspace ?? '')),
+            workspaces: (Array.isArray(workspaces) ? workspaces : []).filter((w) => w && w.id && !hidden.includes(w.id)),
+            watched: watch?.workspaces ?? [],
+            running: supervised.filter((w) => w.running).map((w) => w.workspaceId),
+            paused: (Array.isArray(workspaces) ? workspaces : []).filter((w) => w && w.id && !supervised.some((s) => s.workspaceId === w.id)).map((w) => w.id),
+        };
         this.push();
     }
 
@@ -103,14 +165,19 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
     private async menu(node: Node): Promise<void> {
         type Pick = vscode.QuickPickItem & { command: string; args?: unknown[] };
         const items: Pick[] = [];
+        let title = '';
         if (node.kind === 'session') {
             const s = node.session;
+            title = s.title || s.label || s.id;
             items.push({ label: '$(comment) Chat beside the code', command: 'corgi.agent.chat' }, { label: '$(arrow-right) Send…', command: 'corgi.agent.sendTo' }, { label: '$(note) Note…', command: 'corgi.agent.note' });
             if (s.pending) {
                 items.push({ label: '$(check-all) Always allow', command: 'corgi.agent.always' });
             }
             if (s.drift?.length) {
                 items.push({ label: '$(refresh) Fresh: restart clean from a handoff', command: 'corgi.agent.fresh' });
+            }
+            for (const profile of (this.watcher.current()?.accounts ?? []).map((a) => a.profile).filter((p) => p && p !== s.profile)) {
+                items.push({ label: `$(account) Carry to ${profile}`, command: 'corgi.agent.carryTo', args: [node, profile] });
             }
             if (s.pr) {
                 items.push({ label: '$(git-pull-request) Open pull request', command: 'corgi.agent.openPr' });
@@ -123,8 +190,9 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 { label: '$(close) Take off the board', command: 'corgi.agent.dismiss' },
                 { label: '$(eye-closed) Hide this workspace', command: 'corgi.agent.hideWorkspace', args: [{ kind: 'group', label: s.label }] },
             );
-        } else {
+        } else if (node.kind === 'item') {
             const item = node.item;
+            title = itemName(item);
             const issue = (item.kind ?? '').startsWith('issue.') || item.kind === 'task';
             if (issue) {
                 items.push({ label: '$(play) Work on it', command: 'corgi.agent.inboxWorkOn' }, { label: '$(git-branch) Work on it in a worktree', command: 'corgi.agent.inboxWorkOnIsolated' });
@@ -142,8 +210,15 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 items.push({ label: '$(git-pull-request) Mark ready', command: 'corgi.agent.inboxPrReady' }, { label: '$(git-merge) Merge', command: 'corgi.agent.inboxPrMerge' }, { label: '$(git-pull-request-closed) Close', command: 'corgi.agent.inboxPrClose' });
             }
             items.push({ label: '$(bell-slash) Ignore', command: 'corgi.agent.inboxIgnore' });
+        } else {
+            title = node.id;
+            items.push(
+                { label: '$(folder-opened) Open in a new window', command: 'corgi.agent.workspaceOpen' },
+                { label: '$(add) New session here', command: 'corgi.agent.workspaceSession' },
+                { label: '$(eye-closed) Hide from the sidebar', command: 'corgi.agent.hideWorkspace', args: [{ kind: 'group', label: node.id }] },
+                { label: '$(trash) Forget this workspace', command: 'corgi.agent.workspaceForget' },
+            );
         }
-        const title = node.kind === 'session' ? node.session.title || node.session.label || node.session.id : itemName(node.item);
         const pick = await vscode.window.showQuickPick(items, { placeHolder: title });
         if (pick) {
             await vscode.commands.executeCommand(pick.command, ...(pick.args ?? [node]));
@@ -152,6 +227,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
 
     start(): vscode.Disposable {
         const itemOf = (node?: Node): InboxItem | undefined => (node?.kind === 'item' ? node.item : undefined);
+        const workspaceOf = (node?: Node): string => (node?.kind === 'workspace' ? node.id : '');
         // A ticket action runs corgi's own command, then the inbox re-reads.
         const act = async (args: string[], failure: string) => {
             const r = await runCorgi(['agent', 'watch', ...args]);
@@ -159,6 +235,20 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 void vscode.window.showWarningMessage(`${failure}: ${r.stderr.trim() || r.stdout.trim()}`);
             }
             await this.refresh();
+        };
+        // A daemon action, then a re-read once it has had a moment.
+        const agent = async (args: string[], failure: string, delayMs = 1500) => {
+            const r = await runCorgi(['agent', ...args]);
+            if (!r.ok) {
+                void vscode.window.showWarningMessage(`${failure}: ${r.stderr.trim() || r.stdout.trim()}`);
+            }
+            this.watcher.refresh();
+            await this.refresh();
+            setTimeout(() => {
+                this.watcher.refresh();
+                void this.refresh();
+            }, delayMs);
+            return r.ok;
         };
         this.disposables.push(
             this.watcher.onDidChangeBoard(() => this.push()),
@@ -168,19 +258,8 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 }
             }),
             // The title bar's ↻ is a real reload: the daemon rescans and polls
-            // every tracker now; the board and this inbox re-read after it.
-            vscode.commands.registerCommand('corgi.sidebar.reload', async () => {
-                const r = await runCorgi(['agent', 'refresh']);
-                if (!r.ok) {
-                    void vscode.window.showWarningMessage(`corgi could not refresh: ${r.stderr.trim() || r.stdout.trim()}`);
-                }
-                this.watcher.refresh();
-                await this.refresh();
-                setTimeout(() => {
-                    this.watcher.refresh();
-                    void this.refresh();
-                }, 1500);
-            }),
+            // every tracker now; the board and this page re-read after it.
+            vscode.commands.registerCommand('corgi.sidebar.reload', () => agent(['refresh'], 'corgi could not refresh')),
             // Kept for corgi.agent.refresh and older keybindings: a quiet re-read.
             vscode.commands.registerCommand('corgi.agent.inboxRefresh', async (opts?: { quiet?: boolean }) => {
                 if (!opts?.quiet) {
@@ -188,6 +267,81 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                     setTimeout(() => void this.refresh(), 1500);
                 }
                 await this.refresh();
+            }),
+            vscode.commands.registerCommand('corgi.agent.daemonRestart', () => agent(['restart'], 'corgi could not restart the daemon', 4000)),
+            vscode.commands.registerCommand('corgi.agent.daemonStart', () => agent(['up'], 'corgi could not start the daemon', 4000)),
+            vscode.commands.registerCommand('corgi.agent.mute', async () => {
+                const pick = await vscode.window.showQuickPick(['30m', '1h', '2h', '4h'], { placeHolder: 'Nothing rings for…' });
+                if (pick) {
+                    await agent(['mute', pick], 'corgi could not mute', 300);
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.unmute', () => agent(['mute', 'off'], 'corgi could not unmute', 300)),
+            vscode.commands.registerCommand('corgi.agent.addAccount', async () => {
+                const name = await vscode.window.showInputBox({ prompt: 'Account (profile) name', placeHolder: 'work', validateInput: (v) => (/^[a-z0-9][a-z0-9-]*$/i.test(v.trim()) ? undefined : 'letters, digits and dashes') });
+                if (!name?.trim()) {
+                    return;
+                }
+                const dir = await vscode.window.showInputBox({ prompt: `Claude config directory for ${name.trim()}`, value: `~/.claude-${name.trim()}`, placeHolder: '~/.claude-work' });
+                if (!dir?.trim()) {
+                    return;
+                }
+                if (await agent(['profile', 'add', name.trim(), '--config-dir', dir.trim()], 'corgi could not add the account')) {
+                    void vscode.window.showInformationMessage(`corgi: account ${name.trim()} added. Log in once with: corgi agent claude --profile ${name.trim()}`);
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.carryTo', async (node?: Node, profile?: string) => {
+                if (node?.kind !== 'session' || !profile) {
+                    return;
+                }
+                await agent(['carry', node.session.id, '--profile', profile], `corgi could not carry it to ${profile}`, 3000);
+            }),
+            vscode.commands.registerCommand('corgi.agent.addWorkspace', async () => {
+                const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, openLabel: 'Opt this stack into agent mode', defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri });
+                const folder = picked?.[0]?.fsPath;
+                if (!folder) {
+                    return;
+                }
+                // init asks questions; a terminal is where those belong.
+                const term = vscode.window.createTerminal({ name: 'corgi agent init', cwd: folder });
+                term.show();
+                term.sendText('corgi agent init');
+                setTimeout(() => void this.refresh(), 8000);
+            }),
+            vscode.commands.registerCommand('corgi.agent.workspacePause', (node?: Node) => agent(['workspaces', 'pause', workspaceOf(node)], 'corgi could not pause it')),
+            vscode.commands.registerCommand('corgi.agent.workspaceResume', (node?: Node) => agent(['workspaces', 'resume', workspaceOf(node)], 'corgi could not resume it')),
+            vscode.commands.registerCommand('corgi.agent.workspaceForget', async (node?: Node) => {
+                const id = workspaceOf(node);
+                const ok = id && await vscode.window.showWarningMessage(`Forget workspace ${id}? Nothing on disk changes.`, { modal: true }, 'Forget');
+                if (ok) {
+                    await agent(['workspaces', 'forget', id], 'corgi could not forget it');
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.workspaceOpen', async (node?: Node) => {
+                const w = this.snap.workspaces.find((x) => x.id === workspaceOf(node));
+                if (w?.absPath) {
+                    await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(w.absPath), { forceNewWindow: true });
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.workspaceSession', async (node?: Node) => {
+                const id = workspaceOf(node);
+                if (id) {
+                    await agent(['session', 'start', id], 'corgi could not start a session there', 3000);
+                }
+            }),
+            // The watch reads its rules at start, so a change restarts the daemon, as the bar does.
+            vscode.commands.registerCommand('corgi.agent.watchEnable', async (node?: Node) => {
+                const id = workspaceOf(node);
+                const mode = id && await vscode.window.showQuickPick([{ label: 'Tell me', description: 'notify: tickets and reviews land in the inbox', value: 'notify' }, { label: 'Fix it', description: 'fix: an unattended session works each new ticket', value: 'fix' }], { placeHolder: `Watch ${id}: what should corgi do with what it finds?` });
+                if (mode && await agent(['watch', 'enable', '--workspace', id, '--action', mode.value], 'corgi could not enable the watch')) {
+                    await agent(['restart'], 'corgi could not restart the daemon', 4000);
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.watchDisable', async (node?: Node) => {
+                const id = workspaceOf(node);
+                if (id && await agent(['watch', 'disable', '--workspace', id], 'corgi could not disable the watch')) {
+                    await agent(['restart'], 'corgi could not restart the daemon', 4000);
+                }
             }),
             vscode.commands.registerCommand('corgi.agent.inboxOpen', (node?: Node) => {
                 const url = itemOf(node)?.url;
@@ -237,7 +391,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             vscode.commands.registerCommand('corgi.agent.inboxIgnore', async (node?: Node) => {
                 const item = itemOf(node);
                 if (item) {
-                    this.items = this.items.filter((i) => i.key !== item.key);
+                    this.snap.items = this.snap.items.filter((i) => i.key !== item.key);
                     this.push();
                     await act(['ignore', item.key], 'corgi could not ignore it');
                 }
@@ -282,17 +436,8 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
 
     /** The tracker's columns for a workspace, from `corgi agent watch board --json`; empty when it cannot say. */
     private async columns(workspace?: string): Promise<string[]> {
-        const r = await runCorgi(['agent', 'watch', 'board', '--json', ...(workspace ? ['--workspace', workspace] : [])]);
-        if (!r.ok) {
-            return [];
-        }
-        try {
-            const parsed = JSON.parse(r.stdout) as { board?: { statuses?: { name?: string }[] } };
-            return (parsed.board?.statuses ?? []).map((c) => c?.name ?? '').filter(Boolean);
-        } catch {
-            // not JSON: no columns
-        }
-        return [];
+        const parsed = await corgiJSON<{ board?: { statuses?: { name?: string }[] } }>(['agent', 'watch', 'board', '--json', ...(workspace ? ['--workspace', workspace] : [])]);
+        return (parsed?.board?.statuses ?? []).map((c) => c?.name ?? '').filter(Boolean);
     }
 
     dispose(): void {
@@ -306,5 +451,18 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             d.dispose();
         }
         this.disposables.length = 0;
+    }
+}
+
+/** corgi's JSON for a read command, or undefined when it failed or was not JSON. */
+async function corgiJSON<T>(args: string[]): Promise<T | undefined> {
+    const r = await runCorgi(args);
+    if (!r.ok) {
+        return undefined;
+    }
+    try {
+        return JSON.parse(r.stdout) as T;
+    } catch {
+        return undefined;
     }
 }
