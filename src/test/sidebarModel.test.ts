@@ -91,7 +91,6 @@ describe('sidebarModel', () => {
         assert.deepStrictEqual(st.inbox.map((g) => g.workspace), ['api', 'web']);
         assert.strictEqual(st.counts.inbox, 2);
     });
-});
     it('marks the front session', () => {
         const b: Board = { sessions: [s({ id: '1' }), s({ id: '2' })], frontSession: '2' };
         assert.deepStrictEqual(build({ board: b, inbox: [], hidden: [], bots: [], now }).sessions[0].rows.map((r) => r.front), [false, true]);
@@ -130,3 +129,4 @@ describe('sidebarModel', () => {
         assert.strictEqual(mutedLine('2026-09-16T09:00:00Z', now), '');
         assert.strictEqual(build({ inbox: [], hidden: [], bots: [], now }).daemon.running, false);
     });
+});
