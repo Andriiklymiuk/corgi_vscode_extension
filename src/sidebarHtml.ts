@@ -67,10 +67,14 @@ export function page(nonce: string): string {
   .usage .resets { color: var(--dim); font-size: 11px; padding-left: 26px; }
   .usage .resets.warn { color: var(--ask); }
   .empty { padding: 6px 14px 4px; color: var(--dim); font-size: 12px; line-height: 1.45; }
+  #install { padding: 10px 14px 12px; font-size: 12px; line-height: 1.5; border-bottom: 1px solid var(--line); }
+  #install a.btn { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 3px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+  #install a.btn:hover { background: var(--vscode-button-hoverBackground); text-decoration: none; }
   .foot { display: flex; gap: 14px; padding: 6px 14px 4px; font-size: 12px; }
   a { color: var(--link); cursor: pointer; text-decoration: none; }
   a:hover { text-decoration: underline; }
 </style></head><body>
+<div id="install" hidden></div>
 <section id="usage"><h2><span class="chev">▾</span>Usage</h2><div class="body"></div></section>
 <section id="inbox"><h2><span class="chev">▾</span>Inbox<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="sessions"><h2><span class="chev">▾</span>Sessions<span class="count"></span></h2><div class="body"></div></section>
@@ -198,9 +202,23 @@ export function page(nonce: string): string {
     body('sessions').replaceChildren(...rows);
   };
 
+  const drawInstall = (installed) => {
+    const box = document.getElementById('install');
+    box.hidden = installed;
+    if (installed) { box.replaceChildren(); return; }
+    const text = el('div', '', 'The corgi command line is not installed. It comes from Homebrew, so have that first. ');
+    const repo = el('a', '', 'Corgi on GitHub');
+    repo.addEventListener('click', () => vscode.postMessage({ type: 'open', url: 'https://github.com/Andriiklymiuk/corgi' }));
+    text.appendChild(repo);
+    const btn = el('a', 'btn', 'Install corgi with Homebrew');
+    btn.addEventListener('click', () => run('corgi.installWithHomebrew'));
+    box.replaceChildren(text, btn);
+  };
+
   window.addEventListener('message', (ev) => {
     const m = ev.data;
     if (!m || m.type !== 'state' || !m.state) return;
+    drawInstall(m.state.installed !== false);
     drawUsage(m.state.accounts || []);
     drawInbox(m.state);
     drawSessions(m.state);

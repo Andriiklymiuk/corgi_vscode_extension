@@ -16,6 +16,10 @@ describe('sidebar page', () => {
             assert.ok(html.includes(`id="${id}"`), id);
         }
     });
+    it('offers the Homebrew install when corgi is missing', () => {
+        assert.ok(html.includes(`'corgi.installWithHomebrew'`));
+        assert.ok(html.includes('id="install"'));
+    });
     it('only runs commands the extension allows, by name', () => {
         assert.ok(html.includes(`'corgi.agent.focusNode'`));
         assert.ok(html.includes(`'corgi.agent.inboxWorkOn'`));
