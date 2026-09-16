@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { Board } from './agentBoard';
 import {
-    AutoContinueSettings, PendingContinue, autoContinueDefaults, dueNow, planContinues, queueTooltip, statusText, waitLabel,
+    AutoContinueSettings, PendingContinue, autoContinueDefaults, dueNow, limitedSessions, maxAttempts, planContinues, queueTooltip, statusText, waitLabel,
 } from './autoContinue';
+
+const episodeEndMs = 10 * 60_000;
 import { runCorgi } from './corgiExec';
 
 const TICK_MS = 30000;
@@ -28,6 +30,9 @@ export class AutoContinueWatcher implements vscode.Disposable {
     private readonly item: vscode.StatusBarItem;
     private readonly cancelled = new Set<string>();
     private readonly sent = new Set<string>();
+    /** Continues typed into a session this episode; a brief flicker to working does not reset it. */
+    private readonly attempts = new Map<string, number>();
+    private readonly lastLimited = new Map<string, number>();
     private timer: NodeJS.Timeout | undefined;
     private board: Board | undefined;
     private pending: PendingContinue[] = [];
@@ -58,14 +63,19 @@ export class AutoContinueWatcher implements vscode.Disposable {
         this.board = board;
         // A session that is no longer limited gets a clean slate: its next
         // limit is a new wait, not the one someone cancelled hours ago.
-        const stillLimited = new Set(planContinues(board, new Set()).map((p) => p.sessionId));
-        for (const id of [...this.cancelled]) {
-            if (!stillLimited.has(id)) {
-                this.cancelled.delete(id);
-            }
+        const stillLimited = new Set(limitedSessions(board).map((s) => s.id));
+        const now = Date.now();
+        for (const id of stillLimited) {
+            this.lastLimited.set(id, now);
         }
-        for (const id of [...this.sent]) {
-            if (!stillLimited.has(id)) {
+        // An episode ends when the session has not been limited for a while:
+        // a "continue" that the session answers with the same limit a second
+        // later is the same episode, and counts against its attempts.
+        for (const [id, at] of [...this.lastLimited]) {
+            if (!stillLimited.has(id) && now - at > episodeEndMs) {
+                this.lastLimited.delete(id);
+                this.attempts.delete(id);
+                this.cancelled.delete(id);
                 this.sent.delete(id);
             }
         }
@@ -92,10 +102,11 @@ export class AutoContinueWatcher implements vscode.Disposable {
         }
         const due = dueNow(this.pending, Date.now(), this.settings.graceSeconds);
         for (const p of due) {
-            if (this.sent.has(p.sessionId)) {
+            if (this.sent.has(p.sessionId) || (this.attempts.get(p.sessionId) ?? 0) >= maxAttempts) {
                 continue;
             }
             this.sent.add(p.sessionId);
+            this.attempts.set(p.sessionId, (this.attempts.get(p.sessionId) ?? 0) + 1);
             const result = await runCorgi(['agent', 'send', p.sessionId, '--enter', '--', this.settings.message]);
             if (result.ok) {
                 void vscode.window.showInformationMessage(`corgi: resumed ${p.name} — its ${p.window} limit reset`);
