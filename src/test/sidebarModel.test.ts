@@ -63,6 +63,10 @@ describe('sidebarModel', () => {
         assert.strictEqual(st.sessions[0].rows.length, 2);
         assert.deepStrictEqual(st.counts, { inbox: 0, active: 1 });
     });
+    it('says when corgi is not installed', () => {
+        assert.strictEqual(build(undefined, [], [], [], now).installed, true);
+        assert.strictEqual(build(undefined, [], [], [], now, false).installed, false);
+    });
     it('leaves out an account without limits', () => {
         const b: Board = { accounts: [{ profile: 'a' }, { profile: 'b', limits: { fiveHour: { percent: 5 } } }] };
         assert.deepStrictEqual(build(b, [], [], [], now).accounts.map((a) => a.profile), ['b']);

@@ -6,22 +6,72 @@ import { CorgiComposeCompletionProvider, CorgiJsonCompletionProvider } from './c
 import { CorgiCrossServiceRefCompletionProvider } from './crossServiceRefCompletion';
 import { validateCorgiComposeYaml, validateCorgiExamplesJson } from './validate';
 import { executeCorgiCommand, installCorgiWithHomebrew, isCorgiInstalled } from './corgiCommands';
-import { CorgiTreeProvider } from './corgiTreeProvider';
 import { downloadFile } from './utils/downloadFile';
 import { convertToRawUrl } from './utils/convertToRawUrl';
 import { insideFolder, plainFileName } from './utils/insideFolder';
-import { CorgiExample, corgiExamplesJsonPattern } from './examples/exampleProjects';
+import { CorgiExample, corgiExamplesJsonPattern, customExamples, exampleProjects } from './examples/exampleProjects';
 import { registerCorgiAi } from './ai';
 import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
-import { registerAgentBoard, registerView } from './agentStatus';
+import { registerAgentBoard } from './agentStatus';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
-async function checkCorgiInstallation(corgiTreeProvider: CorgiTreeProvider) {
+async function checkCorgiInstallation() {
     const isInstalled = await isCorgiInstalled();
-    // If Corgi is not installed, set the context key so the welcome view can be shown
+    // Without corgi the sidebar shows the install welcome instead.
     vscode.commands.executeCommand('setContext', 'corgiNotInstalled', !isInstalled);
-    corgiTreeProvider.refresh();
+}
+
+type CommandPick = vscode.QuickPickItem & { command?: string; args?: unknown[] };
+
+/** The ⋯ in the sidebar's title: every corgi command in one quick pick. */
+async function pickCorgiCommand(): Promise<void> {
+    const sep = (label: string): CommandPick => ({ label, kind: vscode.QuickPickItemKind.Separator });
+    const row = ([label, command, icon]: readonly [string, string, string]): CommandPick => ({ label: `$(${icon}) ${label}`, command });
+    const example = (icon: string) => (p: CorgiExample): CommandPick => ({ label: `$(${icon}) ${p.title}`, description: p.path, command: 'corgi.runExample', args: [p] });
+    const mine = customExamples(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
+    const items: CommandPick[] = [
+        sep('Stack'),
+        ...([
+            ['Run', 'corgi.runFromRoot', 'debug-start'],
+            ['Run, omit beforeStart', 'corgi.runOmitBeforeStartFromRoot', 'run-below'],
+            ['Stop', 'corgi.stop', 'stop-circle'],
+            ['Init: clone repos, create databases', 'corgi.initFromRoot', 'tools'],
+            ['Pull every repo', 'corgi.pullFromRoot', 'cloud-download'],
+            ['Doctor: install required services', 'corgi.doctorFromRoot', 'info'],
+            ['Create a corgi-compose.yml', 'corgi.createFromRoot', 'file-code'],
+            ['Fork', 'corgi.forkFromRoot', 'repo-forked'],
+            ['Clean', 'corgi.cleanFromRoot', 'trash'],
+        ] as const).map(row),
+        sep('Databases'),
+        ...([
+            ['All databases', 'corgi.dbFromRoot', 'notebook'],
+            ['Up', 'corgi.dbUpFromRoot', 'debug-start'],
+            ['Stop', 'corgi.dbStopFromRoot', 'debug-stop'],
+            ['Down: stop and remove', 'corgi.dbDownFromRoot', 'clear-all'],
+            ['Seed', 'corgi.dbSeedFromRoot', 'circuit-board'],
+        ] as const).map(row),
+        sep('Sessions'),
+        ...([
+            ['New session', 'corgi.agent.new', 'add'],
+            ['New session in its own worktree', 'corgi.agent.newIsolated', 'git-branch'],
+            ['Open a bot', 'corgi.agent.openBot', 'hubot'],
+            ['Ask the chief about the board', 'corgi.agent.ask', 'comment-discussion'],
+            ['Hidden workspaces…', 'corgi.agent.hiddenWorkspaces', 'eye-closed'],
+        ] as const).map(row),
+        sep('Info'),
+        ...([
+            ['Docs', 'corgi.docs', 'book'],
+            ['Help', 'corgi.help', 'question'],
+        ] as const).map(row),
+        sep('Examples'),
+        ...exampleProjects.map(example('cloud-download')),
+        ...(mine.length ? [sep('Your projects'), ...mine.map(example('folder'))] : []),
+    ];
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: 'corgi', matchOnDescription: true });
+    if (pick?.command) {
+        await vscode.commands.executeCommand(pick.command, ...(pick.args ?? []));
+    }
 }
 
 function registerCorgiCommands(context: vscode.ExtensionContext) {
@@ -78,10 +128,7 @@ function registerCorgiCommands(context: vscode.ExtensionContext) {
 
 export async function activate(context: vscode.ExtensionContext) {
     const diagnostics = vscode.languages.createDiagnosticCollection('corgi');
-    const corgiTreeProvider = new CorgiTreeProvider();
-    context.subscriptions.push(registerView('corgiTreeView', corgiTreeProvider));
-
-    checkCorgiInstallation(corgiTreeProvider);
+    void checkCorgiInstallation();
 
     context.subscriptions.push(diagnostics);
     console.log('Congratulations, your extension "corgi" is now active!');
@@ -140,9 +187,10 @@ export async function activate(context: vscode.ExtensionContext) {
             new CorgiJsonCompletionProvider(),
             '.', ':', ' '
         ),
+        vscode.commands.registerCommand('corgi.commands', pickCorgiCommand),
         vscode.commands.registerCommand('corgi.reload', async () => {
-            corgiTreeProvider.refresh();
-            vscode.window.showInformationMessage('Corgi extension refreshed');
+            await checkCorgiInstallation();
+            await vscode.commands.executeCommand('corgi.sidebar.reload');
         }),
         vscode.commands.registerCommand('corgi.cancel', async () => {
             vscode.commands.executeCommand('workbench.action.terminal.kill');
@@ -151,7 +199,6 @@ export async function activate(context: vscode.ExtensionContext) {
             const installed = await installCorgiWithHomebrew();
             if (installed) {
                 vscode.commands.executeCommand('setContext', 'corgiNotInstalled', false);
-                corgiTreeProvider.refresh();
             } else {
                 vscode.window.showErrorMessage('Failed to install Corgi. Please try again or install manually with brew install andriiklymiuk/homebrew-tools/corgi');
             }

@@ -46,6 +46,8 @@ export interface SidebarState {
     inbox: { workspace: string; rows: InboxRow[] }[];
     sessions: { workspace: string; rows: SessionRow[] }[];
     counts: { inbox: number; active: number };
+    /** False when the corgi binary is not on the machine: the page shows how to install it. */
+    installed: boolean;
 }
 
 /** "resets in 40m" / "resets in 3h" / "resets in 5d"; "" without a time ahead. */
@@ -205,7 +207,7 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
     };
 }
 
-export function build(board: Board | undefined, inbox: InboxItem[], hidden: readonly string[], bots: Bot[], now: Date): SidebarState {
+export function build(board: Board | undefined, inbox: InboxItem[], hidden: readonly string[], bots: Bot[], now: Date, installed = true): SidebarState {
     const shown = hideWorkspaces(board, hidden);
     const groups = groupSessions(shown);
     const sessions = groups.length === 1
@@ -221,5 +223,6 @@ export function build(board: Board | undefined, inbox: InboxItem[], hidden: read
         inbox: inboxOut,
         sessions,
         counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length },
+        installed,
     };
 }

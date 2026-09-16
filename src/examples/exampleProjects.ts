@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
 export interface CorgiExample {
   title: string;
   link?: string;
@@ -63,3 +66,28 @@ export const exampleProjects: CorgiExample[] = [
     path: "hono_nextjs_example"
   },
 ];
+/** The examples a workspace carries itself: every corgi-*.json in its root. */
+export function customExamples(workspacePath: string | undefined): CorgiExample[] {
+  if (!workspacePath) {
+    return [];
+  }
+  const all: CorgiExample[] = [];
+  try {
+    for (const file of fs.readdirSync(workspacePath)) {
+      if (!corgiExamplesJsonPattern.test(file)) {
+        continue;
+      }
+      const raw = fs.readFileSync(path.join(workspacePath, file), 'utf-8');
+      if (!raw) {
+        continue;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        all.push(...parsed.filter((e) => e && typeof e.title === 'string'));
+      }
+    }
+  } catch (error) {
+    console.error('Error reading corgi example files:', error);
+  }
+  return all;
+}
