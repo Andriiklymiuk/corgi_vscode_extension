@@ -22,8 +22,6 @@ export function page(nonce: string): string {
     --link: var(--vscode-textLink-foreground);
     --badge: var(--vscode-badge-background);
     --badge-fg: var(--vscode-badge-foreground);
-    --seg: var(--vscode-button-secondaryBackground);
-    --seg-on: var(--vscode-editorWidget-background, var(--vscode-editor-background));
     --input: var(--vscode-input-background);
     --input-fg: var(--vscode-input-foreground);
     --input-border: var(--vscode-input-border, transparent);
@@ -59,9 +57,6 @@ export function page(nonce: string): string {
   .big { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; font-size: 13px; }
   .big:hover { background: var(--hover); }
   .big .plus { font-size: 17px; line-height: 1; color: var(--fg); width: 14px; text-align: center; }
-  .seg { display: flex; margin: 6px 14px 8px; padding: 3px; border-radius: 6px; background: var(--seg); }
-  .seg span { flex: 1; text-align: center; padding: 5px 0; border-radius: 4px; font-size: 12px; color: var(--dim); cursor: pointer; }
-  .seg span.on { background: var(--seg-on); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.25); }
   .tools { display: flex; align-items: center; gap: 10px; padding: 0 14px 6px; font-size: 12px; color: var(--dim); }
   .tools .active { display: flex; align-items: center; gap: 4px; }
   .tools input { flex: 1; min-width: 40px; font: inherit; font-size: 12px; color: var(--input-fg); background: var(--input); border: 1px solid var(--input-border); border-radius: 4px; padding: 3px 7px; }
@@ -292,13 +287,6 @@ export function page(nonce: string): string {
     fresh.append(el('span', 'plus', '+'), el('span', '', 'New session'));
     fresh.addEventListener('click', () => run('corgi.agent.new'));
     out.push(fresh);
-    const seg = el('div', 'seg');
-    const here = el('span', 'on', 'This window');
-    const remote = el('span', '', 'Remote');
-    remote.title = 'Start a session the phone can reach: in its own worktree';
-    remote.addEventListener('click', () => run('corgi.agent.newIsolated'));
-    seg.append(here, remote);
-    out.push(seg);
     const tools = el('div', 'tools');
     const active = el('span', 'active');
     active.append(el('span', '', '⚡'), el('span', '', 'Active · ' + state.counts.active));
@@ -306,6 +294,7 @@ export function page(nonce: string): string {
     search.type = 'search'; search.placeholder = 'Filter'; search.value = filter;
     search.addEventListener('input', () => { filter = search.value; persist(); if (last) drawSessions(last); });
     const iso = el('a', '', '+ Isolated');
+    iso.title = 'A session in its own worktree';
     iso.addEventListener('click', () => run('corgi.agent.newIsolated'));
     tools.append(active, search, iso);
     out.push(tools);
