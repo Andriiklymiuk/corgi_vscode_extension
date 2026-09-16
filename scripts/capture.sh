@@ -11,7 +11,7 @@ shot() { "$CHROME" --headless=new --hide-scrollbars --disable-gpu --force-device
 
 shot $F/hero.html $M/window.png 2
 # Close-ups, in 2x pixels: the side bar with the tree, the status bar with the item, the toast.
-magick $M/window.png -crop 816x560+0+72 +repage $M/sessions.png
+magick $M/window.png -crop 816x1060+0+72 +repage $M/sessions.png
 magick $M/window.png -crop 1200x44+0+1956 +repage $M/statusbar.png
 magick $M/window.png -crop 870x190+2300+1736 +repage $M/toast.png
 magick $M/window.png -resize 1600x1000 $M/window.png

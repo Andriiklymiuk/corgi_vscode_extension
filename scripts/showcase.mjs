@@ -1,8 +1,8 @@
 // Draws the README pictures: a VS Code window with the extension's agent
 // pieces — the Agent sessions view, the status bar item, the toast, the
 // session quick pick, a Claude Code permission prompt in the terminal — as
-// HTML for Chrome to screenshot. The labels mirror src/agentTree.ts and
-// src/agentStatus.ts, so keep them in step. scripts/capture.sh runs it.
+// HTML for Chrome to screenshot. The side bar mirrors src/sidebarHtml.ts and
+// src/sidebarModel.ts, the rest src/agentStatus.ts; keep them in step. scripts/capture.sh runs it.
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 
 // Dark Modern.
@@ -28,26 +28,46 @@ const ico = {
 	ext: (c = fg) => `<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.4"><rect x="3" y="10" width="7" height="7"/><rect x="10" y="3" width="7" height="7"/><rect x="10" y="10" width="7" height="7"/><rect x="3" y="3" width="7" height="7"/></svg>`,
 	paw: (c = fg) => `<svg viewBox="0 0 24 24" fill="${c}"><circle cx="7" cy="8" r="2"/><circle cx="12" cy="5.5" r="2"/><circle cx="17" cy="8" r="2"/><path d="M12 10c-3 0-6 3.2-6 6a3 3 0 0 0 3 3c1 0 2-.6 3-.6s2 .6 3 .6a3 3 0 0 0 3-3c0-2.8-3-6-6-6z"/></svg>`,
 	error: (c = fg) => `<svg viewBox="0 0 16 16" fill="${c}"><path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 1a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm2.8 3.2l.7.7L8.7 8l2.8 2.8-.7.7L8 8.7l-2.8 2.8-.7-.7L7.3 8 4.5 5.2l.7-.7L8 7.3z"/></svg>`,
+	play: (c = fg) => `<svg viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="1.2"><path d="M4 2.5l9 5.5-9 5.5z"/></svg>`,
+	stop: (c = fg) => `<svg viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="1.2"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>`,
+	more: (c = fg) => `<svg viewBox="0 0 16 16" fill="${c}"><circle cx="3.5" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12.5" cy="8" r="1.3"/></svg>`,
 	sync: (c = fg) => `<svg viewBox="0 0 16 16" fill="${c}"><path d="M2.5 8a5.5 5.5 0 0 1 9.4-3.9L10 6h4V2l-1.4 1.4A6.5 6.5 0 0 0 1.5 8zm11 0a5.5 5.5 0 0 1-9.4 3.9L6 10H2v4l1.4-1.4A6.5 6.5 0 0 0 14.5 8z"/></svg>`,
 };
 
 const statusIcon = { working: "pulse", needs_input: "bell", done: "check", limited: "warning", stale: "circle" };
 const statusWord = { working: "working", needs_input: "needs you", done: "done", limited: "limited", stale: "stale" };
 
-/** A tree row the way agentTree.ts builds it: icon, name, then "status · what · ctx · elapsed". */
-const treeSession = (s, hover) => {
+const tone = (s) => (s.drift ? "bad" : s.status === "needs_input" ? "ask" : s.status === "working" ? "live" : "quiet");
+
+/** A session row the way sidebarModel.ts builds it: dot, title, "status · what · ctx", elapsed; hover shows the buttons. */
+const sbSession = (s, hover) => {
 	const meta = [s.drift ? "drifting" : statusWord[s.status]];
 	if (s.drift) meta.push(s.drift);
 	else if (s.pending) meta.push(`asks ${s.pending}`);
 	else if (s.note) meta.push(`"${s.note}"`);
 	else if (s.detail) meta.push(s.detail);
 	if (s.ctx) meta.push(`ctx ${s.ctx}%`);
-	if (s.elapsed) meta.push(s.elapsed);
-	const color = s.drift ? red : s.status === "needs_input" ? yellow : fg;
-	const icon = s.drift ? ico.warning(red) : ico[statusIcon[s.status]](color);
-	return `<div class="ti s${hover ? " hover" : ""}${s.pressed ? " pressed" : ""}"><i class="ic">${icon}</i><span class="lbl">${s.title ?? s.name}</span><span class="desc">${meta.join(" · ")}</span>${s.pending && hover ? `<span class="inline"><i class="${s.pressed === "allow" ? "on" : ""}" title="Allow">${ico.check(green)}</i><i title="Deny">${ico.x(red)}</i></span>` : ""}</div>`;
+	const acts = hover
+		? `<span class="acts">${s.pending ? `<b class="yes${s.pressed === "allow" ? " on" : ""}">Allow</b><b class="no">Deny</b>` : ""}${s.drift ? "<b>Fresh</b>" : ""}<b>Chat</b><b>⋯</b></span>`
+		: `<span class="when">${s.elapsed ?? ""}</span>`;
+	return `<div class="row${hover ? " hover" : ""}${s.pressed ? " pressed" : ""}"><i class="dot ${tone(s)}"></i><span class="main"><span class="t">${s.title ?? s.name}</span><span class="c">${meta.join(" · ")}</span></span>${acts}</div>`;
 };
-const treeGroup = (g, hover) => `<div class="ti g"><i class="tw">${ico.chev(fg)}</i><i class="ic">${ico.folder(fg)}</i><span class="lbl">${g.label}</span><span class="desc">${g.sessions.length}</span></div>${g.sessions.map((s) => treeSession(s, hover === s.name)).join("")}`;
+const sbGroup = (g, hover) => `<div class="ws">${g.label}</div>${g.sessions.map((s) => sbSession(s, hover === s.name)).join("")}`;
+const bar = (name, pct, resets) => `<div class="line"><span class="n">${name}</span><span class="track"><span class="fill${pct >= 90 ? " bad" : pct >= 70 ? " ask" : ""}" style="width:${pct}%"></span></span><span class="pct">${pct}%</span></div><div class="resets">resets in ${resets}</div>`;
+const inboxRow = (r) => `<div class="row"><i class="dot ${r.tone}"></i><span class="main"><span class="t">${r.name}</span><span class="c">${r.detail}</span></span><span class="when">${r.when}</span></div>`;
+
+/** The side bar: title with its four buttons, then Usage, Inbox, Sessions. */
+const sideBar = (b, hover) => `<div class="side">
+    <div class="hd"><h3>Corgi</h3><span class="tb"><i>${ico.play(fg)}</i><i>${ico.stop(fg)}</i><i>${ico.sync(fg)}</i><i>${ico.more(fg)}</i></span></div>
+    <div class="sec"><i>${ico.chev(dim)}</i>Usage</div>
+    <div class="usage">${bar("5h", b.fiveH, "2h")}${bar("7d", 35, "5d")}</div>
+    <div class="sec"><i>${ico.chev(dim)}</i>Inbox<span class="badge">2</span></div>
+    ${inboxRow({ name: "ACME-412", detail: "issue · in progress", when: "2h", tone: "quiet" })}
+    ${inboxRow({ name: "acme-api #77", detail: "pull request · ready to merge · checks ✓ · approved", when: "1d", tone: "quiet" })}
+    <div class="sec"><i>${ico.chev(dim)}</i>Sessions<span class="cnt">active · ${b.working + b.needs}</span></div>
+    ${b.groups.map((g) => sbGroup(g, hover)).join("")}
+    <div class="foot"><a>+ New session</a><a>+ Isolated</a></div>
+  </div>`;
 
 const statusText = (b) => `<span class="sbi${b.needs ? " warn" : ""}"><i>${ico.pulse(b.needs ? yellow : fg)}</i> ${b.working} · <i>${ico.bell(b.needs ? yellow : fg)}</i> ${b.needs} · 5h ${b.fiveH}%</span>`;
 
@@ -118,6 +138,22 @@ const css = `
   .ti .lbl{flex:none}.ti .desc{margin-left:6px;color:${dim};font-size:12px;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .ti.g .desc{margin-left:auto;padding:0 4px}
   .inline{margin-left:auto;display:flex;gap:2px;padding-left:8px;background:linear-gradient(90deg,transparent,#2A2D2E 20%)}.inline i{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px}.inline i.on{background:rgba(137,209,133,.25);box-shadow:0 0 0 1px ${green}}.inline i svg{width:16px;height:16px}
+  .side .hd{display:flex;align-items:center;padding:6px 8px 6px 20px}.side .hd h3{padding:0;flex:1;text-transform:none;font-size:11px}
+  .tb{display:flex;gap:6px}.tb i{width:16px;height:16px}.tb i svg{width:16px;height:16px}
+  .side .sec{border-top:1px solid ${edge};color:${dim};letter-spacing:.04em;padding:0 12px 0 6px;height:26px}.side .sec i{width:14px;height:14px}.side .sec i svg{width:14px;height:14px}
+  .badge{margin-left:auto;min-width:18px;padding:0 6px;border-radius:9px;background:#0078D4;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;letter-spacing:0}
+  .cnt{margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0}
+  .usage{padding:2px 12px 8px 14px;font-size:12px}.usage .line{display:flex;align-items:center;gap:8px;margin-top:5px}.usage .n{width:18px;color:${dim}}
+  .track{flex:1;height:4px;border-radius:2px;background:#3A3A3A;overflow:hidden;display:block}.fill{display:block;height:100%;background:${blueLine};border-radius:2px}.fill.ask{background:${yellow}}.fill.bad{background:${red}}
+  .usage .pct{width:36px;text-align:right}.usage .resets{color:${dim};font-size:11px;padding-left:26px}
+  .ws{padding:4px 12px 1px 22px;font-size:11px;color:${dim}}
+  .row{display:flex;align-items:center;gap:8px;min-height:30px;padding:3px 12px 3px 14px;position:relative;white-space:nowrap;min-width:0}
+  .row.hover{background:#2A2D2E}.row.pressed{background:#04395E}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none;background:${dim};opacity:.55}.dot.ask{background:${yellow};opacity:1}.dot.bad{background:${red};opacity:1}.dot.live{background:${green};opacity:1}
+  .row .main{flex:1;min-width:0;display:flex;flex-direction:column}.row .t{overflow:hidden;text-overflow:ellipsis}.row .c{color:${dim};font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis}
+  .row .when{color:${dim};font-size:11px;flex:none}
+  .acts{display:flex;gap:2px;flex:none;padding-left:8px;background:linear-gradient(90deg,transparent,#2A2D2E 10px)}.acts b{font-weight:400;font-size:11px;line-height:20px;padding:0 6px;border-radius:3px}.acts b.yes{color:${green}}.acts b.no{color:${red}}.acts b.on{background:rgba(137,209,133,.25);box-shadow:0 0 0 1px ${green}}
+  .foot{display:flex;gap:14px;padding:6px 14px;font-size:12px}.foot a{color:#4DAAFC}
   .main{display:grid;grid-template-rows:35px 1fr 300px;min-width:0}
   .tabs{background:${side};border-bottom:1px solid ${edge};display:flex}
   .tab{padding:0 14px;display:flex;align-items:center;gap:6px;border-right:1px solid ${edge};color:${dim};font-size:13px}
@@ -180,13 +216,7 @@ const window = ({ t = 1, hover = t === 1 || t === 2 ? "acme-api" : "", showToast
 <div class="win">
   <div class="title"><div class="lights"><i></i><i></i><i></i></div><div class="cmd">${ico.search(dim)} corgi</div></div>
   <div class="act"><i>${ico.files()}</i><i>${ico.search()}</i><i>${ico.scm()}</i><i>${ico.debug()}</i><i>${ico.ext()}</i><i class="on">${ico.paw()}</i></div>
-  <div class="side">
-    <h3>Corgi</h3>
-    <div class="sec"><i>${ico.chevR(fg)}</i>Commands</div>
-    <div class="sec"><i>${ico.chevR(fg)}</i>Examples</div>
-    <div class="sec open"><i>${ico.chev(fg)}</i>Agent sessions</div>
-    ${b.groups.map((g) => treeGroup(g, hover)).join("")}
-  </div>
+  ${sideBar(b, hover)}
   <div class="main">
     <div class="tabs"><span class="tab on"><span class="go">GO</span> registry.go</span><span class="tab">${ico.paw(dim).replace("<svg", '<svg width="14" height="14"')} ✓ corgi 43%</span><span class="tab">session.go</span></div>
     ${editor}
