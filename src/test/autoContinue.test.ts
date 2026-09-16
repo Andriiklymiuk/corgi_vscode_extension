@@ -49,8 +49,8 @@ describe('autoContinue', () => {
         const two = board({
             sessions: [{ id: 's1', display: 'api', status: 'limited' }],
             accounts: [
-                { profile: 'work', limits: { fiveHour: { resetsAt: IN_AN_HOUR } } },
-                { profile: 'personal', limits: { fiveHour: { resetsAt: IN_AN_HOUR } } },
+                { profile: 'work', limits: { fiveHour: { percent: 100, resetsAt: IN_AN_HOUR } } },
+                { profile: 'personal', limits: { fiveHour: { percent: 100, resetsAt: IN_AN_HOUR } } },
             ],
         });
         assert.deepStrictEqual(planContinues(two, new Set()), [], 'two accounts and no profile: guessing would resume the wrong one');
@@ -63,11 +63,21 @@ describe('autoContinue', () => {
                 { id: 'sooner', display: 'sooner', status: 'limited', profile: 'hour' },
             ],
             accounts: [
-                { profile: 'week', limits: { sevenDay: { resetsAt: IN_TWO_DAYS } } },
-                { profile: 'hour', limits: { fiveHour: { resetsAt: IN_AN_HOUR } } },
+                { profile: 'week', limits: { sevenDay: { percent: 99, resetsAt: IN_TWO_DAYS } } },
+                { profile: 'hour', limits: { fiveHour: { percent: 100, resetsAt: IN_AN_HOUR } } },
             ],
         });
         assert.deepStrictEqual(planContinues(b, new Set()).map((p) => p.sessionId), ['sooner', 'later']);
+    });
+
+    it('a limit with no spent window is not planned: a session-credit cap or a stale cache has no reset to wait for', () => {
+        const fresh = board({ accounts: [{ profile: 'work', limits: { fiveHour: { percent: 12, resetsAt: IN_AN_HOUR }, sevenDay: { percent: 40, resetsAt: IN_TWO_DAYS } } }] });
+        assert.deepStrictEqual(planContinues(fresh, new Set()), []);
+    });
+
+    it('a session the daemon already plans is left to it', () => {
+        const planned = board({ sessions: [{ id: 's-limited', display: 'api', status: 'limited', profile: 'work', resumeAt: IN_AN_HOUR }] });
+        assert.deepStrictEqual(planContinues(planned, new Set()), []);
     });
 
     it('nothing is due before the reset, and grace holds it past it', () => {

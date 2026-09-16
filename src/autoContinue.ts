@@ -19,6 +19,11 @@ export const autoContinueDefaults: AutoContinueSettings = {
     graceSeconds: 60,
 };
 
+/** A window at or past this is the one holding the session. */
+export const spentPercent = 95;
+/** Continues per limit episode before the session is left to a person. */
+export const maxAttempts = 3;
+
 export interface PendingContinue {
     sessionId: string;
     name: string;
@@ -47,6 +52,10 @@ export function planContinues(board: Board | undefined, cancelled: ReadonlySet<s
         if (cancelled.has(s.id)) {
             continue;
         }
+        // The daemon already plans this one (corgi agent continue on): one continuer per session.
+        if (s.resumeAt) {
+            continue;
+        }
         const account = accounts.find((a) => a.profile === (s.profile ?? '')) ?? (accounts.length === 1 ? accounts[0] : undefined);
         const reset = soonestReset(account?.limits);
         if (!reset) {
@@ -64,11 +73,15 @@ export function planContinues(board: Board | undefined, cancelled: ReadonlySet<s
     return out.sort((a, b) => a.resetsAtMs - b.resetsAtMs);
 }
 
-function soonestReset(limits: { fiveHour?: { resetsAt?: string }; sevenDay?: { resetsAt?: string } } | undefined):
+// Only a window that reads as spent is what stopped the session. A limit
+// with none spent — a session-credit cap, a stale cache — has no reset
+// this side knows, and typing into it only makes the session say no again.
+function soonestReset(limits: { fiveHour?: { percent?: number; resetsAt?: string }; sevenDay?: { percent?: number; resetsAt?: string } } | undefined):
     { at: string; ms: number; window: '5h' | 'week' } | undefined {
     const candidates: { at: string; ms: number; window: '5h' | 'week' }[] = [];
-    for (const [window, at] of [['5h', limits?.fiveHour?.resetsAt], ['week', limits?.sevenDay?.resetsAt]] as const) {
-        if (!at) {
+    for (const [window, w] of [['5h', limits?.fiveHour], ['week', limits?.sevenDay]] as const) {
+        const at = w?.resetsAt;
+        if (!at || (w?.percent ?? 0) < spentPercent) {
             continue;
         }
         const ms = Date.parse(at);
