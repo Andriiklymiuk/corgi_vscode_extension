@@ -12,7 +12,7 @@ describe('sidebar page', () => {
         assert.ok(!html.includes('innerHTML'));
     });
     it('has the three sections', () => {
-        for (const id of ['usage', 'inbox', 'sessions']) {
+        for (const id of ['daemon', 'usage', 'inbox', 'board', 'sessions', 'workspaces']) {
             assert.ok(html.includes(`id="${id}"`), id);
         }
     });

@@ -12,6 +12,7 @@ export type Tone = 'ask' | 'bad' | 'live' | 'quiet';
 
 export interface UsageWindow {
     name: '5h' | '7d';
+    label: string;
     percent: number;
     resets: string;
     warn: string;
@@ -25,6 +26,7 @@ export interface SessionRow {
     elapsed: string;
     tone: Tone;
     crossing: boolean;
+    front: boolean;
     can: ('chat' | 'allow' | 'fresh' | 'pr')[];
     node: SessionNode;
 }
@@ -41,11 +43,65 @@ export interface InboxRow {
     node: InboxNode;
 }
 
+/** One card of `corgi agent kanban --json`, the fields the page reads. */
+export interface KanbanCard {
+    ref?: string;
+    key?: string;
+    title?: string;
+    url?: string;
+    workspace?: string;
+    column?: string;
+    why?: string;
+    updatedAt?: string;
+    fix?: { running?: boolean; outcome?: string; prs?: string[] };
+    standing?: { word?: string };
+}
+
+export interface BoardRow {
+    key: string;
+    title: string;
+    detail: string;
+    elapsed: string;
+    tone: Tone;
+    url?: string;
+}
+
+/** A registered workspace as `corgi agent workspaces --json` and `corgi agent watch --json` describe it. */
+export interface WorkspaceInfo {
+    id: string;
+    absPath?: string;
+    status?: string;
+}
+
+export interface WatchedWorkspace {
+    workspace: string;
+    action?: string;
+    sources?: string[];
+}
+
+export interface WorkspaceRow {
+    id: string;
+    detail: string;
+    paused: boolean;
+    watch: string;
+    tone: Tone;
+}
+
+export interface DaemonInfo {
+    pid?: number;
+    version?: string;
+}
+
 export interface SidebarState {
-    accounts: { profile: string; windows: UsageWindow[] }[];
+    daemon: { running: boolean; version: string; muted: string };
+    accounts: { profile: string; sessions: number; windows: UsageWindow[] }[];
     inbox: { workspace: string; rows: InboxRow[] }[];
+    board: { column: string; rows: BoardRow[] }[];
     sessions: { workspace: string; rows: SessionRow[] }[];
-    counts: { inbox: number; active: number };
+    ended: SessionRow[];
+    workspaces: WorkspaceRow[];
+    counts: { inbox: number; active: number; board: number };
+    profiles: string[];
     /** False when the corgi binary is not on the machine: the page shows how to install it. */
     installed: boolean;
 }
@@ -79,11 +135,11 @@ export function usageWindows(a: BoardAccount, now: Date): UsageWindow[] {
         const f = a.forecast?.fiveHour;
         const runsOut = f && f.safe === false && f.exhaustAt ? new Date(f.exhaustAt) : undefined;
         const warn = runsOut && !Number.isNaN(runsOut.getTime()) ? `runs out ${runsOut.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
-        out.push({ name: '5h', percent: clamp(five.percent), resets: resetsIn(five.resetsAt, now), warn });
+        out.push({ name: '5h', label: 'Session (5h)', percent: clamp(five.percent), resets: resetsIn(five.resetsAt, now), warn });
     }
     const seven = a.limits?.sevenDay;
     if (seven && typeof seven.percent === 'number') {
-        out.push({ name: '7d', percent: clamp(seven.percent), resets: resetsIn(seven.resetsAt, now), warn: '' });
+        out.push({ name: '7d', label: 'Weekly (7d)', percent: clamp(seven.percent), resets: resetsIn(seven.resetsAt, now), warn: '' });
     }
     return out;
 }
@@ -103,7 +159,7 @@ export function groupSessions(board: Board | undefined): { label: string; sessio
         }));
 }
 
-export function sessionRow(s: BoardSession, bots: Bot[], now: Date): SessionRow {
+export function sessionRow(s: BoardSession, bots: Bot[], now: Date, front = ''): SessionRow {
     const bot = s.bot ? bots.find((b) => b.name === s.bot) : undefined;
     const drifting = isDrifting(s);
     const crossing = isCrossing(s);
@@ -166,6 +222,7 @@ export function sessionRow(s: BoardSession, bots: Bot[], now: Date): SessionRow 
         elapsed: formatElapsed(s.statusSince, now),
         tone,
         crossing,
+        front: !!front && s.id === front,
         can,
         node: { kind: 'session', session: s },
     };
@@ -207,22 +264,100 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
     };
 }
 
-export function build(board: Board | undefined, inbox: InboxItem[], hidden: readonly string[], bots: Bot[], now: Date, installed = true): SidebarState {
-    const shown = hideWorkspaces(board, hidden);
+/** The kanban's column order; anything else lands after these. */
+export const boardColumns = ['Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
+
+/** Cards by column, in the board's own order, newest first inside one. */
+export function boardGroups(cards: KanbanCard[], now: number): { column: string; rows: BoardRow[] }[] {
+    const groups = new Map<string, BoardRow[]>();
+    for (const c of cards) {
+        if (!c.ref && !c.key) {
+            continue;
+        }
+        const column = c.column || 'Inbox';
+        const running = !!c.fix?.running;
+        const tone: Tone = column === 'Blocked' ? 'bad' : running ? 'live' : column === 'Ready' ? 'ask' : 'quiet';
+        const detail = [c.workspace, c.why || c.standing?.word, running ? 'fix running' : c.fix?.prs?.length ? `PR ${c.fix.prs[c.fix.prs.length - 1]}` : ''].filter(Boolean).join(' · ');
+        const url = c.url && /^https:\/\//.test(c.url) ? c.url : undefined;
+        groups.set(column, [...(groups.get(column) ?? []), { key: c.key || c.ref!, title: c.ref ? `${c.ref}  ${c.title ?? ''}`.trim() : c.title ?? '', detail, elapsed: elapsed(c.updatedAt, now), tone, url }]);
+    }
+    const rank = (col: string) => {
+        const i = boardColumns.indexOf(col);
+        return i < 0 ? boardColumns.length : i;
+    };
+    return [...groups.entries()].sort(([a], [b]) => rank(a) - rank(b)).map(([column, rows]) => ({ column, rows }));
+}
+
+/** Registered workspaces with what the daemon does for each. */
+export function workspaceRows(list: WorkspaceInfo[], watched: WatchedWorkspace[], running: Set<string>, paused: Set<string>): WorkspaceRow[] {
+    return list.map((w) => {
+        const watch = watched.find((x) => x.workspace === w.id);
+        const isPaused = paused.has(w.id);
+        const bits = [isPaused ? 'paused' : running.has(w.id) ? 'supervised' : 'registered'];
+        if (watch) {
+            bits.push(`watch ${watch.action ?? 'notify'}${watch.sources?.length ? ` · ${watch.sources.join(', ')}` : ''}`);
+        }
+        if (w.status && w.status !== 'ok') {
+            bits.push(w.status);
+        }
+        return { id: w.id, detail: bits.join(' · '), paused: isPaused, watch: watch?.action ?? '', tone: w.status && w.status !== 'ok' ? 'bad' : running.has(w.id) ? 'live' : 'quiet' };
+    });
+}
+
+/** "muted until 3:30 PM" while a mute holds; "" otherwise. */
+export function mutedLine(until: string | undefined, now: Date): string {
+    if (!until) {
+        return '';
+    }
+    const at = new Date(until.trim());
+    if (Number.isNaN(at.getTime()) || at <= now) {
+        return '';
+    }
+    return `muted until ${at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+}
+
+export interface BuildInput {
+    board?: Board;
+    inbox: InboxItem[];
+    hidden: readonly string[];
+    bots: Bot[];
+    now: Date;
+    installed?: boolean;
+    daemon?: DaemonInfo;
+    mutedUntil?: string;
+    cards?: KanbanCard[];
+    workspaces?: WorkspaceInfo[];
+    watched?: WatchedWorkspace[];
+    running?: string[];
+    paused?: string[];
+}
+
+export function build(input: BuildInput): SidebarState {
+    const { inbox, hidden, bots, now } = input;
+    const shown = hideWorkspaces(input.board, hidden);
+    const front = shown?.frontSession ?? '';
     const groups = groupSessions(shown);
     const sessions = groups.length === 1
-        ? [{ workspace: '', rows: groups[0].sessions.map((s) => sessionRow(s, bots, now)) }]
-        : groups.map((g) => ({ workspace: g.label, rows: g.sessions.map((s) => sessionRow(s, bots, now)) }));
+        ? [{ workspace: '', rows: groups[0].sessions.map((s) => sessionRow(s, bots, now, front)) }]
+        : groups.map((g) => ({ workspace: g.label, rows: g.sessions.map((s) => sessionRow(s, bots, now, front)) }));
     const inboxGroups = groupByWorkspace(inbox);
     const inboxOut = inboxGroups.length === 1
         ? [{ workspace: '', rows: inboxGroups[0].items.map((i) => inboxRow(i, now.getTime())) }]
         : inboxGroups.map((g) => ({ workspace: g.workspace, rows: g.items.map((i) => inboxRow(i, now.getTime())) }));
     const live = liveSessions(shown);
+    const ended = (shown?.sessions ?? []).filter((s) => s && s.id && s.status === 'gone').map((s) => sessionRow(s, bots, now));
+    const accounts = shown?.accounts ?? [];
+    const cards = input.cards ?? [];
     return {
-        accounts: (shown?.accounts ?? []).map((a) => ({ profile: a.profile, windows: usageWindows(a, now) })).filter((a) => a.windows.length > 0),
+        daemon: { running: !!input.daemon?.pid, version: input.daemon?.version ?? '', muted: mutedLine(input.mutedUntil, now) },
+        accounts: accounts.map((a) => ({ profile: a.profile, sessions: a.sessions ?? 0, windows: usageWindows(a, now) })).filter((a) => a.windows.length > 0),
         inbox: inboxOut,
+        board: boardGroups(cards, now.getTime()),
         sessions,
-        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length },
-        installed,
+        ended,
+        workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
+        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: cards.length },
+        profiles: accounts.map((a) => a.profile).filter(Boolean),
+        installed: input.installed !== false,
     };
 }
