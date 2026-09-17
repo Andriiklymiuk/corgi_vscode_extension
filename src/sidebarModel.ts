@@ -1,4 +1,4 @@
-import { Board, BoardAccount, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
+import { Board, BoardAccount, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl } from './watchInbox';
 
 /**
@@ -163,7 +163,9 @@ export function sessionRow(s: BoardSession, bots: Bot[], now: Date, front = ''):
     const bot = s.bot ? bots.find((b) => b.name === s.bot) : undefined;
     const drifting = isDrifting(s);
     const crossing = isCrossing(s);
-    const meta = [drifting ? 'drifting' : statusWord(s.status)];
+    // A limit with a plan says when, before anything else: a drift note or a
+    // status word would read as something to do, and there is nothing to do.
+    const meta = [resumeWord(s, now) || (drifting ? 'drifting' : statusWord(s.status))];
     // After the status, one of: the drift reason, who else is on its files,
     // the permission, the note, the limit, what it is doing, the branch.
     if (drifting) {
