@@ -155,6 +155,18 @@ export function limitLine(s: BoardSession, now: Date = new Date()): string {
     return `continues ${clock}${s.resumes ? ` · ${s.resumes} so far` : ''}`;
 }
 
+/** The status word for a limited row: "continues 12:50" or "retrying", so it never reads as something to do. Empty when nothing is planned. */
+export function resumeWord(s: BoardSession, now: Date = new Date()): string {
+    if (s.status !== 'limited') {
+        return '';
+    }
+    if (s.limit === 'overload') {
+        return 'retrying';
+    }
+    const line = limitLine(s, now);
+    return line.startsWith('continues ') ? line.split(' · ')[0] : '';
+}
+
 /** A workspace is hidden by its id or label, or by the last path component of a folder. */
 export function isHiddenWorkspace(name: string | undefined, hidden: readonly string[]): boolean {
     if (!name || hidden.length === 0) {

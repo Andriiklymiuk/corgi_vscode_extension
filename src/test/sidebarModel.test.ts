@@ -32,6 +32,13 @@ describe('sidebarModel', () => {
         assert.ok(r.clause.startsWith('drifting · context 92%'));
         assert.ok(r.tooltip.includes('drifting:\ncontext 92%'));
     });
+    it('a limited session with a plan says when, even under a drift note', () => {
+        const r = sessionRow(s({ status: 'limited', limit: 'quota', resumeAt: '2026-09-16T10:31:00Z', drift: ['diff is 20289 lines'] }), [], now);
+        assert.ok(r.clause.startsWith('continues '), r.clause);
+        assert.ok(r.clause.includes('diff is 20289 lines'));
+        assert.strictEqual(sessionRow(s({ status: 'limited', limit: 'overload' }), [], now).clause.split(' · ')[0], 'retrying');
+        assert.ok(sessionRow(s({ status: 'limited' }), [], now).clause.startsWith('limited'));
+    });
     it('adds pr when the session linked one', () => {
         assert.ok(sessionRow(s({ pr: 'https://x/pr/1' }), [], now).can.includes('pr'));
     });
