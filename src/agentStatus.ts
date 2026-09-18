@@ -361,6 +361,25 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
                 await corgiAgent(['dismiss', s.id], 'corgi could not dismiss the session');
             }
         }),
+        vscode.commands.registerCommand('corgi.agent.why', async (node: SessionNode) => {
+            const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to explain: what it said, ran and touched');
+            if (!s) {
+                return;
+            }
+            const r = await runCorgi(['agent', 'transcript', s.id, '--why', '--json']);
+            if (!r.ok) {
+                void vscode.window.showWarningMessage(`corgi could not read the session: ${(r.stderr || r.stdout).trim().split('\n').pop() ?? ''}`);
+                return;
+            }
+            let steps: WhyStep[] = [];
+            try {
+                steps = (JSON.parse(r.stdout) as { steps?: WhyStep[] }).steps ?? [];
+            } catch {
+                // not JSON: an empty document says so below
+            }
+            const doc = await vscode.workspace.openTextDocument({ language: 'markdown', content: whyMarkdown(sessionName(s), steps) });
+            await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside, preview: true });
+        }),
         vscode.commands.registerCommand('corgi.agent.chat', async (node: SessionNode) => {
             const s = sessionOf(node) ?? await pickSession(watcher.current(), 'Session to chat with beside the code');
             if (s) {
@@ -567,4 +586,37 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
 export function hiddenWorkspaces(): string[] {
     const list = vscode.workspace.getConfiguration('corgi').get<string[]>('agent.hiddenWorkspaces', []);
     return Array.isArray(list) ? list.filter((w) => typeof w === 'string' && w.trim()).map((w) => w.trim()) : [];
+}
+
+/** One step of `corgi agent transcript --why`: what was said, the tools run on it, the files touched. */
+export interface WhyStep {
+    kind: string;
+    at?: string;
+    text?: string;
+    tools?: string[];
+    files?: string[];
+}
+
+export function whyMarkdown(name: string, steps: WhyStep[]): string {
+    const lines = [`# ${name} — why`, ''];
+    if (!steps.length) {
+        lines.push('Nothing yet: the session has not said or run anything.');
+        return lines.join('\n');
+    }
+    for (const st of steps) {
+        const who = st.kind === 'user' ? 'you' : 'agent';
+        const when = st.at ? new Date(st.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+        lines.push(`## ${who}${when ? ` · ${when}` : ''}`, '');
+        if (st.text) {
+            lines.push(st.text, '');
+        }
+        for (const t of st.tools ?? []) {
+            lines.push(`- ${t}`);
+        }
+        if (st.files?.length) {
+            lines.push('', `**files:** ${st.files.map((f) => `\`${f}\``).join(', ')}`);
+        }
+        lines.push('');
+    }
+    return lines.join('\n');
 }

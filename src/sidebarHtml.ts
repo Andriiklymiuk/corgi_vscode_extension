@@ -63,6 +63,8 @@ export function page(nonce: string): string {
   .tools input:focus { outline: 1px solid var(--vscode-focusBorder); }
   .tools a { white-space: nowrap; }
   .ws { display: flex; align-items: center; gap: 6px; padding: 6px 14px 2px 10px; font-size: 12px; color: var(--dim); cursor: pointer; user-select: none; }
+  .ws .sub { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+  .ws a { font-size: 11px; }
   .ws .chev { width: 10px; font-size: 9px; }
   .ws .badge { margin-left: auto; min-width: 20px; padding: 0 7px; border-radius: 10px; font-size: 11px; font-weight: 600; line-height: 19px; text-align: center; color: var(--badge-fg); background: var(--badge); }
   .ws.closed + .rows { display: none; }
@@ -108,8 +110,9 @@ export function page(nonce: string): string {
   const closedGroups = new Set(Array.isArray(saved.closedGroups) ? saved.closedGroups : []);
   let filter = typeof saved.filter === 'string' ? saved.filter : '';
   let showEnded = saved.showEnded === true;
+  let byTicket = saved.byTicket === true;
   let last = null;
-  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded });
+  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded, byTicket });
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
   const run = (command, node) => vscode.postMessage({ type: 'run', command, node });
   const open = (url) => vscode.postMessage({ type: 'open', url });
@@ -267,6 +270,7 @@ export function page(nonce: string): string {
   const sessionRow = (r) => {
     const d = row(r.tone, r.crossing, r.title, r.clause, r.elapsed, r.tooltip, r.front);
     const acts = el('div', 'acts');
+    acts.appendChild(button('Why', '', () => run('corgi.agent.why', r.node)));
     if (r.can.includes('allow')) {
       acts.appendChild(button('Allow', 'yes', () => run('corgi.agent.answer', r.node)));
       acts.appendChild(button('Deny', 'no', () => run('corgi.agent.deny', r.node)));
@@ -297,13 +301,32 @@ export function page(nonce: string): string {
     iso.title = 'A session in its own worktree';
     iso.addEventListener('click', () => run('corgi.agent.newIsolated'));
     tools.append(active, search, iso);
+    if (state.tickets.length) {
+      const fold = el('a', '', byTicket ? 'by workspace' : 'by ticket');
+      fold.title = byTicket ? 'Fold the sessions by workspace' : 'Fold the sessions by the ticket or branch they work on';
+      fold.addEventListener('click', () => { byTicket = !byTicket; persist(); if (last) drawSessions(last); });
+      tools.append(fold);
+    }
     out.push(tools);
     let shown = 0;
-    for (const g of state.sessions) {
-      const rows = g.rows.filter(matches).map(sessionRow);
-      shown += rows.length;
-      if (!rows.length) continue;
-      if (g.workspace) out.push(...group('sessions', g.workspace, rows.length, rows)); else out.push(...rows);
+    if (byTicket && state.tickets.length) {
+      for (const g of state.tickets) {
+        const rows = g.rows.filter(matches).map(sessionRow);
+        shown += rows.length;
+        if (!rows.length) continue;
+        if (!g.key) { out.push(...group('tickets', 'no ticket', rows.length, rows)); continue; }
+        const nodes = group('tickets', g.key, rows.length, rows);
+        if (g.detail) nodes[0].insertBefore(el('span', 'sub', g.detail), nodes[0].querySelector('.badge'));
+        if (g.url) { const a = el('a', '', 'open'); a.addEventListener('click', (e) => { e.stopPropagation(); open(g.url); }); nodes[0].insertBefore(a, nodes[0].querySelector('.badge')); }
+        out.push(...nodes);
+      }
+    } else {
+      for (const g of state.sessions) {
+        const rows = g.rows.filter(matches).map(sessionRow);
+        shown += rows.length;
+        if (!rows.length) continue;
+        if (g.workspace) out.push(...group('sessions', g.workspace, rows.length, rows)); else out.push(...rows);
+      }
     }
     if (shown === 0) out.push(el('div', 'empty', filter ? 'Nothing matches.' : 'No sessions. Start one above.'));
     if (state.ended.length) {

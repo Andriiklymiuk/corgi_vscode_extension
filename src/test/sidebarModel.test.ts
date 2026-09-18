@@ -1,11 +1,27 @@
 import * as assert from 'node:assert';
-import { boardGroups, build, inboxRow, mutedLine, sessionRow, usageWindows, workspaceRows } from '../sidebarModel';
+import { boardGroups, build, inboxRow, mutedLine, sessionRow, ticketGroups, usageWindows, workspaceRows } from '../sidebarModel';
 import type { Board, BoardSession } from '../agentBoard';
 
 const now = new Date('2026-09-16T10:00:00Z');
 const s = (over: Partial<BoardSession>): BoardSession => ({ id: 'a', label: 'api', status: 'working', statusSince: '2026-09-16T09:50:00Z', ...over });
 
 describe('sidebarModel', () => {
+    it('folds sessions by the daemon groups, the rest under no ticket', () => {
+        const rows = [s({ id: 'a', label: 'api' }), s({ id: 'b', label: 'web' }), s({ id: 'c', label: 'api' })].map((x) => sessionRow(x, [], now));
+        const groups = ticketGroups([{ key: 'ABC-12', ticket: 'https://tracker/ABC-12', sessions: ['a', 'b', 'zz'], workspaces: ['api', 'web'], branches: ['feature/abc-12', 'feature/abc-12-web'], worktrees: ['/w/api/.corgi/wt'], prs: ['https://forge/p/1'] }], rows);
+        assert.deepStrictEqual(groups.map((g) => [g.key, g.rows.map((r) => r.id)]), [['ABC-12', ['a', 'b']], ['', ['c']]]);
+        assert.strictEqual(groups[0].detail, 'api, web · 2 branches · 1 worktree · 1 PR');
+        assert.strictEqual(groups[0].url, 'https://tracker/ABC-12');
+    });
+    it('has no ticket groups when the daemon publishes none', () => {
+        assert.deepStrictEqual(ticketGroups(undefined, [sessionRow(s({}), [], now)]), []);
+        const state = build({ board: { sessions: [s({})] }, inbox: [], hidden: [], bots: [], now });
+        assert.deepStrictEqual(state.tickets, []);
+    });
+    it('names the plan review on a watched workspace', () => {
+        const rows = workspaceRows([{ id: 'api' }], [{ workspace: 'api', action: 'fix', planReview: 'risk>=7' }], new Set(), new Set());
+        assert.ok(rows[0].detail.endsWith('plan reviewed at risk >=7'), rows[0].detail);
+    });
     it('draws two usage windows with when they reset', () => {
         const w = usageWindows({ profile: 'p', limits: { fiveHour: { percent: 12, resetsAt: '2026-09-16T13:00:00Z' }, sevenDay: { percent: 75, resetsAt: '2026-09-21T10:00:00Z' } } }, now);
         assert.deepStrictEqual(w.map((x) => [x.name, x.percent, x.resets]), [['5h', 12, 'resets in 3h'], ['7d', 75, 'resets in 5d']]);

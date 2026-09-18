@@ -226,6 +226,21 @@ export interface Board {
     notice?: string | null;
     noticeAt?: string;
     accounts?: BoardAccount[] | null;
+    groups?: BoardGroup[] | null;
+}
+
+/** Sessions that work on one ticket or branch, as the daemon folds them (sessions.json `groups`). */
+export interface BoardGroup {
+    key: string;
+    ticket?: string;
+    sessions: string[];
+    workspaces?: string[];
+    branches?: string[];
+    worktrees?: string[];
+    prs?: string[];
+    attempts?: number;
+    needsInput?: number;
+    working?: number;
 }
 
 /** A named session you come back to (corgi agent bot); the soul stays on the machine. */

@@ -1,4 +1,4 @@
-import { Board, BoardAccount, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
+import { Board, BoardAccount, BoardGroup, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl } from './watchInbox';
 
 /**
@@ -77,6 +77,15 @@ export interface WatchedWorkspace {
     workspace: string;
     action?: string;
     sources?: string[];
+    planReview?: string;
+}
+
+/** Sessions on one ticket or branch: the group header the page draws when folded by ticket. */
+export interface TicketGroup {
+    key: string;
+    detail: string;
+    url?: string;
+    rows: SessionRow[];
 }
 
 export interface WorkspaceRow {
@@ -98,6 +107,8 @@ export interface SidebarState {
     inbox: { workspace: string; rows: InboxRow[] }[];
     board: { column: string; rows: BoardRow[] }[];
     sessions: { workspace: string; rows: SessionRow[] }[];
+    /** The same live sessions folded by ticket or branch; empty when the daemon publishes no groups. */
+    tickets: TicketGroup[];
     ended: SessionRow[];
     workspaces: WorkspaceRow[];
     counts: { inbox: number; active: number; board: number };
@@ -157,6 +168,34 @@ export function groupSessions(board: Board | undefined): { label: string; sessio
             label,
             sessions: sessions.sort((a, b) => (statusRank[a.status ?? ''] ?? 9) - (statusRank[b.status ?? ''] ?? 9)),
         }));
+}
+
+/** The daemon's groups as page rows; sessions on no ticket land last under an empty key. */
+export function ticketGroups(groups: BoardGroup[] | null | undefined, rows: SessionRow[]): TicketGroup[] {
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const taken = new Set<string>();
+    const out: TicketGroup[] = [];
+    for (const g of groups ?? []) {
+        const members = (g.sessions ?? []).map((id) => byId.get(id)).filter((r): r is SessionRow => !!r);
+        if (!members.length) {
+            continue;
+        }
+        members.forEach((r) => taken.add(r.id));
+        const bits = [
+            g.workspaces?.length ? g.workspaces.join(', ') : '',
+            g.branches?.length && g.branches.length !== 1 ? `${g.branches.length} branches` : g.branches?.[0] && g.branches[0] !== g.key ? g.branches[0] : '',
+            g.worktrees?.length ? `${g.worktrees.length} worktree${g.worktrees.length === 1 ? '' : 's'}` : '',
+            g.prs?.length ? `${g.prs.length} PR${g.prs.length === 1 ? '' : 's'}` : '',
+            g.attempts ? `${g.attempts} attempts` : '',
+        ].filter(Boolean);
+        const url = [g.ticket, ...(g.prs ?? [])].find((u) => u && /^https:\/\//.test(u));
+        out.push({ key: g.key, detail: bits.join(' · '), url, rows: members });
+    }
+    const rest = rows.filter((r) => !taken.has(r.id));
+    if (out.length && rest.length) {
+        out.push({ key: '', detail: '', rows: rest });
+    }
+    return out;
 }
 
 export function sessionRow(s: BoardSession, bots: Bot[], now: Date, front = ''): SessionRow {
@@ -298,6 +337,9 @@ export function workspaceRows(list: WorkspaceInfo[], watched: WatchedWorkspace[]
         const bits = [isPaused ? 'paused' : running.has(w.id) ? 'supervised' : 'registered'];
         if (watch) {
             bits.push(`watch ${watch.action ?? 'notify'}${watch.sources?.length ? ` · ${watch.sources.join(', ')}` : ''}`);
+            if (watch.planReview) {
+                bits.push(watch.planReview === 'always' ? 'plan reviewed first' : `plan reviewed at ${watch.planReview.replace('risk', 'risk ')}`);
+            }
         }
         if (w.status && w.status !== 'ok') {
             bits.push(w.status);
@@ -347,6 +389,7 @@ export function build(input: BuildInput): SidebarState {
         ? [{ workspace: '', rows: inboxGroups[0].items.map((i) => inboxRow(i, now.getTime())) }]
         : inboxGroups.map((g) => ({ workspace: g.workspace, rows: g.items.map((i) => inboxRow(i, now.getTime())) }));
     const live = liveSessions(shown);
+    const tickets = ticketGroups(shown?.groups, sessions.flatMap((g) => g.rows));
     const ended = (shown?.sessions ?? []).filter((s) => s && s.id && s.status === 'gone').map((s) => sessionRow(s, bots, now));
     const accounts = shown?.accounts ?? [];
     const cards = input.cards ?? [];
@@ -356,6 +399,7 @@ export function build(input: BuildInput): SidebarState {
         inbox: inboxOut,
         board: boardGroups(cards, now.getTime()),
         sessions,
+        tickets,
         ended,
         workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
         counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: cards.length },

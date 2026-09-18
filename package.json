@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.25.2",
+  "version": "2.26.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -345,6 +345,11 @@
         "command": "corgi.agent.chat",
         "title": "Corgi Agent: Chat with a session beside the code",
         "icon": "$(comment)"
+      },
+      {
+        "command": "corgi.agent.why",
+        "title": "Corgi Agent: Why — a session's steps, tools and files",
+        "icon": "$(list-tree)"
       },
       {
         "command": "corgi.agent.answer",
