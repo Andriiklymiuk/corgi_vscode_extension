@@ -23,7 +23,7 @@ const DEBOUNCE_MS = 150;
 
 /** What a row may ask the extension to run, by name. Anything else is dropped. */
 const ALLOWED = new Set([
-    'corgi.agent.focusNode', 'corgi.agent.chat', 'corgi.agent.answer', 'corgi.agent.deny', 'corgi.agent.fresh', 'corgi.agent.openPr',
+    'corgi.agent.focusNode', 'corgi.agent.chat', 'corgi.agent.why', 'corgi.agent.answer', 'corgi.agent.deny', 'corgi.agent.fresh', 'corgi.agent.openPr',
     'corgi.agent.new', 'corgi.agent.newIsolated',
     'corgi.agent.inboxWorkOn', 'corgi.agent.inboxIgnore', 'corgi.agent.inboxUnblock',
     'corgi.agent.mute', 'corgi.agent.unmute', 'corgi.agent.daemonRestart', 'corgi.agent.daemonStart',
@@ -169,7 +169,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         if (node.kind === 'session') {
             const s = node.session;
             title = s.title || s.label || s.id;
-            items.push({ label: '$(comment) Chat beside the code', command: 'corgi.agent.chat' }, { label: '$(arrow-right) Send…', command: 'corgi.agent.sendTo' }, { label: '$(note) Note…', command: 'corgi.agent.note' });
+            items.push({ label: '$(comment) Chat beside the code', command: 'corgi.agent.chat' }, { label: '$(list-tree) Why: steps, tools and files', command: 'corgi.agent.why' }, { label: '$(arrow-right) Send…', command: 'corgi.agent.sendTo' }, { label: '$(note) Note…', command: 'corgi.agent.note' });
             if (s.pending) {
                 items.push({ label: '$(check-all) Always allow', command: 'corgi.agent.always' });
             }
