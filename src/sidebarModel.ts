@@ -71,6 +71,8 @@ export interface WorkspaceInfo {
     id: string;
     absPath?: string;
     status?: string;
+    /** the agents it tries, first choice first (corgi 2.30); absent = claude */
+    agents?: string[];
 }
 
 export interface WatchedWorkspace {
@@ -230,6 +232,9 @@ export function sessionRow(s: BoardSession, bots: Bot[], now: Date, front = ''):
     if (typeof s.context?.percent === 'number' && s.context.percent > 0) {
         meta.push(`ctx ${s.context.percent}%`);
     }
+    if (s.agent && s.agent !== 'claude') {
+        meta.push(s.agent);
+    }
     const tooltip = [
         s.display || s.label,
         s.cwd,
@@ -340,6 +345,9 @@ export function workspaceRows(list: WorkspaceInfo[], watched: WatchedWorkspace[]
             if (watch.planReview) {
                 bits.push(watch.planReview === 'always' ? 'plan reviewed first' : `plan reviewed at ${watch.planReview.replace('risk', 'risk ')}`);
             }
+        }
+        if (w.agents?.length) {
+            bits.push(w.agents.join(' → '));
         }
         if (w.status && w.status !== 'ok') {
             bits.push(w.status);
