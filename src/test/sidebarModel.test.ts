@@ -22,6 +22,13 @@ describe('sidebarModel', () => {
         const rows = workspaceRows([{ id: 'api' }], [{ workspace: 'api', action: 'fix', planReview: 'risk>=7' }], new Set(), new Set());
         assert.ok(rows[0].detail.endsWith('plan reviewed at risk >=7'), rows[0].detail);
     });
+    it('shows the agents a workspace tries, and a session run by another agent', () => {
+        const rows = workspaceRows([{ id: 'api', agents: ['claude', 'codex'] }, { id: 'web' }], [], new Set(), new Set());
+        assert.strictEqual(rows[0].detail, 'registered · claude → codex');
+        assert.strictEqual(rows[1].detail, 'registered');
+        assert.ok(sessionRow(s({ agent: 'codex' }), [], now).clause.includes('codex'));
+        assert.ok(!sessionRow(s({ agent: 'claude' }), [], now).clause.includes('claude'));
+    });
     it('draws two usage windows with when they reset', () => {
         const w = usageWindows({ profile: 'p', limits: { fiveHour: { percent: 12, resetsAt: '2026-09-16T13:00:00Z' }, sevenDay: { percent: 75, resetsAt: '2026-09-21T10:00:00Z' } } }, now);
         assert.deepStrictEqual(w.map((x) => [x.name, x.percent, x.resets]), [['5h', 12, 'resets in 3h'], ['7d', 75, 'resets in 5d']]);
