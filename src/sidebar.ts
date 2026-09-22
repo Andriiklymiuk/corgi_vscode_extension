@@ -179,6 +179,11 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             for (const profile of (this.watcher.current()?.accounts ?? []).map((a) => a.profile).filter((p) => p && p !== s.profile)) {
                 items.push({ label: `$(account) Carry to ${profile}`, command: 'corgi.agent.carryTo', args: [node, profile] });
             }
+            // The other agents its workspace lists: a fresh session there from a handoff.
+            const own = s.agent || 'claude';
+            for (const to of (this.snap.workspaces.find((w) => w.id === s.label)?.agents ?? []).filter((a) => a !== own)) {
+                items.push({ label: `$(arrow-swap) Hand to ${to}`, command: 'corgi.agent.handTo', args: [node, to] });
+            }
             if (s.pr) {
                 items.push({ label: '$(git-pull-request) Open pull request', command: 'corgi.agent.openPr' });
             }
@@ -215,6 +220,14 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             items.push(
                 { label: '$(folder-opened) Open in a new window', command: 'corgi.agent.workspaceOpen' },
                 { label: '$(add) New session here', command: 'corgi.agent.workspaceSession' },
+            );
+            const agents = this.snap.workspaces.find((w) => w.id === node.id)?.agents ?? [];
+            if (agents.length > 1) {
+                for (const a of agents) {
+                    items.push({ label: `$(terminal) New ${a} session here`, command: 'corgi.agent.workspaceSessionAs', args: [node, a] });
+                }
+            }
+            items.push(
                 { label: '$(eye-closed) Hide from the sidebar', command: 'corgi.agent.hideWorkspace', args: [{ kind: 'group', label: node.id }] },
                 { label: '$(trash) Forget this workspace', command: 'corgi.agent.workspaceForget' },
             );
@@ -295,6 +308,18 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                     return;
                 }
                 await agent(['carry', node.session.id, '--profile', profile], `corgi could not carry it to ${profile}`, 3000);
+            }),
+            vscode.commands.registerCommand('corgi.agent.handTo', async (node?: Node, to?: string) => {
+                if (node?.kind !== 'session' || !to) {
+                    return;
+                }
+                await agent(['carry', node.session.id, '--to', to], `corgi could not hand it to ${to}`, 3000);
+            }),
+            vscode.commands.registerCommand('corgi.agent.workspaceSessionAs', async (node?: Node, as?: string) => {
+                const id = workspaceOf(node);
+                if (id && as) {
+                    await agent(['new', '--workspace', id, '--agent', as], `corgi could not start a ${as} session there`, 3000);
+                }
             }),
             vscode.commands.registerCommand('corgi.agent.addWorkspace', async () => {
                 const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, openLabel: 'Opt this stack into agent mode', defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri });

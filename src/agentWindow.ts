@@ -346,7 +346,7 @@ export class AgentWindow implements vscode.Disposable {
     openClaudeTerminal(folder?: string, command?: string): void {
         const cwd = folder || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         command = command?.trim() || vscode.workspace.getConfiguration('corgi').get<string>('claudeCommand', 'claude').trim() || 'claude';
-        const terminal = vscode.window.createTerminal({ name: 'claude', cwd });
+        const terminal = vscode.window.createTerminal({ name: /\bcodex\b/.test(command) ? 'codex' : 'claude', cwd });
         terminal.show(false);
         terminal.sendText(command, true);
     }
