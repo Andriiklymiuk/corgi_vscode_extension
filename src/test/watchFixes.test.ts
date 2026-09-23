@@ -87,8 +87,8 @@ describe('watchFixes', () => {
     it('the tooltip lists the runs, and says so when there are none', () => {
         assert.match(tooltip([], NOW), /has not worked on anything/);
         const tip = tooltip([fix('live', { startedAt: at(3) }), fix('done', { finishedAt: at(20), prs: ['https://x/pull/1'] })], NOW);
-        assert.match(tip, /LIVE — running 3m/);
-        assert.match(tip, /DONE — opened 1 PR/);
+        assert.match(tip, /LIVE - running 3m/);
+        assert.match(tip, /DONE - opened 1 PR/);
     });
 
     it('collects the pull requests, deduped, and ignores anything that is not a url', () => {

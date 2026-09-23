@@ -348,7 +348,7 @@
       },
       {
         "command": "corgi.agent.why",
-        "title": "Corgi Agent: Why — a session's steps, tools and files",
+        "title": "Corgi Agent: Why - a session's steps, tools and files",
         "icon": "$(list-tree)"
       },
       {
@@ -428,15 +428,15 @@
       },
       {
         "command": "corgi.agent.inboxPrReady",
-        "title": "Corgi: Pull request — ready for review"
+        "title": "Corgi: Pull request - ready for review"
       },
       {
         "command": "corgi.agent.inboxPrMerge",
-        "title": "Corgi: Pull request — merge"
+        "title": "Corgi: Pull request - merge"
       },
       {
         "command": "corgi.agent.inboxPrClose",
-        "title": "Corgi: Pull request — close without merging"
+        "title": "Corgi: Pull request - close without merging"
       },
       {
         "command": "corgi.agent.inboxIgnore",

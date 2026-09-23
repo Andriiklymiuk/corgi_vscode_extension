@@ -174,7 +174,7 @@ export class CorgiCrossServiceRefCompletionProvider implements vscode.Completion
                 : 'no exports declared';
             item.documentation = hasExports
                 ? `Type . to pick an exported var.`
-                : `Producer has no \`exports:\` list — cannot resolve ${producer}.VAR.`;
+                : `Producer has no \`exports:\` list - cannot resolve ${producer}.VAR.`;
             item.command = {
                 command: 'editor.action.triggerSuggest',
                 title: 'Trigger Suggest',
@@ -217,7 +217,7 @@ export class CorgiCrossServiceRefCompletionProvider implements vscode.Completion
             if (trimmed.startsWith('depends_on_db:')) {
                 return 'db_services';
             }
-            // Hit a different parent (port:, environment:, etc.) — bail.
+            // Hit a different parent (port:, environment:, etc.) - bail.
             if (trimmed.endsWith(':')) {
                 return null;
             }
@@ -248,7 +248,7 @@ export class CorgiCrossServiceRefCompletionProvider implements vscode.Completion
             const item = new vscode.CompletionItem(n, vscode.CompletionItemKind.Reference);
             if (kind === 'services') {
                 const port = typeof entry?.port === 'number' ? ` (port ${entry.port})` : '';
-                const isSelf = n === enclosingService ? ' — same service (self-dep)' : '';
+                const isSelf = n === enclosingService ? ' - same service (self-dep)' : '';
                 item.detail = `services.${n}${port}${isSelf}`;
                 item.documentation = typeof entry?.cloneFrom === 'string'
                     ? `Repo: ${entry.cloneFrom}`

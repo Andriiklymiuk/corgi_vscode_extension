@@ -1,6 +1,6 @@
 // Draws the README pictures: a VS Code window with the extension's agent
-// pieces — the Agent sessions view, the status bar item, the toast, the
-// session quick pick, a Claude Code permission prompt in the terminal — as
+// pieces - the Agent sessions view, the status bar item, the toast, the
+// session quick pick, a Claude Code permission prompt in the terminal - as
 // HTML for Chrome to screenshot. The side bar mirrors src/sidebarHtml.ts and
 // src/sidebarModel.ts, the rest src/agentStatus.ts; keep them in step. scripts/capture.sh runs it.
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -107,7 +107,7 @@ const boardAt = (t) => {
 		{ label: "acme-api", sessions: [acme] },
 		{ label: "web", sessions: [{ name: "web", status: "working", detail: "Bash npm test", ctx: 58, elapsed: "13m" }] },
 		{ label: "mobile", sessions: [{ name: "mobile", status: "limited", detail: "continues 1:10pm" }] },
-		{ label: "search", sessions: [{ name: "search", status: "working", drift: "context 91% full — /compact, or fresh from a handoff", ctx: 91, elapsed: "41m" }] },
+		{ label: "search", sessions: [{ name: "search", status: "working", drift: "context 91% full - /compact, or fresh from a handoff", ctx: 91, elapsed: "41m" }] },
 	];
 	const needs = t === 1 || t === 2 ? 1 : 0;
 	const working = t >= 4 ? 2 : 3;
@@ -233,10 +233,10 @@ const window = ({ t = 1, hover = t === 1 || t === 2 ? "acme-api" : "", showToast
 };
 
 const quickPick = (b) => `<div class="qp">
-  <div class="in">Corgi Agent: Sessions — pick one to focus</div>
+  <div class="in">Corgi Agent: Sessions - pick one to focus</div>
   ${b.groups.map((g, gi) => `<div class="sep"><b>${g.label}</b></div>${g.sessions.map((s, si) => {
 		const icon = s.status === "needs_input" ? ico.bell(fg) : s.status === "working" ? ico.pulse(fg) : s.status === "limited" ? ico.warning(fg) : s.status === "done" ? ico.check(fg) : "";
-		const meta = [statusWord[s.status], s.pending ? `asks ${s.pending}` : s.detail, s.ctx ? `ctx ${s.ctx}%` : "", s.elapsed].filter(Boolean).join(" — ");
+		const meta = [statusWord[s.status], s.pending ? `asks ${s.pending}` : s.detail, s.ctx ? `ctx ${s.ctx}%` : "", s.elapsed].filter(Boolean).join(" - ");
 		const on = g.label === "acme-api";
 		return `<div class="it${on ? " on" : ""}"><i>${icon}</i>${s.title ?? s.name}<span class="d">${meta}</span></div><div class="row2">${gi === 0 ? "default" : gi === 1 ? "work" : "default"}  ·  ~/dev/${g.label}${s.note ? `  ·  "${s.note}"` : ""}</div>`;
 	}).join("")}`).join("")}

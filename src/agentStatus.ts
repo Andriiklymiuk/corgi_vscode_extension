@@ -245,7 +245,7 @@ function sessionItems(sessions: BoardSession[], now: Date): SessionPick[] {
         const icon = s.status === 'needs_input' ? '$(bell) ' : s.status === 'working' ? '$(pulse) ' : s.status === 'limited' ? '$(warning) ' : s.status === 'done' ? '$(check) ' : '';
         return {
             label: `${icon}${sessionName(s)}`,
-            description: meta.join(' — '),
+            description: meta.join(' - '),
             detail: [s.profile, s.cwd, s.note ? `"${s.note}"` : ''].filter(Boolean).join('  ·  '),
             session: s,
         };
@@ -401,7 +401,7 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
             }
             const root = vscode.workspace.getWorkspaceFolder(editor.document.uri)?.uri.fsPath;
             const quote = quoteSelection(editor.document, editor.selection, root);
-            const words = await vscode.window.showInputBox({ prompt: `To ${sessionName(s)} — what about these lines? (Enter sends; empty sends the lines alone)`, placeHolder: 'this is wrong because…' });
+            const words = await vscode.window.showInputBox({ prompt: `To ${sessionName(s)} - what about these lines? (Enter sends; empty sends the lines alone)`, placeHolder: 'this is wrong because…' });
             if (words === undefined) {
                 return;
             }
@@ -573,7 +573,7 @@ export function registerAgentBoard(context: vscode.ExtensionContext, agentDir: s
                 void vscode.window.showInformationMessage('corgi agent: no hidden workspaces. Use the ⋯ menu on a session in the sidebar to hide its workspace.');
                 return;
             }
-            const picked = await vscode.window.showQuickPick(cur.map((w) => ({ label: w, picked: true })), { canPickMany: true, placeHolder: 'Hidden workspaces — uncheck to show again' });
+            const picked = await vscode.window.showQuickPick(cur.map((w) => ({ label: w, picked: true })), { canPickMany: true, placeHolder: 'Hidden workspaces - uncheck to show again' });
             if (picked) {
                 await setHidden(picked.map((p) => p.label));
             }
@@ -598,7 +598,7 @@ export interface WhyStep {
 }
 
 export function whyMarkdown(name: string, steps: WhyStep[]): string {
-    const lines = [`# ${name} — why`, ''];
+    const lines = [`# ${name} - why`, ''];
     if (!steps.length) {
         lines.push('Nothing yet: the session has not said or run anything.');
         return lines.join('\n');

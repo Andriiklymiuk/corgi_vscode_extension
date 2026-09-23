@@ -24,7 +24,7 @@ export function html(name: string): string {
 <div id="log"></div>
 <div id="err" hidden></div>
 <div id="bar">
-  <textarea id="box" placeholder="Message ${title} — Enter sends, Shift+Enter for a new line"></textarea>
+  <textarea id="box" placeholder="Message ${title} - Enter sends, Shift+Enter for a new line"></textarea>
   <button id="send">Send</button>
   <button class="quiet" id="allow" title="Allow the pending permission">Allow</button>
   <button class="quiet" id="deny" title="Deny it">Deny</button>

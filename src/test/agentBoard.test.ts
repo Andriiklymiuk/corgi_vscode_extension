@@ -43,7 +43,7 @@ describe('sessionSummary and tooltip', () => {
     const now = new Date('2026-09-08T10:05:30Z');
     it('lists status, pending tool, detail, context and elapsed', () => {
         const s = session('api', 'needs_input', { detail: 'Bash', pending: { tool: 'Bash' }, context: { percent: 37 }, stuck: false });
-        assert.strictEqual(sessionSummary(s, now), 'api — needs you / asks Bash / Bash / ctx 37% / 5m');
+        assert.strictEqual(sessionSummary(s, now), 'api - needs you / asks Bash / Bash / ctx 37% / 5m');
     });
     it('says so when the board is empty', () => {
         assert.strictEqual(boardTooltip({ sessions: [] }, now), 'corgi agent: no Claude Code sessions');
@@ -124,7 +124,7 @@ describe('drift, limits and hidden workspaces', () => {
         const soon = new Date(Date.now() + 3_600_000).toISOString();
         assert.ok(limitLine({ id: 'a', status: 'limited', resumeAt: soon, resumes: 2 }).startsWith('continues '));
         assert.ok(limitLine({ id: 'a', status: 'limited', resumeAt: soon, resumes: 2 }).endsWith('· 2 so far'));
-        assert.strictEqual(limitLine({ id: 'a', status: 'limited', limit: 'overload' }), 'API overloaded — retried on its own');
+        assert.strictEqual(limitLine({ id: 'a', status: 'limited', limit: 'overload' }), 'API overloaded - retried on its own');
         assert.strictEqual(limitLine({ id: 'a', status: 'limited', resumeAt: '0001-01-01T00:00:00Z' }), '', 'a zero time is not a time');
         assert.strictEqual(limitLine({ id: 'a', status: 'working', resumeAt: soon }), '');
     });

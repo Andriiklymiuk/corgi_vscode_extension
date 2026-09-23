@@ -4,7 +4,7 @@ import * as path from 'node:path';
 /**
  * The fix log corgi's watch writes at <agent dir>/watch/fixes.json: what the
  * unattended mode is working on, and what it opened. A fix takes minutes, so
- * this is the only place a long run is visible while it is still running —
+ * this is the only place a long run is visible while it is still running -
  * its notification only arrives once it is over. Pure logic, no vscode
  * import, so it unit tests.
  */
@@ -68,7 +68,7 @@ export function recent(fixes: readonly FixRecord[], nowMs: number, maxAgeMs = 12
         .slice(0, limit);
 }
 
-/** "4m" / "2h 10m" — how long a run has been going, or how long it took. */
+/** "4m" / "2h 10m" - how long a run has been going, or how long it took. */
 export function elapsed(r: FixRecord, nowMs: number): string {
     const start = Date.parse(r.startedAt ?? '');
     if (!Number.isFinite(start)) {
@@ -123,10 +123,10 @@ export function tooltip(fixes: readonly FixRecord[], nowMs: number): string {
     }
     const rows: string[] = [];
     for (const r of live) {
-        rows.push(`  ${fixName(r)} — running ${elapsed(r, nowMs)}`);
+        rows.push(`  ${fixName(r)} - running ${elapsed(r, nowMs)}`);
     }
     for (const r of done) {
-        rows.push(`  ${fixName(r)} — ${outcome(r)} (${elapsed(r, nowMs)})`);
+        rows.push(`  ${fixName(r)} - ${outcome(r)} (${elapsed(r, nowMs)})`);
     }
     return ['corgi agent watch, unattended:', ...rows, '', 'Click to open a pull request or its log.'].join('\n');
 }

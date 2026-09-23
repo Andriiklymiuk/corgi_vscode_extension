@@ -111,7 +111,7 @@ describe('autoContinue', () => {
         const on = { ...autoContinueDefaults, enabled: true };
         const tip = queueTooltip(pending, NOW, on);
         assert.match(tip, /"continue"/);
-        assert.match(tip, /api — 5h window, in 1h/);
+        assert.match(tip, /api - 5h window, in 1h/);
         assert.match(queueTooltip([], NOW, on), /Nothing is waiting/);
         assert.match(queueTooltip(pending, NOW, autoContinueDefaults), /off/);
     });

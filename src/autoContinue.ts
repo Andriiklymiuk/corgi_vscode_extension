@@ -3,7 +3,7 @@ import { Board, BoardSession, liveSessions, sessionName } from './agentBoard';
 /**
  * Auto-continue: a session that stopped on a usage limit is sent one message
  * the moment its window resets, so a long run does not sit dead until someone
- * notices. Pure logic over the board — no vscode import, so it unit tests.
+ * notices. Pure logic over the board - no vscode import, so it unit tests.
  */
 
 export interface AutoContinueSettings {
@@ -74,7 +74,7 @@ export function planContinues(board: Board | undefined, cancelled: ReadonlySet<s
 }
 
 // Only a window that reads as spent is what stopped the session. A limit
-// with none spent — a session-credit cap, a stale cache — has no reset
+// with none spent - a session-credit cap, a stale cache - has no reset
 // this side knows, and typing into it only makes the session say no again.
 function soonestReset(limits: { fiveHour?: { percent?: number; resetsAt?: string }; sevenDay?: { percent?: number; resetsAt?: string } } | undefined):
     { at: string; ms: number; window: '5h' | 'week' } | undefined {
@@ -99,7 +99,7 @@ export function dueNow(pending: readonly PendingContinue[], nowMs: number, grace
     return pending.filter((p) => nowMs >= p.resetsAtMs + grace);
 }
 
-/** "in 42m" / "now" — what the queue row says about the wait left. */
+/** "in 42m" / "now" - what the queue row says about the wait left. */
 export function waitLabel(p: PendingContinue, nowMs: number): string {
     const left = p.resetsAtMs - nowMs;
     if (left <= 0) {
@@ -127,11 +127,11 @@ export function statusText(pending: readonly PendingContinue[], nowMs: number): 
 
 export function queueTooltip(pending: readonly PendingContinue[], nowMs: number, settings: AutoContinueSettings): string {
     if (!settings.enabled) {
-        return 'Auto-continue is off — corgi.autoContinue.enabled turns it on';
+        return 'Auto-continue is off - corgi.autoContinue.enabled turns it on';
     }
     if (pending.length === 0) {
         return 'Auto-continue is on. Nothing is waiting on a limit.';
     }
-    const rows = pending.map((p) => `  ${p.name} — ${p.window} window, ${waitLabel(p, nowMs)}`);
+    const rows = pending.map((p) => `  ${p.name} - ${p.window} window, ${waitLabel(p, nowMs)}`);
     return [`Auto-continue will send ${JSON.stringify(settings.message)} to:`, ...rows, '', 'Click to cancel one.'].join('\n');
 }

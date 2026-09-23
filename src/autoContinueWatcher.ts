@@ -109,7 +109,7 @@ export class AutoContinueWatcher implements vscode.Disposable {
             this.attempts.set(p.sessionId, (this.attempts.get(p.sessionId) ?? 0) + 1);
             const result = await runCorgi(['agent', 'send', p.sessionId, '--enter', '--', this.settings.message]);
             if (result.ok) {
-                void vscode.window.showInformationMessage(`corgi: resumed ${p.name} — its ${p.window} limit reset`);
+                void vscode.window.showInformationMessage(`corgi: resumed ${p.name} - its ${p.window} limit reset`);
             } else {
                 this.sent.delete(p.sessionId);
                 void vscode.window.showWarningMessage(`corgi could not resume ${p.name}: ${result.stderr || result.stdout}`);

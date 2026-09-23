@@ -375,7 +375,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 }
             }),
             // Work on it: a real session on the ticket, with the prompt an
-            // unattended run would have had — the page's and the phone's button.
+            // unattended run would have had - the page's and the phone's button.
             ...([['corgi.agent.inboxWorkOn', undefined], ['corgi.agent.inboxWorkOnIsolated', '--isolate']] as const).map(([id, flag]) =>
                 vscode.commands.registerCommand(id, async (node?: Node) => {
                     const item = itemOf(node);
