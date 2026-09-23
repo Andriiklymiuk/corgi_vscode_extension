@@ -16,7 +16,7 @@ import { matchTabByTitle, isKeySequence } from './agentBoard';
  *     `claude` started there tells the daemon exactly which window it is in.
  *  2. It writes a window record (extension-host pid, folders, terminals and
  *     their shell pids) to <agent dir>/windows/<id>.json whenever a terminal
- *     opens or closes, so the daemon can join a session to its tab — or, for
+ *     opens or closes, so the daemon can join a session to its tab - or, for
  *     the Claude Code panel, to this window through the extension-host pid.
  *  3. It watches <agent dir>/reveal/<id>.json for the daemon's "show this
  *     tab" request and calls terminal.show() on the right terminal.
@@ -117,7 +117,7 @@ const TAB_TITLE_ASKED = 'corgi.tabTitleAsked';
 
 /**
  * corgi's tab-title hook writes "▲ repo NEEDS YOU" as the terminal title,
- * but VS Code's default tab title is ${process} — the word "claude". Offer
+ * but VS Code's default tab title is ${process} - the word "claude". Offer
  * ${sequence} once, only when corgi agent mode is in use, and remember the
  * answer either way.
  */
@@ -377,7 +377,7 @@ export class AgentWindow implements vscode.Disposable {
  */
 export function typeIntoTerminal(terminal: vscode.Terminal, text: string, enter: boolean): void {
     if (isKeySequence(text)) {
-        // Escape (deny, interrupt), Return: a key, not a paste — a paste
+        // Escape (deny, interrupt), Return: a key, not a paste - a paste
         // wraps it in bracketed-paste marks and the TUI reads it as text.
         void vscode.commands.executeCommand('workbench.action.terminal.sendSequence', { text });
         return;

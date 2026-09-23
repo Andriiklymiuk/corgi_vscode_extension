@@ -6,7 +6,7 @@ import { html } from './agentChatHtml';
 
 /**
  * A session's conversation beside the code: what it said, the tools it ran,
- * and a box to type the next message — the phone's chat, in a panel. It
+ * and a box to type the next message - the phone's chat, in a panel. It
  * polls `corgi agent transcript` every two seconds for what landed after
  * the last offset, and sends through `corgi agent send`; the daemon does
  * the typing, so the terminal the session runs in is never touched.

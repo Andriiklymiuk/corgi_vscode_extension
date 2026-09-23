@@ -40,7 +40,7 @@ export interface BoardSession {
     drift?: string[];
     /** What the branch has built up since it left main, measured once a minute. */
     changes?: { files?: number; lines?: number; touched?: string[]; at?: string };
-    /** Other live sessions in the same repository on the same files — or in the same working tree. */
+    /** Other live sessions in the same repository on the same files - or in the same working tree. */
     overlap?: { id?: string; session?: string; files?: string[]; sameCheckout?: boolean }[];
     /** The last test command the session ran, and how it went. */
     tests?: { ok?: boolean; at?: string; cmd?: string };
@@ -65,7 +65,7 @@ export function gateLine(s: BoardSession): string {
     return s.gate.ok ? 'done ✓' : `not done · ${s.gate.cmd ?? 'checks'}${(s.gate.fails ?? 0) > 1 ? ` ×${s.gate.fails}` : ''}`;
 }
 
-/** "main moved 12 · conflicts in api.go" — "" when main has not moved. */
+/** "main moved 12 · conflicts in api.go" - "" when main has not moved. */
 export function behindLine(s: BoardSession): string {
     if (!s.behind?.commits) {
         return '';
@@ -78,7 +78,7 @@ export function isDrifting(s: BoardSession): boolean {
     return Array.isArray(s.drift) && s.drift.length > 0;
 }
 
-/** "4 files · 120 lines" — the branch in one line; "" when there is no diff. */
+/** "4 files · 120 lines" - the branch in one line; "" when there is no diff. */
 export function changesLine(s: BoardSession): string {
     const c = s.changes;
     if (!c || (!c.files && !c.lines)) {
@@ -94,7 +94,7 @@ export function isCrossing(s: BoardSession): boolean {
     return Array.isArray(s.overlap) && s.overlap.length > 0;
 }
 
-/** "api·2 on registry.go, b.go, …" or "same checkout as api·2" — the first crossing; "" when none. */
+/** "api·2 on registry.go, b.go, …" or "same checkout as api·2" - the first crossing; "" when none. */
 export function overlapLine(s: BoardSession): string {
     const first = s.overlap?.[0];
     if (!first) {
@@ -145,7 +145,7 @@ export function limitLine(s: BoardSession, now: Date = new Date()): string {
         return '';
     }
     if (s.limit === 'overload') {
-        return 'API overloaded — retried on its own';
+        return 'API overloaded - retried on its own';
     }
     const at = s.resumeAt ? new Date(s.resumeAt) : undefined;
     if (!at || Number.isNaN(at.getTime()) || at.getFullYear() < 2000 || at <= now) {
@@ -181,7 +181,7 @@ export function isHiddenWorkspace(name: string | undefined, hidden: readonly str
 
 /**
  * The same board without the sessions of hidden workspaces and with the
- * counts recomputed — what every view reads while the screen is shown to
+ * counts recomputed - what every view reads while the screen is shown to
  * someone. Nothing on the machine changes.
  */
 export function hideWorkspaces(board: Board | undefined, hidden: readonly string[]): Board | undefined {
@@ -400,7 +400,7 @@ export function sessionSummary(s: BoardSession, now: Date = new Date()): string 
     if (s.agent) {
         bits.push(s.agent);
     }
-    return `${sessionName(s)} — ${bits.join(' / ')}`;
+    return `${sessionName(s)} - ${bits.join(' / ')}`;
 }
 
 export function boardTooltip(board: Board | undefined, now: Date = new Date()): string {
@@ -490,7 +490,7 @@ export function matchTabByTitle<T extends { label: string }>(tabs: T[], title: s
         ?? tabs.find((t) => t.label.toLowerCase().includes(lower));
 }
 
-/** Control characters only — Escape, Return, "2" then Return — are keys to press, never text to paste. */
+/** Control characters only - Escape, Return, "2" then Return - are keys to press, never text to paste. */
 export function isKeySequence(text: string): boolean {
     return text.length > 0 && text.length <= 4 && /^[\x00-\x1f0-9]+$/.test(text) && /[\x00-\x1f]/.test(text);
 }

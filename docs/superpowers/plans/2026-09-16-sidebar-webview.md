@@ -22,7 +22,7 @@
 
 ---
 
-### Task 1: `sidebarModel.ts` — the pure state
+### Task 1: `sidebarModel.ts` - the pure state
 
 **Files:**
 - Create: `src/sidebarModel.ts`
@@ -226,7 +226,7 @@ Run: `pnpm run compile-tests && node out/test/runTest.js`
 
 ---
 
-### Task 2: `sidebarHtml.ts` — the page
+### Task 2: `sidebarHtml.ts` - the page
 
 **Files:**
 - Create: `src/sidebarHtml.ts`
@@ -305,11 +305,11 @@ The script (all DOM built with `document.createElement` + `textContent`; helper 
 
 - [ ] **Step 4: Run tests, expect PASS**
 
-- [ ] **Step 5: Commit** — `"The sidebar page: one HTML string under a nonce CSP"`
+- [ ] **Step 5: Commit** - `"The sidebar page: one HTML string under a nonce CSP"`
 
 ---
 
-### Task 3: `sidebar.ts` — the provider, and the wiring
+### Task 3: `sidebar.ts` - the provider, and the wiring
 
 **Files:**
 - Create: `src/sidebar.ts`
@@ -317,7 +317,7 @@ The script (all DOM built with `document.createElement` + `textContent`; helper 
 - Modify: `src/extension.ts` (drop `CorgiTreeProvider`; `corgi.reload` / `corgi.installWithHomebrew` call `corgi.sidebar.reload`; add `corgi.commands` quick pick)
 - Modify: `package.json` (views, viewsWelcome, menus, commands, version)
 - Delete: `src/corgiTreeProvider.ts`, `src/agentTree.ts`, `src/watchInboxTree.ts`
-- Modify: `scripts/showcase.mjs` — remove imports of deleted modules if any (`grep agentTree scripts/showcase.mjs`).
+- Modify: `scripts/showcase.mjs` - remove imports of deleted modules if any (`grep agentTree scripts/showcase.mjs`).
 
 **Interfaces:**
 - Consumes: `build`, `SessionNode`, `InboxNode`, `SidebarState` (Task 1); `page` (Task 2); `AgentBoardWatcher`, `hiddenWorkspaces` from `./agentStatus`; `readInbox`, `InboxItem`, `itemName` from `./watchInbox`; `readBots` from `./agentBoard`; `runCorgi`, `corgiBinary`, `isolateArgs` from `./corgiExec`.
@@ -425,7 +425,7 @@ where `row = ([label, command, icon]) => ({ label: `${icon} ${label}`, command, 
 
 F5 → Corgi icon: usage bars, inbox rows, sessions rows; hover buttons; collapse a section, switch to Explorer, back → still collapsed; light theme; `⋯` opens the quick pick; Run/Stop from the title bar.
 
-- [ ] **Step 7: Commit** — `"One webview sidebar replaces the three trees"`
+- [ ] **Step 7: Commit** - `"One webview sidebar replaces the three trees"`
 
 ---
 
@@ -438,4 +438,4 @@ F5 → Corgi icon: usage bars, inbox rows, sessions rows; hover buttons; collaps
 
 - [ ] **Step 1:** Update the mockup strings to mirror `sidebarHtml.ts` classes and copy; run `npm run showcase`; look at `docs/media/*.png`.
 - [ ] **Step 2:** README text.
-- [ ] **Step 3:** Commit — `"README: the new sidebar"`. Push to `main` releases (CI publishes on the version bump) — only when the user says push.
+- [ ] **Step 3:** Commit - `"README: the new sidebar"`. Push to `main` releases (CI publishes on the version bump) - only when the user says push.

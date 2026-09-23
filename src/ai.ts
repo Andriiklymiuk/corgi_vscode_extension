@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 
 // Run corgi and capture its output (terminal commands stream; AI needs the text).
-// args are hardcoded constants in this file — never model/user input — so the
+// args are hardcoded constants in this file - never model/user input - so the
 // template is injection-safe.
 function corgiCapture(args: string, cwd: string, timeoutMs = 120_000): Promise<{ ok: boolean; out: string }> {
   return new Promise((resolve) => {
@@ -78,7 +78,7 @@ const chatHandler: vscode.ChatRequestHandler = async (request, context, stream, 
   } else if (request.command === 'explain') {
     const compose = await activeComposeText();
     userPrompt = compose
-      ? `Explain this corgi-compose.yml in plain language — what starts, in what order, and the env wiring:\n\n\`\`\`yaml\n${compose}\n\`\`\``
+      ? `Explain this corgi-compose.yml in plain language - what starts, in what order, and the env wiring:\n\n\`\`\`yaml\n${compose}\n\`\`\``
       : 'No corgi-compose.yml found in the workspace. Tell the user to open or create one (or run /new).';
   } else if (request.command === 'debug') {
     if (cwd) {
@@ -142,7 +142,7 @@ class CorgiRunTool implements vscode.LanguageModelTool<{}> {
   async invoke(): Promise<vscode.LanguageModelToolResult> {
     const cwd = workspaceCwd();
     if (!cwd) { return textResult('No workspace folder is open.'); }
-    // --detach returns after beforeStart (which may install deps) — allow more time.
+    // --detach returns after beforeStart (which may install deps) - allow more time.
     const { out } = await corgiCapture('run --detach --json', cwd, 600_000);
     return textResult(out);
   }

@@ -50,7 +50,7 @@ export class OverlapMarks implements vscode.Disposable {
         }
         const words = `${sessionName(this.hit)} is editing this file`;
         this.item.text = `$(git-branch) ${words}`;
-        this.item.tooltip = `${words}${this.hit.branch ? ` on ${this.hit.branch}` : ''} — click to bring it forward`;
+        this.item.tooltip = `${words}${this.hit.branch ? ` on ${this.hit.branch}` : ''} - click to bring it forward`;
         this.item.show();
         editor.setDecorations(this.decoration, [{ range: new vscode.Range(0, 0, 0, 0), renderOptions: { after: { contentText: `← ${words}` } } }]);
     }

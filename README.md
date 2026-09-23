@@ -106,7 +106,7 @@ waiting. Only the front window shows it (`corgi.agentToasts`).
 **Auto-continue when limits reset.** A session that stops on a usage limit
 sits dead until someone notices. Turn on `corgi.autoContinue.enabled` and
 corgi sends one message to each limited session the moment its window
-resets — no second extension, no daemon of its own.
+resets - no second extension, no daemon of its own.
 
 It is off by default, and it never resumes anything quietly: while
 something is queued, the status bar shows what and how long
@@ -120,7 +120,7 @@ next limit queues again.
 the limit lifts on Anthropic's clock, not this machine's.
 
 **Watch what runs for you.** `corgi agent watch --auto` fixes tickets and
-review comments headless, in the background — a run takes minutes and only
+review comments headless, in the background - a run takes minutes and only
 speaks when it is over, so the editor gave no sign anything was happening.
 Now the status bar spins with what it is on (`HUM-1338 7m`), a progress
 notification follows each run, and when one opens a pull request it offers
@@ -131,47 +131,47 @@ to open it. Afterwards the bar reports what came out
 off.
 
 **A row says what is wrong, and offers the way out.** A session the daemon
-thinks is drifting — context nearly full, the same tool failing on repeat, a
-diff far past its budget — turns red with the reason, and the right-click
+thinks is drifting - context nearly full, the same tool failing on repeat, a
+diff far past its budget - turns red with the reason, and the right-click
 menu offers **Fresh from a handoff**: a clean session, same account, picking
 up from the handoff it leaves. A limited one says when the daemon continues
 it. Every working row also carries what its branch has built up (*4 files ·
 120 lines*) and its last test run (*tests ✓* / *tests ✗ go test*); when
 another session in the same repository is on the same files the row turns
-amber with a merge icon and names it — *⚠ api·2 on registry.go* — so work
+amber with a merge icon and names it - *⚠ api·2 on registry.go* - so work
 crossing streams is seen here, not at merge time. What it has cost sits
 there too (*52.3M*, cache reads included), and turns into *52.3M over
 budget* with a red icon once it passes the budget `corgi agent cap 50M`
 gave it (corgi 2.20.9+). **Bots** (corgi 2.20.13, `corgi agent bot add …`): the view's robot icon
-opens one — its workspace, its persona, its last conversation resumed — and a
+opens one - its workspace, its persona, its last conversation resumed - and a
 bot's row carries the bot's name. The sparkle asks the chief:
 *what should I look at first?* → `corgi agent ask`, a few lines back.
-A working row has **Interrupt** — Escape into
+A working row has **Interrupt** - Escape into
 the session, as you would press it: the turn stops, the session waits,
 nothing is closed (`corgi agent interrupt`, corgi 2.20.10+). The menu also has Send…,
 Allow always, Open pull request and Copy session id. **Chat** (the speech
 bubble on a row, or *Corgi Agent: Chat with a session beside the code*)
-opens the conversation in a panel next to the editor — what it said, the
-tools it ran, a box for the next message, Allow / Deny / Stop — through
+opens the conversation in a panel next to the editor - what it said, the
+tools it ran, a box for the next message, Allow / Deny / Stop - through
 `corgi agent transcript` and `corgi agent send` (corgi 2.22+). Select lines
 in any file and the editor's context menu has **Send selection to a
 session**: the file and line, the code quoted, your words after it. And when
 the file in front of you is one another live session's branch touched, the
-status bar and the first line say so — *api·auth is editing this file* —
+status bar and the first line say so - *api·auth is editing this file* -
 click to bring it forward. A row also says *not done · go test* when the
 workspace's done-when check went red after the session stopped, *main moved
 12 · conflicts in total.ts*, *try 2 on WEB-88* for a fan-out, and the
 agent's name for a session that is not Claude Code. In the inbox, an issue has **Work on it** (also inline): a real
 session on the ticket, in its own checkout, with the prompt an unattended run
-would have had — `corgi agent watch work ABC-123` — and **Work on it in a
+would have had - `corgi agent watch work ABC-123` - and **Work on it in a
 worktree of its own**: the same session on `corgi/ABC-123` under
 `corgi_services/.worktrees`, so it never shares a checkout with another
 (`--isolate`, corgi 2.20.8+; `corgi.agentIsolate` makes every session from
 here start that way, and the sessions view's **New … in a worktree of its
 own** does it for a blank session). A blocked ticket is red
 with the reason and **Unblock**; every item has Ignore (also inline), Assign
-to me and Move…. A row about a pull request of yours — corgi's run's, a
-session's, or your own — has **ready for review**, **merge** and **close**
+to me and Move…. A row about a pull request of yours - corgi's run's, a
+session's, or your own - has **ready for review**, **merge** and **close**
 (`corgi agent watch pr ready ABC-123`), and its line says how it stands:
 *ready to merge · checks ✓ · approved*, or *checks ✗ · changes requested*
 (corgi 2.20.19 reads that from GitHub or GitLab once a round).

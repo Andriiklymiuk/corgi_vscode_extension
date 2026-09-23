@@ -23,7 +23,7 @@ export interface InboxItem {
     columns?: string[];
     /** The pull request of mine this row lets me mark ready, merge or close. */
     pr?: string;
-    /** How that pull request stands — checks, approval — as the forge told the daemon (corgi 2.20.19). */
+    /** How that pull request stands - checks, approval - as the forge told the daemon (corgi 2.20.19). */
     pull?: PullStatus;
     /** The session this row was typed into, and when (corgi 2.21). */
     handed?: { at?: string; to: string; label?: string; by?: string };
@@ -45,7 +45,7 @@ export interface Standing {
     why?: string;
 }
 
-/** The words worth a line of their own on a row — something to act on, not the plain course of things. */
+/** The words worth a line of their own on a row - something to act on, not the plain course of things. */
 const LOUD = new Set(['merged', 'closed', 'blocked', 'needs you', 'at a limit', 'checks failing', 'changes requested', 'conflicts', 'tests failing', 'ready to merge', 'approved', 'draft', 'in review']);
 
 /** The daemon's word on the row when it sent one and it is loud; the pull request read here for a daemon before 2.23. */
@@ -60,7 +60,7 @@ export function standingLine(item: Pick<InboxItem, 'standing' | 'pull' | 'blocke
     return pullLine(item.pull);
 }
 
-/** Open, checks green or absent, approved: nothing between it and Merge — the daemon's own rule. */
+/** Open, checks green or absent, approved: nothing between it and Merge - the daemon's own rule. */
 export function pullReady(p?: PullStatus): boolean {
     return !!p && p.state === 'open' && (!p.checks || p.checks === 'passing' || p.checks === 'none') && p.review === 'approved';
 }
@@ -107,7 +107,7 @@ export function itemName(item: InboxItem): string {
     return item.ref?.trim() || item.key;
 }
 
-/** "READY TO DEV · 20m" — the column it sits in and how long it has waited; a blocked one says why first. */
+/** "READY TO DEV · 20m" - the column it sits in and how long it has waited; a blocked one says why first. */
 const STATUS_WORD: Record<string, string> = { needs_input: 'needs you', working: 'working', done: 'done', stale: 'idle', limited: 'limit' };
 
 export function itemDetail(item: InboxItem, now: number): string {

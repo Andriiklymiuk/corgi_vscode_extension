@@ -109,7 +109,7 @@ grey clause, elapsed on the right.
 
 The clause is the first line `agentTree.ts` builds today (drift reason,
 overlap, `asks <tool>`, note, limit, detail, branch), then `changesLine`,
-`testsLine`, `spendLine`, `ctx N%` — joined with ` · `, and clipped with
+`testsLine`, `spendLine`, `ctx N%` - joined with ` · `, and clipped with
 CSS ellipsis. The tooltip carries the long form (`title` attribute) with the
 same content the tree tooltip has.
 
@@ -152,16 +152,16 @@ webview: sidebarHtml.page() ◀────────────────�
 
 New:
 
-- `src/sidebarModel.ts` — pure. `build(board, inbox, hidden, now): SidebarState`
+- `src/sidebarModel.ts` - pure. `build(board, inbox, hidden, now): SidebarState`
   and the row builders. No vscode import. Reuses `agentBoard.ts` and
   `watchInbox.ts` helpers. Everything the page shows is decided here, so the
   page script only draws.
-- `src/sidebarHtml.ts` — pure. `page(nonce: string): string`. One HTML
+- `src/sidebarHtml.ts` - pure. `page(nonce: string): string`. One HTML
   string with inline CSS and one inline script under a nonce CSP
   (`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-…'`).
   No external files, no framework. The script holds the last state, draws
   it with `replaceChildren`, and keeps the collapsed set in `getState()`.
-- `src/sidebar.ts` — `CorgiSidebar implements vscode.WebviewViewProvider`.
+- `src/sidebar.ts` - `CorgiSidebar implements vscode.WebviewViewProvider`.
   Owns the inbox poll (moved from `WatchInboxTree`), the inbox commands
   (moved from `WatchInboxTree.start`), `corgi.commands`, and
   `corgi.sidebar.reload`. Subscribes to `AgentBoardWatcher.onDidChangeBoard`
@@ -173,19 +173,19 @@ New:
 
 Changed:
 
-- `package.json` — `views.corgi` becomes one entry `{ id: 'corgiSidebar', type: 'webview', name: 'Corgi' }`;
+- `package.json` - `views.corgi` becomes one entry `{ id: 'corgiSidebar', type: 'webview', name: 'Corgi' }`;
   `viewsWelcome` retargets to it; `view/title` lists the four toolbar
   commands; every `view/item/context` entry goes (the webview has its own
   hover buttons and quick picks); new commands `corgi.commands`,
   `corgi.sidebar.reload`; version bump.
-- `src/extension.ts` — registers the provider, drops `CorgiTreeProvider`;
+- `src/extension.ts` - registers the provider, drops `CorgiTreeProvider`;
   `corgi.reload` and `corgi.installWithHomebrew` refresh the sidebar
   instead of the tree.
-- `src/agentStatus.ts` — `registerAgentBoard` builds the sidebar instead of
+- `src/agentStatus.ts` - `registerAgentBoard` builds the sidebar instead of
   `WatchInboxTree` + `AgentSessionsTree`; `registerView` goes when no tree
   is left. Session command bodies keep their `AgentNode` argument shape.
-- `scripts/showcase.mjs` — the sessions/window mockups draw the new sidebar.
-- `README.md` — sidebar picture and the list of what it shows.
+- `scripts/showcase.mjs` - the sessions/window mockups draw the new sidebar.
+- `README.md` - sidebar picture and the list of what it shows.
 
 Deleted: `src/corgiTreeProvider.ts`, `src/agentTree.ts` (its
 `groupSessions` moves to `sidebarModel.ts`), `src/watchInboxTree.ts`.
@@ -194,13 +194,13 @@ Deleted: `src/corgiTreeProvider.ts`, `src/agentTree.ts` (its
 
 Extension → webview:
 
-- `{ type: 'state', state: SidebarState }` — the whole state, every time.
+- `{ type: 'state', state: SidebarState }` - the whole state, every time.
 
 Webview → extension:
 
 - `{ type: 'run', command: string, node?: SessionNode | InboxNode }`
-- `{ type: 'open', url: string }` — for inbox rows with a url
-- `{ type: 'ready' }` — first paint, asks for state
+- `{ type: 'open', url: string }` - for inbox rows with a url
+- `{ type: 'ready' }` - first paint, asks for state
 
 `SidebarState`:
 

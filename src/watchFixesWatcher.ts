@@ -115,7 +115,7 @@ export class WatchFixesWatcher implements vscode.Disposable {
                         const done = now ?? fix;
                         const first = done.prs?.[0];
                         if (done.error) {
-                            void vscode.window.showWarningMessage(`corgi: ${fixName(done)} — ${done.error}`);
+                            void vscode.window.showWarningMessage(`corgi: ${fixName(done)} - ${done.error}`);
                         } else if (first) {
                             const open = 'Open';
                             const answer = await vscode.window.showInformationMessage(
@@ -156,7 +156,7 @@ export class WatchFixesWatcher implements vscode.Disposable {
             });
         }
         const picked = await vscode.window.showQuickPick(rows, {
-            title: 'corgi agent watch — worked on for you',
+            title: 'corgi agent watch - worked on for you',
             placeHolder: pullRequests(this.fixes, now).length ? 'Pick one to open its pull request' : 'What the watch has done',
         });
         if (picked?.url) {
