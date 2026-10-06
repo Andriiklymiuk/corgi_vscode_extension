@@ -4,8 +4,8 @@ import type { SessionNode } from './sidebarModel';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-    Board, BoardSession, boardTooltip, botTitle, formatElapsed, hideWorkspaces, liveSessions, newlyNeedingInput, nextSession, readBoard, readBots,
-    sessionName, sortForPick, statusBarText, statusWord,
+    Board, BoardSession, boardTooltip, botTitle, formatElapsed, hideWorkspaces, isMuted, liveSessions, newlyNeedingInput, nextSession, readBoard, readBots,
+    sessionName, sortForPick, statusBarText, statusWord, stillNeedingInput,
 } from './agentBoard';
 import { isolateArgs, runCorgi } from './corgiExec';
 import { revealClaudePanel } from './agentWindow';
@@ -24,6 +24,7 @@ import { WatchFixesWatcher } from './watchFixesWatcher';
 
 const POLL_MS = 5000;
 const DEBOUNCE_MS = 150;
+const SETTLE_MS = 10_000;
 
 /** Ctrl+Y: the byte Claude Code's push-to-talk keybinding reads in a terminal. */
 export const TALK_CHORD = '\x19';
@@ -40,6 +41,7 @@ export class AgentBoardWatcher implements vscode.Disposable {
     readonly onDidChangeBoard = this.boardChanged.event;
     private lastMtimeMs = -1;
     private readonly toasted = new Set<string>();
+    private readonly settles = new Set<ReturnType<typeof setTimeout>>();
     private disposed = false;
 
     constructor(private readonly agentDir: string, private readonly windowId: string) {
@@ -162,8 +164,19 @@ export class AgentBoardWatcher implements vscode.Disposable {
             return;
         }
         const waiting = newlyNeedingInput(previous, next, this.windowId, this.toasted);
+        if (!waiting.length) {
+            return;
+        }
+        const timer = setTimeout(() => {
+            this.settles.delete(timer);
+            this.speak(stillNeedingInput(waiting, this.board));
+        }, SETTLE_MS);
+        this.settles.add(timer);
+    }
+
+    private speak(waiting: BoardSession[]): void {
         // Every window reads the same file; only the one in front speaks.
-        if (!waiting.length || !vscode.window.state.focused) {
+        if (!waiting.length || !vscode.window.state.focused || this.disposed || isMuted(this.mutedUntil(), new Date())) {
             return;
         }
         for (const s of waiting) {
@@ -176,8 +189,19 @@ export class AgentBoardWatcher implements vscode.Disposable {
         }
     }
 
+    private mutedUntil(): string | undefined {
+        try {
+            return fs.readFileSync(path.join(this.agentDir, 'muted-until'), 'utf8');
+        } catch {
+            return undefined;
+        }
+    }
+
     dispose(): void {
         this.disposed = true;
+        for (const t of this.settles) {
+            clearTimeout(t);
+        }
         if (this.poll) {
             clearInterval(this.poll);
         }
