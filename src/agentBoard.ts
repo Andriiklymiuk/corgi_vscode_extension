@@ -478,6 +478,22 @@ export function newlyNeedingInput(previous: Board | undefined, next: Board | und
     return out;
 }
 
+export function stillNeedingInput(waiting: readonly BoardSession[], now: Board | undefined): BoardSession[] {
+    const current = new Map(liveSessions(now).map((s) => [s.id, s]));
+    return waiting.filter((s) => {
+        const c = current.get(s.id);
+        return c !== undefined && c.status === 'needs_input' && c.statusSince === s.statusSince;
+    });
+}
+
+export function isMuted(until: string | undefined, now: Date): boolean {
+    if (!until) {
+        return false;
+    }
+    const at = new Date(until.trim());
+    return !Number.isNaN(at.getTime()) && at > now;
+}
+
 /** The Claude Code chat tab whose label is title: exact, then case-insensitive prefix, then substring. */
 export function matchTabByTitle<T extends { label: string }>(tabs: T[], title: string): T | undefined {
     const wanted = title.trim();

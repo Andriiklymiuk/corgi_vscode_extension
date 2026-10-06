@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { Board, BoardSession, behindLine, boardTooltip, changesLine, gateLine, formatElapsed, hideWorkspaces, isCrossing, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, quoteLines, sessionOnFile, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
+import { Board, BoardSession, behindLine, boardTooltip, changesLine, gateLine, formatElapsed, hideWorkspaces, isCrossing, isMuted, stillNeedingInput, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, quoteLines, sessionOnFile, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -83,6 +83,31 @@ describe('sortForPick and nextSession', () => {
         const board: Board = { frontSession: 'w', sessions: [session('w', 'working'), session('d', 'done')] };
         assert.strictEqual(nextSession(board)?.id, 'w');
         assert.strictEqual(nextSession({ sessions: [session('d', 'done')] }), undefined);
+    });
+});
+
+describe('stillNeedingInput', () => {
+    it('drops a wait an auto mode answered during the pause, keeps one a person has to answer', () => {
+        const asked = [session('auto', 'needs_input'), session('real', 'needs_input'), session('again', 'needs_input')];
+        const later: Board = {
+            sessions: [
+                session('auto', 'working'),
+                session('real', 'needs_input'),
+                session('again', 'needs_input', { statusSince: '2026-09-08T10:00:09Z' }),
+            ],
+        };
+        assert.deepStrictEqual(stillNeedingInput(asked, later).map((s) => s.id), ['real']);
+        assert.deepStrictEqual(stillNeedingInput(asked, undefined), []);
+    });
+});
+
+describe('isMuted', () => {
+    it('holds until the moment in the file', () => {
+        const now = new Date('2026-10-06T18:00:00Z');
+        assert.strictEqual(isMuted('2026-10-06T21:29:00+02:00\n', now), true);
+        assert.strictEqual(isMuted('2026-10-06T17:00:00Z', now), false);
+        assert.strictEqual(isMuted('', now), false);
+        assert.strictEqual(isMuted('not a time', now), false);
     });
 });
 
