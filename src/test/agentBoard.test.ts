@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { Board, BoardSession, behindLine, boardTooltip, changesLine, gateLine, formatElapsed, hideWorkspaces, isCrossing, isMuted, stillNeedingInput, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, quoteLines, sessionOnFile, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
+import { Board, BoardSession, behindLine, boardTooltip, changesLine, gateLine, formatElapsed, hideWorkspaces, isCrossing, isMuted, stillNeedingInput, isDrifting, isHiddenWorkspace, limitLine, lowestHeadroomAccount, matchTabByTitle, newlyNeedingInput, nextSession, overlapLine, isKeySequence, quoteLines, revealIsNew, sessionOnFile, sessionSummary, sortForPick, spendLine, statusBarText, testsLine } from '../agentBoard';
 
 function session(id: string, status: string, extra: Partial<BoardSession> = {}): BoardSession {
     return { id, display: id, status, statusSince: '2026-09-08T10:00:00Z', host: { kind: 'vscode-terminal', windowId: 'w-other', shellPid: 1 }, ...extra };
@@ -245,5 +245,23 @@ describe('the policy lines', () => {
         assert.ok(line.includes('not done · go test ./... ×2') && line.includes('main moved 12') && line.includes('try 2 on WEB-88') && line.includes('codex'), line);
         assert.strictEqual(gateLine(session('b', 'done', { gate: { ok: true } })), 'done ✓');
         assert.strictEqual(behindLine(session('c', 'done')), '');
+    });
+});
+
+describe('revealIsNew', () => {
+    const t = Date.parse('2026-10-07T10:00:00Z');
+    it('takes the first request and a newer one', () => {
+        assert.ok(revealIsNew(undefined, { requestedAt: '2026-10-07T10:00:00Z', sessionId: 'a' }, t));
+        assert.ok(revealIsNew({ at: t, key: 'a||' }, { requestedAt: '2026-10-07T10:00:05Z', sessionId: 'b' }, t + 5000));
+    });
+    it('drops a replay and the same tab twice in a moment', () => {
+        assert.ok(!revealIsNew({ at: t, key: 'a||' }, { requestedAt: '2026-10-07T10:00:00Z', sessionId: 'a' }, t + 100));
+        assert.ok(!revealIsNew({ at: t, key: 'a||' }, { requestedAt: '2026-10-07T09:59:00Z', sessionId: 'b' }, t + 100));
+        assert.ok(!revealIsNew({ at: t, key: 'a||' }, { sessionId: 'a' }, t + 100));
+        assert.ok(revealIsNew({ at: t, key: 'a||' }, { sessionId: 'a' }, t + 2000));
+    });
+    it('always lets text and a new session through', () => {
+        assert.ok(revealIsNew({ at: t, key: 'a||' }, { requestedAt: '2026-10-07T10:00:00Z', sessionId: 'a', text: 'hi' }, t));
+        assert.ok(revealIsNew({ at: t, key: '' }, { requestedAt: '2026-10-07T09:00:00Z', new: true }, t));
     });
 });

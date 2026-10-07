@@ -210,6 +210,10 @@ export interface LimitWindow {
 export interface BoardAccount {
     profile: string;
     configDir?: string;
+    /** claude or codex (corgi 2.32); absent = claude */
+    agent?: string;
+    /** Why there are no bars: usage not read yet, window spent. */
+    note?: string;
     limits?: { fetchedAt?: string; fiveHour?: LimitWindow; sevenDay?: LimitWindow };
     forecast?: { fiveHour?: { percentPerHour?: number; exhaustAt?: string; safe?: boolean; samples?: number }; sevenDay?: unknown };
     sessions?: number;
@@ -504,6 +508,27 @@ export function matchTabByTitle<T extends { label: string }>(tabs: T[], title: s
     return tabs.find((t) => t.label === wanted)
         ?? tabs.find((t) => t.label.toLowerCase().startsWith(lower))
         ?? tabs.find((t) => t.label.toLowerCase().includes(lower));
+}
+
+/**
+ * A reveal request worth acting on: newer than the last one handled, and not
+ * the same target again within a moment. The daemon writes one file per
+ * window and the watcher can fire more than once for it; two windows' worth
+ * of focus requests bouncing between two tabs is what this stops.
+ */
+export function revealIsNew(last: { at: number; key: string } | undefined, req: { requestedAt?: string; sessionId?: string; shellPid?: number; title?: string; text?: string; new?: boolean }, now: number): boolean {
+    const at = req.requestedAt ? Date.parse(req.requestedAt) : NaN;
+    const key = req.new ? '' : [req.sessionId ?? '', req.shellPid ?? '', req.title ?? ''].join('|');
+    if (req.text || req.new) {
+        return true;
+    }
+    if (!last) {
+        return true;
+    }
+    if (!Number.isNaN(at) && at <= last.at) {
+        return false;
+    }
+    return !(key === last.key && now - last.at < 1500);
 }
 
 /** Control characters only - Escape, Return, "2" then Return - are keys to press, never text to paste. */

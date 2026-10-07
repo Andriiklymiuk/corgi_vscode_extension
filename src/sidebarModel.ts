@@ -105,7 +105,7 @@ export interface DaemonInfo {
 
 export interface SidebarState {
     daemon: { running: boolean; version: string; muted: string };
-    accounts: { profile: string; sessions: number; windows: UsageWindow[] }[];
+    accounts: { profile: string; agent: string; sessions: number; windows: UsageWindow[]; note: string }[];
     inbox: { workspace: string; rows: InboxRow[] }[];
     board: { column: string; rows: BoardRow[] }[];
     sessions: { workspace: string; rows: SessionRow[] }[];
@@ -148,7 +148,8 @@ export function usageWindows(a: BoardAccount, now: Date): UsageWindow[] {
         const f = a.forecast?.fiveHour;
         const runsOut = f && f.safe === false && f.exhaustAt ? new Date(f.exhaustAt) : undefined;
         const warn = runsOut && !Number.isNaN(runsOut.getTime()) ? `runs out ${runsOut.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
-        out.push({ name: '5h', label: 'Session (5h)', percent: clamp(five.percent), resets: resetsIn(five.resetsAt, now), warn });
+        // codex logs one window, the fuller of its two; it has no name of its own.
+        out.push({ name: '5h', label: a.agent === 'codex' ? 'Window' : 'Session (5h)', percent: clamp(five.percent), resets: resetsIn(five.resetsAt, now), warn });
     }
     const seven = a.limits?.sevenDay;
     if (seven && typeof seven.percent === 'number') {
@@ -313,11 +314,18 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
 /** The kanban's column order; anything else lands after these. */
 export const boardColumns = ['Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
 
-/** Cards by column, in the board's own order, newest first inside one. */
-export function boardGroups(cards: KanbanCard[], now: number): { column: string; rows: BoardRow[] }[] {
+/**
+ * Cards by column, in the board's own order, newest first inside one. A
+ * card the inbox section already shows (same key) is left out: it would be
+ * the same line twice on one page.
+ */
+export function boardGroups(cards: KanbanCard[], now: number, shown: ReadonlySet<string> = new Set()): { column: string; rows: BoardRow[] }[] {
     const groups = new Map<string, BoardRow[]>();
     for (const c of cards) {
         if (!c.ref && !c.key) {
+            continue;
+        }
+        if (c.key && shown.has(c.key)) {
             continue;
         }
         const column = c.column || 'Inbox';
@@ -401,16 +409,19 @@ export function build(input: BuildInput): SidebarState {
     const ended = (shown?.sessions ?? []).filter((s) => s && s.id && s.status === 'gone').map((s) => sessionRow(s, bots, now));
     const accounts = shown?.accounts ?? [];
     const cards = input.cards ?? [];
+    const inboxKeys = new Set(inbox.map((i) => i.key));
+    const board = boardGroups(cards, now.getTime(), inboxKeys);
+    const boardCount = board.reduce((n, g) => n + g.rows.length, 0);
     return {
         daemon: { running: !!input.daemon?.pid, version: input.daemon?.version ?? '', muted: mutedLine(input.mutedUntil, now) },
-        accounts: accounts.map((a) => ({ profile: a.profile, sessions: a.sessions ?? 0, windows: usageWindows(a, now) })).filter((a) => a.windows.length > 0),
+        accounts: accounts.filter((a) => a.profile).map((a) => ({ profile: a.profile, agent: a.agent || 'claude', sessions: a.sessions ?? 0, windows: usageWindows(a, now), note: a.note ?? (usageWindows(a, now).length ? '' : 'usage not read yet') })),
         inbox: inboxOut,
-        board: boardGroups(cards, now.getTime()),
+        board,
         sessions,
         tickets,
         ended,
         workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
-        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: cards.length },
+        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount },
         profiles: accounts.map((a) => a.profile).filter(Boolean),
         installed: input.installed !== false,
     };
