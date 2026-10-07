@@ -11,10 +11,13 @@ describe('sidebar page', () => {
     it('never assigns innerHTML', () => {
         assert.ok(!html.includes('innerHTML'));
     });
-    it('has the three sections', () => {
-        for (const id of ['daemon', 'usage', 'inbox', 'board', 'sessions', 'workspaces']) {
-            assert.ok(html.includes(`id="${id}"`), id);
-        }
+    it('has every section, accounts and sessions first, the board last', () => {
+        const order = ['daemon', 'usage', 'sessions', 'inbox', 'workspaces', 'board'].map((id) => html.indexOf(`id="${id}"`));
+        assert.ok(order.every((i) => i >= 0), String(order));
+        assert.deepStrictEqual([...order].sort((a, b) => a - b), order);
+    });
+    it('drops a click on the session already in front', () => {
+        assert.ok(html.includes('if (r.front || now - focusing < 1200) return;'));
     });
     it('offers the Homebrew install when corgi is missing', () => {
         assert.ok(html.includes(`'corgi.installWithHomebrew'`));

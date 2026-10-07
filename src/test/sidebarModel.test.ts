@@ -97,9 +97,18 @@ describe('sidebarModel', () => {
         assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now }).installed, true);
         assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now, installed: false }).installed, false);
     });
-    it('leaves out an account without limits', () => {
-        const b: Board = { accounts: [{ profile: 'a' }, { profile: 'b', limits: { fiveHour: { percent: 5 } } }] };
-        assert.deepStrictEqual(build({ board: b, inbox: [], hidden: [], bots: [], now }).accounts.map((a) => a.profile), ['b']);
+    it('keeps an account without limits, with a note and its agent', () => {
+        const b: Board = { accounts: [{ profile: 'a' }, { profile: 'b', limits: { fiveHour: { percent: 5 } } }, { profile: 'codex', agent: 'codex', limits: { fiveHour: { percent: 61 } } }] };
+        const accounts = build({ board: b, inbox: [], hidden: [], bots: [], now }).accounts;
+        assert.deepStrictEqual(accounts.map((a) => [a.profile, a.agent, a.windows.length, a.note]), [['a', 'claude', 0, 'usage not read yet'], ['b', 'claude', 1, ''], ['codex', 'codex', 1, '']]);
+        assert.strictEqual(accounts[2].windows[0].label, 'Window');
+        assert.strictEqual(accounts[1].windows[0].label, 'Session (5h)');
+    });
+    it('leaves a card out of the board when the inbox shows it, and counts what stays', () => {
+        const st = build({ board: undefined, inbox: [{ key: 'k1', workspace: 'api' }], hidden: [], bots: [], now, cards: [{ key: 'k1', ref: 'A-1', column: 'Inbox' }, { key: 'k2', ref: 'A-2', column: 'Ready', updatedAt: '0001-01-01T00:00:00Z' }] });
+        assert.deepStrictEqual(st.board.map((g) => [g.column, g.rows.map((r) => r.key)]), [['Ready', ['k2']]]);
+        assert.strictEqual(st.counts.board, 1);
+        assert.strictEqual(st.board[0].rows[0].elapsed, '');
     });
     it('marks a blocked inbox row bad with unblock, and an issue with work', () => {
         const r = inboxRow({ key: 'k', ref: 'IMP-1', kind: 'issue.new', blocked: 'breaker', url: 'https://t/1' }, now.getTime());

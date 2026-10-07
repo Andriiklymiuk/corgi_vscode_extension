@@ -144,7 +144,8 @@ export function elapsed(at: string | undefined, now: number): string {
         return '';
     }
     const started = Date.parse(at);
-    if (Number.isNaN(started)) {
+    // Go's zero time ("0001-01-01") arrives as a date too; it means never.
+    if (Number.isNaN(started) || started < Date.UTC(2000, 0, 1)) {
         return '';
     }
     const minutes = Math.max(0, Math.floor((now - started) / 60_000));

@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { matchTabByTitle, isKeySequence } from './agentBoard';
+import { matchTabByTitle, isKeySequence, revealIsNew } from './agentBoard';
 
 /**
  * Session tracking companion for `corgi agent track`.
@@ -38,11 +38,14 @@ interface WindowRecord {
     /** True while the Claude Code panel is the active editor tab, and how many Claude Code tabs are open. */
     panelActive?: boolean;
     claudeTabs?: number;
+    /** The label of the Claude Code chat tab in front, so the daemon knows which panel session that is. */
+    activeClaudeTab?: string;
     updatedAt: string;
 }
 
 interface RevealRequest {
     windowId: string;
+    requestedAt?: string;
     sessionId?: string;
     shellPid?: number;
     panel?: boolean;
@@ -150,6 +153,7 @@ export class AgentWindow implements vscode.Disposable {
     private revealWatcher: fs.FSWatcher | undefined;
     private disposed = false;
     private focusedAt: string | undefined;
+    private lastReveal: { at: number; key: string } | undefined;
 
     constructor(private readonly context: vscode.ExtensionContext, agentDir?: string) {
         this.agentDir = agentDir ?? corgiAgentDir();
@@ -250,6 +254,7 @@ export class AgentWindow implements vscode.Disposable {
             activeShellPid: activeShellPid || undefined,
             panelActive: claudePanelActive() || undefined,
             claudeTabs: claudeTabCount(),
+            activeClaudeTab: activeClaudeTabLabel(),
             updatedAt: new Date().toISOString(),
         };
     }
@@ -306,6 +311,12 @@ export class AgentWindow implements vscode.Disposable {
         if (request?.windowId !== this.windowId) {
             return;
         }
+        const now = Date.now();
+        if (!revealIsNew(this.lastReveal, request, now)) {
+            return;
+        }
+        const at = request.requestedAt ? Date.parse(request.requestedAt) : NaN;
+        this.lastReveal = { at: Number.isNaN(at) ? now : at, key: [request.sessionId ?? '', request.shellPid ?? '', request.title ?? ''].join('|') };
         await this.reveal(request);
     }
 
@@ -435,7 +446,10 @@ export async function activateClaudeTab(title: string): Promise<boolean> {
     }
     try {
         await vscode.commands.executeCommand(focusGroup);
-        await vscode.commands.executeCommand('workbench.action.openEditorAtIndex', match.tabIndex);
+        // Already the tab its group shows: focusing the group was the whole job.
+        if (!match.tab.isActive) {
+            await vscode.commands.executeCommand('workbench.action.openEditorAtIndex', match.tabIndex);
+        }
     } catch {
         return false;
     }
@@ -447,6 +461,12 @@ export async function activateClaudeTab(title: string): Promise<boolean> {
 /** The Claude Code panel is the active editor tab (its webview id is claudeVSCodePanel). */
 function claudePanelActive(): boolean {
     return isClaudeTab(vscode.window.tabGroups.activeTabGroup.activeTab);
+}
+
+/** The active chat tab's label, when the tab in front is one; the daemon matches it to a session's title. */
+function activeClaudeTabLabel(): string | undefined {
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    return tab && isClaudeTab(tab) && tab.label ? tab.label : undefined;
 }
 
 /**

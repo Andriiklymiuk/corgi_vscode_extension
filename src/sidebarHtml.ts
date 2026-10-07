@@ -45,6 +45,11 @@ export function page(nonce: string): string {
   section.closed .chev { transform: rotate(-90deg); }
   section.closed .body { display: none; }
   .sub { padding: 8px 14px 2px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+  .acct { display: flex; align-items: center; gap: 8px; padding: 8px 14px 0; font-size: 12px; }
+  .acct .name { font-weight: 600; }
+  .acct .kind { color: var(--dim); }
+  .acct .n { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .usage .note { color: var(--dim); font-size: 12px; margin-top: 6px; }
   .usage { padding: 0 14px 6px; }
   .usage .line { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; }
   .usage .line .pct { font-variant-numeric: tabular-nums; }
@@ -97,22 +102,33 @@ export function page(nonce: string): string {
 </style></head><body>
 <div id="install" hidden></div>
 <div id="daemon" hidden></div>
-<section id="usage"><h2><span class="chev">▾</span>Account &amp; usage<a data-run="corgi.agent.addAccount">Add account</a></h2><div class="body"></div></section>
+<section id="usage"><h2><span class="chev">▾</span>Accounts<a data-run="corgi.agent.addAccount">Add account</a></h2><div class="body"></div></section>
+<section id="sessions"><h2><span class="chev">▾</span>Sessions<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="inbox"><h2><span class="chev">▾</span>Inbox<span class="badge" hidden></span></h2><div class="body"></div></section>
-<section id="board"><h2><span class="chev">▾</span>Board<span class="badge" hidden></span></h2><div class="body"></div></section>
-<section id="sessions"><h2><span class="chev">▾</span>Session manager</h2><div class="body"></div></section>
 <section id="workspaces"><h2><span class="chev">▾</span>Workspaces<a data-run="corgi.agent.addWorkspace">Add</a></h2><div class="body"></div></section>
+<section id="board"><h2><span class="chev">▾</span>Board<span class="badge" hidden></span></h2><div class="body"></div></section>
 <script nonce="${nonce}">
 (() => {
   const vscode = acquireVsCodeApi();
   const saved = vscode.getState() || {};
   const closed = new Set(Array.isArray(saved.closed) ? saved.closed : []);
   const closedGroups = new Set(Array.isArray(saved.closedGroups) ? saved.closedGroups : []);
+  // What is finished or awaiting others starts folded; the person opens it when they want it.
+  if (!saved.seededBoard) { closedGroups.add('board:Done'); closedGroups.add('board:Review'); }
   let filter = typeof saved.filter === 'string' ? saved.filter : '';
   let showEnded = saved.showEnded === true;
   let byTicket = saved.byTicket === true;
   let last = null;
-  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded, byTicket });
+  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded, byTicket, seededBoard: true });
+  persist();
+  // One focus at a time: a second click while the first is still landing is dropped.
+  let focusing = 0;
+  const focus = (r) => {
+    const now = Date.now();
+    if (r.front || now - focusing < 1200) return;
+    focusing = now;
+    run('corgi.agent.focusNode', r.node);
+  };
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
   const run = (command, node) => vscode.postMessage({ type: 'run', command, node });
   const open = (url) => vscode.postMessage({ type: 'open', url });
@@ -171,8 +187,12 @@ export function page(nonce: string): string {
     sec.hidden = accounts.length === 0;
     const out = [];
     for (const a of accounts) {
-      if (accounts.length > 1) out.push(el('div', 'sub', a.profile + (a.sessions ? ' · ' + a.sessions + ' session' + (a.sessions === 1 ? '' : 's') : '')));
+      const head = el('div', 'acct');
+      head.append(el('span', 'name', a.profile), el('span', 'kind', a.agent || 'claude'));
+      head.append(el('span', 'n', a.sessions ? a.sessions + ' session' + (a.sessions === 1 ? '' : 's') : ''));
+      out.push(head);
       const box = el('div', 'usage');
+      if (!a.windows.length) box.appendChild(el('div', 'note', a.note || 'usage not read yet'));
       for (const w of a.windows) {
         const line = el('div', 'line');
         line.appendChild(el('span', '', w.label));
@@ -186,6 +206,7 @@ export function page(nonce: string): string {
         const note = [w.resets ? w.resets.replace(/^resets/, 'Resets') : '', w.warn].filter(Boolean).join(' · ');
         if (note) box.appendChild(el('div', 'resets' + (w.warn ? ' warn' : ''), note));
       }
+      if (a.windows.length && a.note) box.appendChild(el('div', 'note', a.note));
       out.push(box);
     }
     body('usage').replaceChildren(...out);
@@ -280,12 +301,13 @@ export function page(nonce: string): string {
     acts.appendChild(button('Chat', '', () => run('corgi.agent.chat', r.node)));
     acts.appendChild(button('⋯', '', () => vscode.postMessage({ type: 'menu', node: r.node })));
     d.appendChild(acts);
-    d.addEventListener('click', () => run('corgi.agent.focusNode', r.node));
-    d.addEventListener('keydown', (e) => { if (e.key === 'Enter') run('corgi.agent.focusNode', r.node); });
+    d.addEventListener('click', () => focus(r));
+    d.addEventListener('keydown', (e) => { if (e.key === 'Enter') focus(r); });
     return d;
   };
 
   const drawSessions = (state) => {
+    badge('sessions', state.counts.active);
     const out = [];
     const fresh = el('div', 'big');
     fresh.append(el('span', 'plus', '+'), el('span', '', 'New session'));
