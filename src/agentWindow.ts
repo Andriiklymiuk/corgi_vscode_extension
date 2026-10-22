@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import { matchTabByTitle, isKeySequence, revealIsNew } from './agentBoard';
 
 /**
@@ -40,6 +41,8 @@ interface WindowRecord {
     claudeTabs?: number;
     /** The label of the Claude Code chat tab in front, so the daemon knows which panel session that is. */
     activeClaudeTab?: string;
+    /** This window can put text into a chat tab and submit it, so the daemon sends panel text here. */
+    panelInput?: boolean;
     updatedAt: string;
 }
 
@@ -255,6 +258,7 @@ export class AgentWindow implements vscode.Disposable {
             panelActive: claudePanelActive() || undefined,
             claudeTabs: claudeTabCount(),
             activeClaudeTab: activeClaudeTabLabel(),
+            panelInput: (await panelInputReady()) || undefined,
             updatedAt: new Date().toISOString(),
         };
     }
@@ -323,6 +327,10 @@ export class AgentWindow implements vscode.Disposable {
     async reveal(request: RevealRequest): Promise<void> {
         if (request.new) {
             this.openClaudeTerminal(request.folder, request.command);
+            return;
+        }
+        if (request.panel && request.text && request.sessionId) {
+            await typeIntoPanel(request.sessionId, request.text, request.enter === true);
             return;
         }
         if (request.panel) {
@@ -399,6 +407,44 @@ export function typeIntoTerminal(terminal: vscode.Terminal, text: string, enter:
             void vscode.commands.executeCommand('workbench.action.terminal.sendSequence', { text: '\r' });
         }, 120);
     }
+}
+
+const openWithPrompt = 'claude-vscode.primaryEditor.open';
+
+/** The Claude Code extension's open-with-prompt command is there, and Return can be pressed (macOS System Events). */
+export async function panelInputReady(): Promise<boolean> {
+    if (process.platform !== 'darwin') {
+        return false;
+    }
+    return (await vscode.commands.getCommands(true)).includes(openWithPrompt);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Text into a Claude Code chat tab: the extension opens the session with the
+ * text in its input box (it fills the box, it does not send), then Return
+ * submits it - but only while this window is the one in front, so the key
+ * never lands in another app. Without that, the text waits in the box.
+ */
+export async function typeIntoPanel(sessionId: string, text: string, enter: boolean): Promise<void> {
+    await vscode.commands.executeCommand(openWithPrompt, sessionId, text);
+    if (!enter) {
+        return;
+    }
+    await sleep(700);
+    await vscode.commands.executeCommand('claude-vscode.focus');
+    await sleep(250);
+    if (!vscode.window.state.focused) {
+        void vscode.window.showInformationMessage(`corgi put "${text}" into the Claude Code chat - press Enter to send it`);
+        return;
+    }
+    execFile('osascript', ['-e', 'tell application "System Events" to key code 36'], (err) => {
+        if (err) {
+            void vscode.window.showInformationMessage(
+                `corgi put "${text}" into the Claude Code chat - press Enter to send it. To send it by itself, allow ${vscode.env.appName} in System Settings › Privacy & Security › Accessibility`);
+        }
+    });
 }
 
 /** Open Claude Code chat tabs with where they sit: group index (tabGroups.all order) and tab index within it. */
