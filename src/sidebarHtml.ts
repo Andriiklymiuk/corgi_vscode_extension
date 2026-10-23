@@ -97,6 +97,17 @@ export function page(nonce: string): string {
   .acts button.no { color: var(--bad); }
   .empty { padding: 4px 14px 6px; color: var(--dim); font-size: 12px; line-height: 1.45; }
   .foot { display: flex; gap: 14px; padding: 4px 14px 6px; font-size: 12px; }
+  .row.done .title { color: var(--dim); text-decoration: line-through; }
+  .title.wrap { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .spend { padding: 6px 14px 4px; font-size: 12px; }
+  .spend .detail { color: var(--dim); margin-top: 2px; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 28px; margin-top: 6px; }
+  .spark span { flex: 1; min-height: 1px; border-radius: 2px 2px 0 0; background: var(--bar); opacity: .8; }
+  .spark span.zero { background: var(--track); }
+  .check { padding: 4px 14px 6px; font-size: 12px; color: var(--dim); }
+  .check summary { cursor: pointer; color: var(--fg); }
+  .check li { margin-top: 3px; }
+  .check ul { margin: 4px 0 0; padding-left: 16px; }
   a { color: var(--link); cursor: pointer; text-decoration: none; }
   a:hover { text-decoration: underline; }
 </style></head><body>
@@ -104,6 +115,7 @@ export function page(nonce: string): string {
 <div id="daemon" hidden></div>
 <section id="usage"><h2><span class="chev">▾</span>Accounts<a data-run="corgi.agent.addAccount">Add account</a></h2><div class="body"></div></section>
 <section id="sessions"><h2><span class="chev">▾</span>Sessions<span class="badge" hidden></span></h2><div class="body"></div></section>
+<section id="turn"><h2><span class="chev">▾</span>Your turn<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="inbox"><h2><span class="chev">▾</span>Inbox<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="workspaces"><h2><span class="chev">▾</span>Workspaces<a data-run="corgi.agent.addWorkspace">Add</a></h2><div class="body"></div></section>
 <section id="board"><h2><span class="chev">▾</span>Board<span class="badge" hidden></span></h2><div class="body"></div></section>
@@ -273,6 +285,60 @@ export function page(nonce: string): string {
     body('inbox').replaceChildren(...out);
   };
 
+  const drawTurn = (state) => {
+    const t = state.turn || { left: [], stalled: [], open: 0 };
+    badge('turn', state.counts.turn);
+    const out = [];
+    for (const p of t.stalled) {
+      const d = row(p.action === 'merge' ? 'live' : 'ask', false, p.title, p.detail, p.elapsed, p.url);
+      const acts = el('div', 'acts');
+      if (p.action === 'merge') acts.appendChild(button('Merge', 'yes', () => run('corgi.agent.pullMerge', p.node)));
+      else acts.appendChild(button('Work on it', '', () => run('corgi.agent.stalledWork', p.node)));
+      acts.appendChild(button('Open', '', () => open(p.url)));
+      d.appendChild(acts);
+      d.addEventListener('click', () => open(p.url));
+      out.push(d);
+    }
+    if (t.left.length) {
+      const rows = t.left.map((l) => {
+        const d = row(l.tone, false, l.text, l.detail, l.elapsed, l.text);
+        d.querySelector('.title').classList.add('wrap');
+        if (l.done) d.classList.add('done');
+        const acts = el('div', 'acts');
+        if (!l.done) acts.appendChild(button('Done', 'yes', () => run('corgi.agent.leftDone', l.node)));
+        if (l.url) acts.appendChild(button('Open', '', () => open(l.url)));
+        d.appendChild(acts);
+        if (l.url) d.addEventListener('click', () => open(l.url));
+        return d;
+      });
+      out.push(...group('turn', 'Left for you by runs', t.open, rows));
+    }
+    if (t.spend) {
+      const box = el('div', 'spend');
+      box.appendChild(el('div', '', t.spend.line));
+      if (t.spend.detail) box.appendChild(el('div', 'detail', t.spend.detail));
+      const spark = el('div', 'spark');
+      for (const d of t.spend.days) {
+        const bar = el('span', d.usd ? '' : 'zero');
+        bar.style.height = Math.max(4, d.height) + '%';
+        bar.title = d.day + ': $' + d.usd.toFixed(2);
+        spark.appendChild(bar);
+      }
+      box.appendChild(spark);
+      out.push(box);
+    }
+    if (t.check) {
+      const det = el('details', 'check');
+      det.appendChild(el('summary', '', t.check.headline));
+      const ul = el('ul');
+      for (const line of t.check.lines) ul.appendChild(el('li', '', line));
+      det.appendChild(ul);
+      out.push(det);
+    }
+    if (out.length === 0) out.push(el('div', 'empty', 'Nothing for you. What unattended runs leave for a person, and your pull requests that wait, show up here.'));
+    body('turn').replaceChildren(...out);
+  };
+
   const drawBoard = (state) => {
     badge('board', state.counts.board);
     const out = [];
@@ -385,6 +451,7 @@ export function page(nonce: string): string {
     drawInstall(m.state.installed !== false);
     drawDaemon(m.state.daemon || { running: false, version: '', muted: '' });
     drawUsage(m.state.accounts || []);
+    drawTurn(m.state);
     drawInbox(m.state);
     drawBoard(m.state);
     drawSessions(m.state);

@@ -7,7 +7,7 @@ import { hiddenWorkspaces, type AgentBoardWatcher } from './agentStatus';
 import { isCorgiInstalled } from './corgiCommands';
 import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 import { page } from './sidebarHtml';
-import { build, DaemonInfo, InboxNode, KanbanCard, SessionNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
+import { build, DaemonInfo, InboxNode, KanbanCard, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
 import { InboxItem, itemName, readInbox } from './watchInbox';
 
 /**
@@ -30,10 +30,11 @@ const ALLOWED = new Set([
     'corgi.agent.addAccount', 'corgi.agent.addWorkspace', 'corgi.agent.workspaceOpen',
     'corgi.agent.workspacePause', 'corgi.agent.workspaceResume', 'corgi.agent.watchEnable', 'corgi.agent.watchDisable',
     'corgi.sidebar.reload', 'corgi.installWithHomebrew',
+    'corgi.agent.leftDone', 'corgi.agent.pullMerge', 'corgi.agent.stalledWork',
 ]);
 
 type WorkspaceNode = { kind: 'workspace'; id: string };
-type Node = SessionNode | InboxNode | WorkspaceNode;
+type Node = SessionNode | InboxNode | WorkspaceNode | LeftNode | StalledNode;
 type Message = { type: string; command?: string; node?: Node; url?: string };
 
 /** One read of everything the minute-poll fetches beside the inbox. */
@@ -130,6 +131,8 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 return;
             }
             this.lastJson = json;
+            const waiting = state.counts.turn;
+            this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} for you: left by runs, or your pull requests that wait` } : undefined;
             void this.view.webview.postMessage({ type: 'state', state });
         }, DEBOUNCE_MS);
     }
@@ -215,7 +218,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 items.push({ label: '$(git-pull-request) Mark ready', command: 'corgi.agent.inboxPrReady' }, { label: '$(git-merge) Merge', command: 'corgi.agent.inboxPrMerge' }, { label: '$(git-pull-request-closed) Close', command: 'corgi.agent.inboxPrClose' });
             }
             items.push({ label: '$(bell-slash) Ignore', command: 'corgi.agent.inboxIgnore' });
-        } else {
+        } else if (node.kind === 'workspace') {
             title = node.id;
             items.push(
                 { label: '$(folder-opened) Open in a new window', command: 'corgi.agent.workspaceOpen' },
@@ -280,6 +283,33 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                     setTimeout(() => void this.refresh(), 1500);
                 }
                 await this.refresh();
+            }),
+            vscode.commands.registerCommand('corgi.agent.leftDone', (node?: Node) => {
+                if (node?.kind === 'left') {
+                    return agent(['left', '--done', node.id], 'corgi could not tick that off', 300);
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.pullMerge', async (node?: Node) => {
+                if (node?.kind !== 'stalled') {
+                    return;
+                }
+                const pick = await vscode.window.showWarningMessage(`Merge ${node.link}?`, { modal: true }, 'Merge');
+                if (pick === 'Merge') {
+                    const args = ['watch', 'pr', 'merge', node.link];
+                    if (node.workspace) {
+                        args.push('--workspace', node.workspace);
+                    }
+                    await agent(args, 'corgi could not merge it', 1500);
+                }
+            }),
+            vscode.commands.registerCommand('corgi.agent.stalledWork', (node?: Node) => {
+                if (node?.kind === 'stalled' && node.prompt) {
+                    const args = ['new', '--prompt', node.prompt];
+                    if (node.workspace) {
+                        args.push('--workspace', node.workspace);
+                    }
+                    return agent(args, 'corgi could not start a session', 1500);
+                }
             }),
             vscode.commands.registerCommand('corgi.agent.daemonRestart', () => agent(['restart'], 'corgi could not restart the daemon', 4000)),
             vscode.commands.registerCommand('corgi.agent.daemonStart', () => agent(['up'], 'corgi could not start the daemon', 4000)),

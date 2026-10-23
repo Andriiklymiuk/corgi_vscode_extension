@@ -91,7 +91,7 @@ describe('sidebarModel', () => {
         const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', label: 'web', status: 'needs_input' }), s({ id: '3', status: 'done' })] };
         const st = build({ board: b, inbox: [], hidden: ['web'], bots: [], now });
         assert.strictEqual(st.sessions[0].rows.length, 2);
-        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1, board: 0 });
+        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1, board: 0, turn: 0 });
     });
     it('says when corgi is not installed', () => {
         assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now }).installed, true);
@@ -167,5 +167,38 @@ describe('sidebarModel', () => {
         assert.ok(st.daemon.muted.startsWith('muted until '));
         assert.strictEqual(mutedLine('2026-09-16T09:00:00Z', now), '');
         assert.strictEqual(build({ inbox: [], hidden: [], bots: [], now }).daemon.running, false);
+    });
+});
+
+describe('your turn', () => {
+    const now = new Date('2026-10-23T12:00:00Z');
+    const board: Board = {
+        sessions: [],
+        left: [
+            { id: 'k1#0', workspace: 'acme', ref: 'ABC-1', text: 'Run the migration on staging.', kind: 'other', at: '2026-10-23T10:00:00Z' },
+            { id: 'k1#1', workspace: 'acme', ref: 'ABC-1', text: 'Wait for CI.', kind: 'ci', at: '2026-10-23T10:00:00Z', doneAt: '2026-10-23T11:00:00Z', doneBy: 'checks ✓' },
+        ],
+        stalled: [{ workspace: 'acme', ref: 'acme/api#7', link: 'https://github.com/acme/api/pull/7', why: 'approved, checks ✓, not merged for 2 days', action: 'merge', since: '2026-10-21T12:00:00Z' }],
+        runSpend: { weekUSD: 15.71, weekRuns: 19, nothingUSD: 0.77, nothingRuns: 3, mergedPulls: 5, perMergedPull: 3.14, failedRuns: 2, skippedChecks: 5, days: [{ day: '2026-10-22', usd: 2, runs: 1 }, { day: '2026-10-23', usd: 4, runs: 2 }] },
+        selfCheck: { headline: '19 unattended runs in 7 days: 1 thing worth a look', lines: ['3 runs skipped a check: no database'] },
+    };
+    it('puts the open items first, says who closed the rest, and counts what waits', () => {
+        const state = build({ board, inbox: [], hidden: [], bots: [], now });
+        assert.deepStrictEqual(state.turn.left.map((l) => [l.id, l.done]), [['k1#0', false], ['k1#1', true]]);
+        assert.strictEqual(state.turn.left[1].detail, 'done · checks ✓ · ABC-1 · acme');
+        assert.strictEqual(state.turn.stalled[0].action, 'merge');
+        assert.deepStrictEqual(state.turn.stalled[0].node, { kind: 'stalled', link: 'https://github.com/acme/api/pull/7', workspace: 'acme', prompt: '' });
+        assert.strictEqual(state.counts.turn, 2);
+        assert.strictEqual(state.turn.check?.lines.length, 1);
+    });
+    it('says the week in one line, with the days drawn to scale', () => {
+        const state = build({ board, inbox: [], hidden: [], bots: [], now });
+        assert.strictEqual(state.turn.spend?.line, 'This week $16 · 19 runs · 5 merged · $3.14 per merged PR');
+        assert.strictEqual(state.turn.spend?.detail, '$0.77 on 3 that found nothing · 2 failed · 5 skipped a check');
+        assert.deepStrictEqual(state.turn.spend?.days.map((d) => d.height), [50, 100]);
+    });
+    it('is empty on a board from before corgi 2.32', () => {
+        const state = build({ board: { sessions: [] }, inbox: [], hidden: [], bots: [], now });
+        assert.deepStrictEqual([state.turn.left, state.turn.stalled, state.turn.spend, state.counts.turn], [[], [], undefined, 0]);
     });
 });

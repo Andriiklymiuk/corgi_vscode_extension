@@ -231,6 +231,47 @@ export interface Board {
     noticeAt?: string;
     accounts?: BoardAccount[] | null;
     groups?: BoardGroup[] | null;
+    left?: BoardLeft[] | null;
+    stalled?: BoardStalled[] | null;
+    runSpend?: BoardRunSpend | null;
+    selfCheck?: { headline?: string; days?: number; runs?: number; lines?: string[] } | null;
+}
+
+/** Something an unattended run left for a person (corgi 2.32); doneBy says who closed it. */
+export interface BoardLeft {
+    id: string;
+    workspace: string;
+    ref?: string;
+    title?: string;
+    url?: string;
+    text: string;
+    kind: string;
+    at: string;
+    doneAt?: string;
+    doneBy?: string;
+}
+
+/** A pull request of mine that waits: merge it, or start a session with the prompt. */
+export interface BoardStalled {
+    workspace?: string;
+    ref: string;
+    link: string;
+    why: string;
+    action: string;
+    prompt?: string;
+    since: string;
+}
+
+export interface BoardRunSpend {
+    weekUSD: number;
+    weekRuns: number;
+    nothingUSD: number;
+    nothingRuns: number;
+    mergedPulls: number;
+    perMergedPull?: number;
+    failedRuns: number;
+    skippedChecks?: number;
+    days?: { day: string; usd: number; runs: number }[];
 }
 
 /** Sessions that work on one ticket or branch, as the daemon folds them (sessions.json `groups`). */

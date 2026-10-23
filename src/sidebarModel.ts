@@ -1,4 +1,4 @@
-import { Board, BoardAccount, BoardGroup, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
+import { Board, BoardAccount, BoardLeft, BoardStalled, BoardRunSpend, BoardGroup, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl } from './watchInbox';
 
 /**
@@ -8,6 +8,8 @@ import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl
 
 export type SessionNode = { kind: 'session'; session: BoardSession };
 export type InboxNode = { kind: 'item'; item: InboxItem };
+export type LeftNode = { kind: 'left'; id: string };
+export type StalledNode = { kind: 'stalled'; link: string; workspace: string; prompt: string };
 export type Tone = 'ask' | 'bad' | 'live' | 'quiet';
 
 export interface UsageWindow {
@@ -98,6 +100,40 @@ export interface WorkspaceRow {
     tone: Tone;
 }
 
+export interface LeftRow {
+    id: string;
+    text: string;
+    detail: string;
+    elapsed: string;
+    done: boolean;
+    tone: Tone;
+    url?: string;
+    node: LeftNode;
+}
+
+export interface StalledRow {
+    title: string;
+    detail: string;
+    elapsed: string;
+    action: 'merge' | 'work';
+    url: string;
+    node: StalledNode;
+}
+
+export interface SpendView {
+    line: string;
+    detail: string;
+    days: { day: string; usd: number; height: number }[];
+}
+
+export interface YourTurn {
+    left: LeftRow[];
+    stalled: StalledRow[];
+    spend?: SpendView;
+    check?: { headline: string; lines: string[] };
+    open: number;
+}
+
 export interface DaemonInfo {
     pid?: number;
     version?: string;
@@ -113,7 +149,8 @@ export interface SidebarState {
     tickets: TicketGroup[];
     ended: SessionRow[];
     workspaces: WorkspaceRow[];
-    counts: { inbox: number; active: number; board: number };
+    turn: YourTurn;
+    counts: { inbox: number; active: number; board: number; turn: number };
     profiles: string[];
     /** False when the corgi binary is not on the machine: the page shows how to install it. */
     installed: boolean;
@@ -412,6 +449,7 @@ export function build(input: BuildInput): SidebarState {
     const inboxKeys = new Set(inbox.map((i) => i.key));
     const board = boardGroups(cards, now.getTime(), inboxKeys);
     const boardCount = board.reduce((n, g) => n + g.rows.length, 0);
+    const turn = yourTurn(shown, now);
     return {
         daemon: { running: !!input.daemon?.pid, version: input.daemon?.version ?? '', muted: mutedLine(input.mutedUntil, now) },
         accounts: accounts.filter((a) => a.profile).map((a) => ({ profile: a.profile, agent: a.agent || 'claude', sessions: a.sessions ?? 0, windows: usageWindows(a, now), note: a.note ?? (usageWindows(a, now).length ? '' : 'usage not read yet') })),
@@ -421,8 +459,68 @@ export function build(input: BuildInput): SidebarState {
         tickets,
         ended,
         workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
-        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount },
+        turn,
+        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount, turn: turn.open + turn.stalled.length },
         profiles: accounts.map((a) => a.profile).filter(Boolean),
         installed: input.installed !== false,
     };
+}
+
+function usd(n: number): string {
+    return n >= 10 ? `$${Math.round(n)}` : `$${n.toFixed(2)}`;
+}
+
+export function leftRow(l: BoardLeft, now: Date): LeftRow {
+    const done = !!l.doneAt;
+    const where = [l.ref || l.title, l.workspace].filter(Boolean).join(' · ');
+    return {
+        id: l.id,
+        text: l.text,
+        detail: done ? `done · ${l.doneBy || 'closed'}${where ? ' · ' + where : ''}` : where,
+        elapsed: formatElapsed(l.at, now),
+        done,
+        tone: done ? 'quiet' : l.kind === 'merge' ? 'ask' : 'quiet',
+        url: l.url,
+        node: { kind: 'left', id: l.id },
+    };
+}
+
+export function stalledRow(p: BoardStalled, now: Date): StalledRow {
+    return {
+        title: p.ref,
+        detail: p.why,
+        elapsed: formatElapsed(p.since, now),
+        action: p.action === 'merge' ? 'merge' : 'work',
+        url: p.link,
+        node: { kind: 'stalled', link: p.link, workspace: p.workspace ?? '', prompt: p.prompt ?? '' },
+    };
+}
+
+export function spendView(s: BoardRunSpend | null | undefined): SpendView | undefined {
+    if (!s || !s.weekRuns) {
+        return undefined;
+    }
+    const days = (s.days ?? []).map((d) => ({ day: d.day, usd: d.usd }));
+    const max = Math.max(0.01, ...days.map((d) => d.usd));
+    const bits = [`${s.weekRuns} run${s.weekRuns === 1 ? '' : 's'}`];
+    if (s.mergedPulls) {
+        bits.push(`${s.mergedPulls} merged`);
+    }
+    if (s.perMergedPull) {
+        bits.push(`${usd(s.perMergedPull)} per merged PR`);
+    }
+    const detail = [s.nothingRuns ? `${usd(s.nothingUSD)} on ${s.nothingRuns} that found nothing` : '', s.failedRuns ? `${s.failedRuns} failed` : '', s.skippedChecks ? `${s.skippedChecks} skipped a check` : ''].filter(Boolean).join(' · ');
+    return {
+        line: `This week ${usd(s.weekUSD)} · ${bits.join(' · ')}`,
+        detail,
+        days: days.map((d) => ({ ...d, height: Math.round((d.usd / max) * 100) })),
+    };
+}
+
+export function yourTurn(board: Board | undefined, now: Date): YourTurn {
+    const left = (board?.left ?? []).filter((l) => l && l.id).map((l) => leftRow(l, now));
+    left.sort((a, b) => Number(a.done) - Number(b.done));
+    const stalled = (board?.stalled ?? []).filter((p) => p && p.link).map((p) => stalledRow(p, now));
+    const check = board?.selfCheck?.lines?.length ? { headline: board.selfCheck.headline ?? '', lines: board.selfCheck.lines } : undefined;
+    return { left, stalled, spend: spendView(board?.runSpend), check, open: left.filter((l) => !l.done).length };
 }
