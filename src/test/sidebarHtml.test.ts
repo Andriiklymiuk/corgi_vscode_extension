@@ -12,7 +12,7 @@ describe('sidebar page', () => {
         assert.ok(!html.includes('innerHTML'));
     });
     it('has every section, accounts and sessions first, the board last', () => {
-        const order = ['daemon', 'usage', 'sessions', 'inbox', 'workspaces', 'board'].map((id) => html.indexOf(`id="${id}"`));
+        const order = ['daemon', 'usage', 'sessions', 'ideas', 'inbox', 'workspaces', 'board'].map((id) => html.indexOf(`id="${id}"`));
         assert.ok(order.every((i) => i >= 0), String(order));
         assert.deepStrictEqual([...order].sort((a, b) => a - b), order);
     });
@@ -26,5 +26,10 @@ describe('sidebar page', () => {
     it('only runs commands the extension allows, by name', () => {
         assert.ok(html.includes(`'corgi.agent.focusNode'`));
         assert.ok(html.includes(`'corgi.agent.inboxWorkOn'`));
+    });
+    it('lists idea pages: a click opens the page, + new writes one', () => {
+        assert.ok(html.includes(`run('corgi.idea.open', i.node)`));
+        assert.ok(html.includes(`run('corgi.idea.openMarkdown', i.node)`));
+        assert.ok(html.includes(`data-run="corgi.idea.new"`));
     });
 });

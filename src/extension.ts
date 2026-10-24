@@ -13,6 +13,7 @@ import { CorgiExample, corgiExamplesJsonPattern, customExamples, exampleProjects
 import { registerCorgiAi } from './ai';
 import { corgiAgentDir, registerAgentWindow, stableWindowId } from './agentWindow';
 import { registerAgentBoard } from './agentStatus';
+import { registerIdeas } from './ideaPanel';
 
 const corgiPattern = /^(.*\.)?corgi(-compose\d*)?(\.\w+)?\.(yml|yaml)$/;
 
@@ -58,6 +59,12 @@ async function pickCorgiCommand(): Promise<void> {
             ['Open a bot', 'corgi.agent.openBot', 'hubot'],
             ['Ask the chief about the board', 'corgi.agent.ask', 'comment-discussion'],
             ['Hidden workspaces…', 'corgi.agent.hiddenWorkspaces', 'eye-closed'],
+        ] as const).map(row),
+        sep('Ideas'),
+        ...([
+            ['New idea page from a sentence', 'corgi.idea.new', 'lightbulb'],
+            ['Open an idea page beside the code', 'corgi.idea.open', 'open-preview'],
+            ['Edit an idea page as markdown', 'corgi.idea.openMarkdown', 'edit'],
         ] as const).map(row),
         sep('Info'),
         ...([
@@ -154,6 +161,8 @@ export async function activate(context: vscode.ExtensionContext) {
     registerCorgiAi(context);
     registerAgentWindow(context);
     registerAgentBoard(context, corgiAgentDir(), stableWindowId(context));
+    // Idea pages: the preview beside the code, the comment threads on idea.md, the commands.
+    registerIdeas(context, corgiAgentDir());
 
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((document) => {

@@ -42,6 +42,7 @@ export function page(nonce: string): string {
   h2 .chev { display: inline-block; width: 12px; text-align: center; font-size: 10px; color: var(--dim); transition: transform .12s ease; }
   h2 .badge { margin-left: auto; min-width: 20px; padding: 0 7px; border-radius: 10px; font-size: 11px; font-weight: 600; line-height: 19px; text-align: center; color: var(--badge-fg); background: var(--badge); letter-spacing: 0; text-transform: none; }
   h2 a { margin-left: auto; font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 12px; }
+  h2 .badge + a { margin-left: 6px; }
   section.closed .chev { transform: rotate(-90deg); }
   section.closed .body { display: none; }
   .sub { padding: 8px 14px 2px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
@@ -86,6 +87,7 @@ export function page(nonce: string): string {
   @media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
   .main { flex: 1; min-width: 0; }
   .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .title .pill { margin-left: 6px; padding: 0 6px; border-radius: 8px; font-size: 10px; line-height: 15px; color: var(--dim); border: 1px solid var(--line); vertical-align: 1px; }
   .clause { color: var(--dim); font-size: 12px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .when { color: var(--dim); font-size: 12px; flex: none; }
   .acts { display: none; gap: 2px; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding-left: 12px; background: linear-gradient(to right, transparent, var(--hover) 12px); }
@@ -116,6 +118,7 @@ export function page(nonce: string): string {
 <section id="usage"><h2><span class="chev">▾</span>Accounts<a data-run="corgi.agent.addAccount">Add account</a></h2><div class="body"></div></section>
 <section id="sessions"><h2><span class="chev">▾</span>Sessions<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="turn"><h2><span class="chev">▾</span>Your turn<span class="badge" hidden></span></h2><div class="body"></div></section>
+<section id="ideas"><h2><span class="chev">▾</span>Ideas<span class="badge" hidden></span><a data-run="corgi.idea.new">+ new</a></h2><div class="body"></div></section>
 <section id="inbox"><h2><span class="chev">▾</span>Inbox<span class="badge" hidden></span></h2><div class="body"></div></section>
 <section id="workspaces"><h2><span class="chev">▾</span>Workspaces<a data-run="corgi.agent.addWorkspace">Add</a></h2><div class="body"></div></section>
 <section id="board"><h2><span class="chev">▾</span>Board<span class="badge" hidden></span></h2><div class="body"></div></section>
@@ -429,6 +432,33 @@ export function page(nonce: string): string {
     if (document.activeElement !== search && filter) search.focus({ preventScroll: true });
   };
 
+  // Idea pages: click opens the page beside the code; Edit opens its markdown.
+  const drawIdeas = (state) => {
+    const ideas = state.ideas || [];
+    badge('ideas', ideas.length);
+    const out = ideas.map((i) => {
+      const d = row(i.tone, false, i.title, i.detail, i.elapsed, i.tooltip);
+      if (i.type) d.querySelector('.title').appendChild(el('span', 'pill', i.type));
+      const acts = el('div', 'acts');
+      acts.appendChild(button('Edit', '', () => run('corgi.idea.openMarkdown', i.node)));
+      acts.appendChild(button('⋯', '', () => vscode.postMessage({ type: 'menu', node: i.node })));
+      d.appendChild(acts);
+      d.addEventListener('click', () => run('corgi.idea.open', i.node));
+      d.addEventListener('keydown', (e) => { if (e.key === 'Enter') run('corgi.idea.open', i.node); });
+      return d;
+    });
+    if (out.length === 0) {
+      const e = el('div', 'empty');
+      e.appendChild(el('span', '', 'No idea pages. One page per thing you want built: '));
+      const a = el('a', '', 'write one from a sentence');
+      a.addEventListener('click', () => run('corgi.idea.new'));
+      e.appendChild(a);
+      e.appendChild(el('span', '', '.'));
+      out.push(e);
+    }
+    body('ideas').replaceChildren(...out);
+  };
+
   const drawWorkspaces = (state) => {
     const out = state.workspaces.map((w) => {
       const d = row(w.tone, false, w.id, w.detail, '', w.id);
@@ -455,6 +485,7 @@ export function page(nonce: string): string {
     drawInbox(m.state);
     drawBoard(m.state);
     drawSessions(m.state);
+    drawIdeas(m.state);
     drawWorkspaces(m.state);
   });
   vscode.postMessage({ type: 'ready' });

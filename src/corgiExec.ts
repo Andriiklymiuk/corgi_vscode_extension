@@ -33,10 +33,13 @@ export interface CorgiResult {
     stderr: string;
 }
 
-export function runCorgi(args: string[], cwd?: string): Promise<CorgiResult> {
+/** How long a corgi command may take by default; the agent verbs (`corgi idea new`) pass minutes. */
+export const DEFAULT_TIMEOUT_MS = 15000;
+
+export function runCorgi(args: string[], cwd?: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<CorgiResult> {
     return new Promise((resolve) => {
         const run = (bin: string, retry: boolean) => {
-            execFile(bin, args, { cwd, timeout: 15000, maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
+            execFile(bin, args, { cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
                 if (error && retry && (error as NodeJS.ErrnoException).code === 'ENOENT') {
                     resolved = undefined;
                     const next = corgiBinary();
