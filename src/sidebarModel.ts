@@ -11,7 +11,7 @@ export type SessionNode = { kind: 'session'; session: BoardSession };
 export type InboxNode = { kind: 'item'; item: InboxItem };
 export type LeftNode = { kind: 'left'; id: string };
 export type StalledNode = { kind: 'stalled'; link: string; workspace: string; prompt: string };
-export type IdeaNode = { kind: 'idea'; slug: string };
+export type IdeaNode = { kind: 'idea'; slug: string; file?: string };
 export type Tone = 'ask' | 'bad' | 'live' | 'quiet';
 
 export interface UsageWindow {
@@ -462,7 +462,7 @@ export function ideaRows(list: IdeaListEntry[], now: Date): IdeaRow[] {
             tooltip: [i.title || i.name || i.slug, i.summary, i.workspace ? `workspace ${i.workspace}` : '', i.tags?.length ? i.tags.join(', ') : ''].filter(Boolean).join('\n'),
             elapsed: formatElapsed(i.updatedAt, now),
             tone: i.status === 'building' ? 'live' : i.status !== 'built' && open > 0 && forAgent < open ? 'ask' : 'quiet',
-            node: { kind: 'idea', slug: i.slug },
+            node: i.file ? { kind: 'idea', slug: i.slug, file: i.file } : { kind: 'idea', slug: i.slug },
         };
     });
 }

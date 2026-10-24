@@ -219,6 +219,12 @@ or team key (the space key for Confluence) when corgi does not know it,
 confirms *an epic and N tickets will be created in KEY*, runs `corgi idea
 send` and offers to open what it made.
 
+A comment can carry a link and files: **Attach…** in the composer opens the
+file dialog, the picked names show as chips (× drops one) and go along as
+`corgi idea comment --file`. The words you highlighted travel with their
+context (prefix, suffix, heading), so corgi puts the comment on the right
+copy when the same words are on the page twice.
+
 Each card says who, when, **proposal** when the agent proposed something,
 and the status: *open*, *answered* (the agent replied without touching the
 page), *changed the page*, *resolved*. Every card ends in a one-line reply
@@ -235,8 +241,11 @@ in a normal editor, and the comments show there as VS Code comment threads
 on the lines their words are on (page-level ones on the first line), the
 status in the thread's label, the replies under it. Reply in the thread's
 box, Resolve or Reopen from its title, or press the gutter's `+` on a line
-and write: that is a comment on those lines. With text selected the
-editor's context menu has **Corgi: Comment on this for the idea page**.
+and write: that is a comment on those lines (the file is saved first, and
+heading marks and bullets are left out of the quote). With text selected
+the editor's context menu has **Corgi: Comment on this for the idea page**.
+Threads update in place as the agent answers - a fold, or a reply you are
+typing, stays.
 
 **Build it** runs `corgi idea build` under a progress notification and says
 what came of it - the plan and its tasks, or why it could not start.

@@ -10,7 +10,7 @@ describe('sidebarModel', () => {
         const rows = ideaRows([
             { slug: 'coffee', title: 'Coffee shop scheduling', name: 'coffee', status: 'draft', open: 3, forAgent: 1, updatedAt: '2026-09-16T09:30:00Z', summary: 'shifts for baristas' },
             { slug: 'shop', title: 'Shop', type: 'spec', status: 'building', open: 0, forAgent: 0, sent: [{ kind: 'epic', ref: 'SHOP-12', url: 'https://j/12' }] },
-            { slug: 'done', title: 'Done', type: 'rfc', status: 'built', open: 2, forAgent: 2 },
+            { slug: 'done', title: 'Done', type: 'rfc', status: 'built', open: 2, forAgent: 2, file: '/a/ideas/done/idea.md' },
         ], now);
         assert.deepStrictEqual(rows.map((r) => [r.title, r.type, r.detail, r.tone, r.elapsed]), [
             ['coffee', 'idea', 'draft · 3 open · 1 waiting on the agent', 'ask', '30m'],
@@ -18,6 +18,7 @@ describe('sidebarModel', () => {
             ['Done', 'RFC', 'built · 2 open · 2 waiting on the agent', 'quiet', ''],
         ]);
         assert.deepStrictEqual(rows[0].node, { kind: 'idea', slug: 'coffee' });
+        assert.deepStrictEqual(rows[2].node, { kind: 'idea', slug: 'done', file: '/a/ideas/done/idea.md' }, 'the file rides on the node, so Edit needs no corgi idea path');
         assert.ok(rows[0].tooltip.includes('shifts for baristas'));
         assert.deepStrictEqual(build({ inbox: [], hidden: [], bots: [], now }).ideas, []);
         assert.strictEqual(build({ inbox: [], hidden: [], bots: [], now, ideas: [{ slug: 'a', title: 'A', status: 'draft', open: 0, forAgent: 0 }] }).ideas.length, 1);

@@ -1,8 +1,8 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { runCorgi } from './corgiExec';
-import { findQuote, IdeaComment, ideaSlugOf, ideasDir, isAgent, lineRangeOf, readIdea, statusLabel, waitsOnPerson } from './idea';
-import { ideaAuthor, IdeaFilesWatcher, lastLine } from './ideaCli';
+import { commentArgs, findQuote, IdeaComment, ideaSlugOf, ideasDir, isAgent, lineRangeOf, readIdea, selectionAnchor, statusLabel, waitsOnPerson } from './idea';
+import { fireIdeasChanged, ideaAuthor, IdeaFilesWatcher, ideaStamp, lastLine, WRITE_MS } from './ideaCli';
 
 /**
  * The idea's comments as VS Code comment threads on idea.md, for the
@@ -10,14 +10,19 @@ import { ideaAuthor, IdeaFilesWatcher, lastLine } from './ideaCli';
  * lines its words are on (page-level comments sit on the first line), the
  * replies under it, the status in the thread's label. The reply box runs
  * `corgi idea comment --reply-to`; a thread started from the gutter's +
- * becomes a comment on those lines (`--quote`). The threads are rebuilt
- * whenever the idea's files change.
+ * becomes a comment on those lines, anchored like a highlight on the page.
+ *
+ * When the idea's files change the threads are updated in place, by
+ * comment id - a thread keeps its fold and the reply being typed in it;
+ * only what appeared or disappeared is created or disposed. A change to
+ * another idea, or none to this one's files, touches nothing. The watcher
+ * runs only while an idea.md is open.
  */
 export class IdeaCommentThreads implements vscode.Disposable {
     private readonly controller: vscode.CommentController;
-    private readonly threads = new Map<string, vscode.CommentThread[]>();
+    /** Per open document: its slug, the mtime stamp its threads were built from, and the threads by comment id. */
+    private readonly docs = new Map<string, { slug: string; stamp: number; byId: Map<string, vscode.CommentThread> }>();
     private readonly info = new WeakMap<vscode.CommentThread, { slug: string; id: string }>();
-    // comment ids are numbers in comments.json; the CLI takes them as text
     private readonly watcher: IdeaFilesWatcher;
     private readonly disposables: vscode.Disposable[] = [];
     private readonly wrote = new vscode.EventEmitter<string>();
@@ -30,66 +35,127 @@ export class IdeaCommentThreads implements vscode.Disposable {
             provideCommentingRanges: (document) => (this.slugOf(document) ? [new vscode.Range(0, 0, Math.max(0, document.lineCount - 1), 0)] : []),
         };
         this.controller.options = { prompt: 'Comment for the agent', placeHolder: 'What about these lines? The agent answers and amends the page.' };
-        this.watcher = new IdeaFilesWatcher(agentDir).start();
+        this.watcher = new IdeaFilesWatcher(agentDir);
         this.disposables.push(
             this.controller,
             this.watcher,
-            this.watcher.onDidChange(() => this.rebuildAll()),
-            vscode.workspace.onDidOpenTextDocument((d) => this.rebuild(d)),
-            vscode.workspace.onDidSaveTextDocument((d) => this.rebuild(d)),
-            vscode.workspace.onDidCloseTextDocument((d) => this.drop(d.uri)),
+            this.watcher.onDidChange((slug) => this.changed(slug)),
+            vscode.workspace.onDidOpenTextDocument((d) => this.opened(d)),
+            vscode.workspace.onDidSaveTextDocument((d) => this.rebuild(d, true)),
+            vscode.workspace.onDidCloseTextDocument((d) => this.closed(d)),
             vscode.commands.registerCommand('corgi.idea.replyThread', (reply: vscode.CommentReply) => this.reply(reply)),
             vscode.commands.registerCommand('corgi.idea.createThread', (reply: vscode.CommentReply) => this.reply(reply)),
             vscode.commands.registerCommand('corgi.idea.resolveThread', (thread: vscode.CommentThread) => this.setStatus(thread, 'resolve')),
             vscode.commands.registerCommand('corgi.idea.reopenThread', (thread: vscode.CommentThread) => this.setStatus(thread, 'reopen')),
         );
-        this.rebuildAll();
+        for (const d of vscode.workspace.textDocuments) {
+            this.opened(d);
+        }
     }
 
     private slugOf(document: vscode.TextDocument): string | undefined {
         return document.uri.scheme === 'file' ? ideaSlugOf(this.agentDir, document.uri.fsPath) : undefined;
     }
 
-    private rebuildAll(): void {
-        for (const d of vscode.workspace.textDocuments) {
-            this.rebuild(d);
+    /** An idea.md opened: its threads, and the watcher if it was the first. */
+    private opened(document: vscode.TextDocument): void {
+        if (!this.slugOf(document)) {
+            return;
+        }
+        this.rebuild(document, true);
+        this.watcher.start();
+    }
+
+    /** The last idea.md closed: the watcher stops. */
+    private closed(document: vscode.TextDocument): void {
+        this.drop(document.uri);
+        if (!this.docs.size) {
+            this.watcher.stop();
+        }
+    }
+
+    /** The files moved: the documents of that slug (all of them when unknown), each skipping itself when its stamp is unchanged. */
+    private changed(slug: string | undefined): void {
+        for (const [key, entry] of this.docs) {
+            if (slug && entry.slug !== slug) {
+                continue;
+            }
+            const document = vscode.workspace.textDocuments.find((d) => d.uri.toString() === key);
+            if (document) {
+                this.rebuild(document, false);
+            }
         }
     }
 
     private drop(uri: vscode.Uri): void {
-        for (const t of this.threads.get(uri.toString()) ?? []) {
+        for (const t of this.docs.get(uri.toString())?.byId.values() ?? []) {
             t.dispose();
         }
-        this.threads.delete(uri.toString());
+        this.docs.delete(uri.toString());
     }
 
-    /** The threads for document, from comments.json, placed by each comment's words in the text as it is now. */
-    rebuild(document: vscode.TextDocument): void {
+    /**
+     * The threads for document from comments.json, by comment id: an
+     * existing thread gets its range, comments, label and state set again;
+     * a new comment gets a thread; a gone one loses it. Nothing happens when
+     * the idea's files have not changed since the last build, unless forced.
+     */
+    rebuild(document: vscode.TextDocument, force: boolean): void {
         const slug = this.slugOf(document);
         if (!slug) {
             return;
         }
-        this.drop(document.uri);
+        const key = document.uri.toString();
+        const stamp = ideaStamp(this.agentDir, slug);
+        const entry = this.docs.get(key);
+        if (!force && entry && entry.stamp === stamp) {
+            return;
+        }
         const idea = readIdea(ideasDir(this.agentDir), slug);
         if (!idea) {
+            this.drop(document.uri);
             return;
         }
         const text = document.getText();
-        const made: vscode.CommentThread[] = [];
+        const byId = entry?.byId ?? new Map<string, vscode.CommentThread>();
+        const seen = new Set<string>();
         for (const c of idea.comments) {
+            const id = String(c.id);
+            seen.add(id);
             const hit = c.anchor ? findQuote(text, c.anchor) : null;
             const lines = hit ? lineRangeOf(text, hit.start, hit.end) : { startLine: 0, endLine: 0 };
             const range = new vscode.Range(lines.startLine, 0, lines.endLine, hit ? document.lineAt(Math.min(lines.endLine, document.lineCount - 1)).text.length : 0);
-            const thread = this.controller.createCommentThread(document.uri, range, threadComments(c));
-            thread.label = threadLabel(c, !!hit);
+            const comments = threadComments(c);
+            const label = threadLabel(c, !!hit);
+            const contextValue = c.status === 'resolved' ? 'resolved' : 'open';
+            const state = c.status === 'resolved' ? vscode.CommentThreadState.Resolved : vscode.CommentThreadState.Unresolved;
+            const have = byId.get(id);
+            if (have) {
+                if (!have.range?.isEqual(range)) {
+                    have.range = range;
+                }
+                have.comments = comments;
+                have.label = label;
+                have.contextValue = contextValue;
+                have.state = state;
+                continue;
+            }
+            const thread = this.controller.createCommentThread(document.uri, range, comments);
+            thread.label = label;
             thread.canReply = true;
-            thread.contextValue = c.status === 'resolved' ? 'resolved' : 'open';
-            thread.state = c.status === 'resolved' ? vscode.CommentThreadState.Resolved : vscode.CommentThreadState.Unresolved;
+            thread.contextValue = contextValue;
+            thread.state = state;
             thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
-            this.info.set(thread, { slug, id: String(c.id) });
-            made.push(thread);
+            this.info.set(thread, { slug, id });
+            byId.set(id, thread);
         }
-        this.threads.set(document.uri.toString(), made);
+        for (const [id, t] of byId) {
+            if (!seen.has(id)) {
+                t.dispose();
+                byId.delete(id);
+            }
+        }
+        this.docs.set(key, { slug, stamp, byId });
     }
 
     /** The reply box: a reply on an existing thread, or a new comment on the lines of a thread the + started. */
@@ -101,18 +167,23 @@ export class IdeaCommentThreads implements vscode.Disposable {
         if (!text || !slug) {
             return;
         }
-        const args = ['idea', 'comment', slug, text, '--by', ideaAuthor(), '--json'];
+        const by = ideaAuthor();
+        let args: string[];
         if (known) {
-            args.push('--reply-to', known.id);
+            args = commentArgs({ slug, text, by, replyTo: known.id });
         } else {
+            // The words on those lines, from the saved text: corgi reads the file, not the editor.
             const document = vscode.workspace.textDocuments.find((d) => d.uri.toString() === thread.uri.toString());
-            const at = thread.range;
-            const quote = document && at ? document.getText(new vscode.Range(at.start.line, 0, at.end.line, document.lineAt(Math.min(at.end.line, document.lineCount - 1)).text.length)).trim() : '';
-            if (quote) {
-                args.push('--quote', quote);
+            if (document?.isDirty) {
+                await document.save();
             }
+            const at = thread.range;
+            const anchor = document && at
+                ? selectionAnchor(document.getText(), document.offsetAt(new vscode.Position(at.start.line, 0)), document.offsetAt(new vscode.Position(at.end.line, document.lineAt(Math.min(at.end.line, document.lineCount - 1)).text.length)))
+                : undefined;
+            args = commentArgs({ slug, text, by, anchor: anchor?.quote ? anchor : undefined });
         }
-        const r = await runCorgi(args);
+        const r = await runCorgi(args, undefined, WRITE_MS);
         if (!r.ok) {
             void vscode.window.showWarningMessage(`corgi could not add the comment: ${lastLine(r)}`);
             return;
@@ -129,7 +200,7 @@ export class IdeaCommentThreads implements vscode.Disposable {
         if (!known) {
             return;
         }
-        const r = await runCorgi(['idea', verb, known.slug, known.id, '--json']);
+        const r = await runCorgi(['idea', verb, '--json', '--', known.slug, known.id], undefined, WRITE_MS);
         if (!r.ok) {
             void vscode.window.showWarningMessage(`corgi could not ${verb} the comment: ${lastLine(r)}`);
             return;
@@ -140,18 +211,19 @@ export class IdeaCommentThreads implements vscode.Disposable {
     private afterWrite(slug: string, uri: vscode.Uri): void {
         const document = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
         if (document) {
-            this.rebuild(document);
+            this.rebuild(document, true);
         }
         this.wrote.fire(slug);
+        fireIdeasChanged(slug);
     }
 
     dispose(): void {
-        for (const list of this.threads.values()) {
-            for (const t of list) {
+        for (const entry of this.docs.values()) {
+            for (const t of entry.byId.values()) {
                 t.dispose();
             }
         }
-        this.threads.clear();
+        this.docs.clear();
         for (const d of this.disposables) {
             d.dispose();
         }

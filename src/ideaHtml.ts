@@ -1,3 +1,27 @@
+import { formatElapsed } from './agentBoard';
+import { afterLine, findQuote, isAgent, isOpen, occurrences, openUnder, personReplied, pickOccurrence, sentLabel, sharedHead, sharedTail, statusLabel, typeLabel, waitsOnPerson } from './idea';
+
+/** The pure functions the page script shares with the host, by their source: each references nothing but the others. */
+export const sharedFunctions = [sharedTail, sharedHead, occurrences, pickOccurrence, findQuote, isAgent, personReplied, waitsOnPerson, isOpen, statusLabel, typeLabel, afterLine, openUnder, sentLabel, formatElapsed];
+
+/**
+ * The shared functions as the webview's own script: each is emitted under
+ * the name it has at runtime (what the bodies of the others refer to) and
+ * under the name the page script calls. Webpack is told not to mangle or
+ * rename (webpack.config.js), so the two are the same in a release build;
+ * the alias keeps the page working even if that changes.
+ */
+export const sharedNames = ['sharedTail', 'sharedHead', 'occurrences', 'pickOccurrence', 'findQuote', 'isAgent', 'personReplied', 'waitsOnPerson', 'isOpen', 'statusLabel', 'typeLabel', 'afterLine', 'openUnder', 'sentLabel', 'formatElapsed'];
+
+export function sharedScript(): string {
+    return sharedFunctions.map((f, i) => {
+        const runtime = f.name || sharedNames[i];
+        const source = f.toString();
+        const declared = /^(?:async\s+)?function\b/.test(source) ? source : `const ${runtime} = ${source};`;
+        return runtime === sharedNames[i] ? declared : `${declared}\nconst ${sharedNames[i]} = ${runtime};`;
+    }).join('\n');
+}
+
 /**
  * The idea page beside the code: the page the agent wrote on the left,
  * the comments on the right. One HTML string on VS Code's theme tokens,
@@ -8,10 +32,10 @@
  * every other string are built with createElement and textContent. Pure,
  * so it is tested without vscode.
  *
- * Webview → host: ready, comment {text, quote, prefix, suffix, heading, link?},
- * reply {id, text}, status {id, status}, build, send {to}, openMarkdown,
- * openBrowser, openLink {url}. Host → webview: doc {doc}, busy {what},
- * error {msg}.
+ * Webview → host: ready, comment {text, quote, prefix, suffix, heading, link?, files?},
+ * pickFiles, reply {id, text}, status {id, status}, build, send {to},
+ * openMarkdown, openBrowser, openLink {url}. Host → webview: doc {doc},
+ * picked {files}, busy {what}, error {msg}.
  */
 export function ideaPage(nonce: string, cspSource = ''): string {
     const img = cspSource ? `${cspSource} data:` : `'none'`;
@@ -182,6 +206,11 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   #composer .what { font-size: 12px; color: var(--dim); margin-bottom: 6px; }
   #composer .quote { cursor: default; }
   #composer input { margin-top: 6px; }
+  #composer .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  #composer .chips:empty { display: none; }
+  #composer .chip button { padding: 0 4px; margin-left: 4px; font-size: 12px; line-height: 1; background: transparent; color: var(--dim); }
+  #composer .chip button:hover { color: var(--err); }
+  #composer .row .left { margin-right: auto; }
   #float { position: absolute; z-index: 5; padding: 3px 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
   .none { color: var(--dim); font-size: 12px; padding: 8px 2px; }
 </style></head><body>
@@ -215,6 +244,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
 </main>
 <button id="float" hidden>Comment</button>
 <script nonce="${nonce}">
+${sharedScript()}
 (() => {
   const vscode = acquireVsCodeApi();
   const saved = vscode.getState() || {};
@@ -224,6 +254,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   let doc = null;
   let pending = null;
   let composing = null;
+  let attached = [];
   // Drafts in the quick reply boxes survive a redraw (the page re-reads whenever a file changes).
   const drafts = {};
   const openTickets = new Set();
@@ -234,21 +265,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   const post = (m) => vscode.postMessage(m);
   const button = (label, cls, onClick) => { const b = el('button', cls, label); b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); }); return b; };
   const persist = () => vscode.setState({ filter, outlineOpen, ticketsOpen });
-  const isAgent = (by) => String(by || '').toLowerCase() === 'agent';
-  const personReplied = (c) => (c.replies || []).some((r) => !isAgent(r.by));
-  const waitsOnPerson = (c) => c.kind === 'proposal' && c.status === 'open' && !personReplied(c);
-  const statusLabel = (s) => s === 'answered' ? 'answered' : s === 'fixed' ? 'changed the page' : s === 'resolved' ? 'resolved' : 'open';
-  const typeLabel = (t) => { t = String(t || '').toLowerCase(); return t === 'spec' ? 'spec' : t === 'hld' ? 'HLD' : t === 'rfc' ? 'RFC' : 'idea'; };
-  const ago = (at) => {
-    if (!at) return '';
-    const s = Math.floor((Date.now() - new Date(at).getTime()) / 1000);
-    if (!isFinite(s)) return '';
-    if (s < 60) return 'just now';
-    const m = Math.floor(s / 60);
-    if (m < 60) return m + 'm';
-    const h = Math.floor(m / 60);
-    return h < 24 ? h + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : '') : Math.floor(h / 24) + 'd';
-  };
+  const ago = (at) => formatElapsed(at) || (at ? 'just now' : '');
   const httpUrl = (u) => typeof u === 'string' && /^https?:\\/\\//i.test(u);
   const idOf = (c) => String(c.id);
 
@@ -269,38 +286,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     for (const t of nodes) if (node.contains(t.node)) end = t.end;
     return end;
   };
-  const sharedTail = (a, b) => { let n = 0; while (n < a.length && n < b.length && a[a.length - 1 - n] === b[b.length - 1 - n]) n++; return n; };
-  const sharedHead = (a, b) => { let n = 0; while (n < a.length && n < b.length && a[n] === b[n]) n++; return n; };
-  const occurrences = (text, needle) => { const out = []; for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + 1)) out.push(i); return out; };
-  const pick = (text, starts, length, anchor) => {
-    if (starts.length === 1 || (!anchor.prefix && !anchor.suffix)) return starts[0];
-    let best = starts[0], bestScore = -1;
-    for (const s of starts) {
-      const score = sharedTail(text.slice(Math.max(0, s - CONTEXT), s), anchor.prefix || '') + sharedHead(text.slice(s + length, s + length + CONTEXT), anchor.suffix || '');
-      if (score > bestScore) { best = s; bestScore = score; }
-    }
-    return best;
-  };
-  // The anchor's words on the page: the copy whose context matches best; whitespace forgiven.
-  const findQuote = (text, anchor) => {
-    const quote = anchor && anchor.quote;
-    if (!quote) return null;
-    const exact = occurrences(text, quote);
-    if (exact.length) { const start = pick(text, exact, quote.length, anchor); return { start, end: start + quote.length }; }
-    const map = [];
-    let loose = '';
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (/\\s/.test(ch)) { if (loose.endsWith(' ')) continue; loose += ' '; } else loose += ch;
-      map.push(i);
-    }
-    const needle = quote.replace(/\\s+/g, ' ').trim();
-    if (!needle) return null;
-    const hits = occurrences(loose, needle);
-    if (!hits.length) return null;
-    const at = pick(loose, hits, needle.length, { quote: needle, prefix: (anchor.prefix || '').replace(/\\s+/g, ' '), suffix: (anchor.suffix || '').replace(/\\s+/g, ' ') });
-    return { start: map[at], end: map[at + needle.length - 1] + 1 };
-  };
+  // findQuote, waitsOnPerson, statusLabel and the rest come from the shared block above: the host's own code.
   const headingAbove = (nodes, start) => {
     let h = '';
     for (const e of page.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
@@ -404,7 +390,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
         else row.appendChild(el('span', 'ref', t.ref));
       }
       if (t.state) row.appendChild(el('span', 'pill', t.state));
-      if (Array.isArray(t.after) && t.after.length) row.appendChild(el('span', 'after', 'after ' + t.after.join(', ')));
+      if (afterLine(t)) row.appendChild(el('span', 'after', afterLine(t)));
       d.appendChild(row);
       d.appendChild(el('div', 'body', t.body || 'No description.'));
       d.addEventListener('click', () => { const k = String(t.id); if (openTickets.has(k)) openTickets.delete(k); else openTickets.add(k); d.classList.toggle('open'); });
@@ -418,7 +404,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     const list = (Array.isArray(doc.sent) && doc.sent.length ? doc.sent : Array.isArray(doc.idea && doc.idea.sent) ? doc.idea.sent : []).filter((l) => l && (l.ref || l.title));
     const out = [];
     for (const l of list) {
-      const label = l.kind === 'page' ? '📄 ' + (l.title || (l.ref ? 'page ' + l.ref : 'page')) : '🎯 ' + [l.ref, l.title].filter(Boolean).join(' · ');
+      const label = sentLabel(l);
       if (httpUrl(l.url)) { const a = el('a', 'chip', label); a.title = l.url; a.addEventListener('click', () => post({ type: 'openLink', url: l.url })); out.push(a); }
       else out.push(el('span', 'chip', label));
     }
@@ -481,7 +467,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
       const row = el('div', 'h');
       row.dataset.heading = text;
       row.appendChild(el('span', 't', text));
-      const n = comments.filter((c) => c.status !== 'resolved' && String((c.anchor && c.anchor.heading) || '').trim().toLowerCase() === text.toLowerCase()).length;
+      const n = openUnder(comments, text);
       if (n) row.appendChild(el('span', 'n', String(n)));
       row.addEventListener('click', () => h.scrollIntoView({ block: 'start', behavior: 'smooth' }));
       list.appendChild(row);
@@ -619,12 +605,16 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     ta.placeholder = composing.quote ? 'What about this? The agent answers in the thread and amends the page.' : 'What should change? The agent answers and amends the page.';
     const link = el('input');
     link.type = 'url'; link.placeholder = 'Link (optional)';
+    const chips = el('div', 'chips');
     const row = el('div', 'row');
+    const attach = button('Attach…', 'quiet left', () => post({ type: 'pickFiles' }));
+    attach.title = 'Files to attach to the comment';
+    row.appendChild(attach);
     row.appendChild(button('Cancel', 'quiet', closeComposer));
     row.appendChild(button('Comment', '', () => {
       const t = ta.value.trim();
       if (!t) return;
-      const m = { type: 'comment', text: t, quote: composing.quote, prefix: composing.prefix, suffix: composing.suffix, heading: composing.heading };
+      const m = { type: 'comment', text: t, quote: composing.quote, prefix: composing.prefix, suffix: composing.suffix, heading: composing.heading, files: attached.map((f) => f.path) };
       if (httpUrl(link.value.trim())) m.link = link.value.trim();
       post(m);
       closeComposer();
@@ -632,14 +622,27 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); row.lastChild.click(); } });
     const parts = [what];
     if (composing.quote && !onSection) parts.push(el('div', 'quote', composing.quote));
-    parts.push(ta, link, row);
+    parts.push(ta, link, chips, row);
     box.replaceChildren(...parts);
     $('float').hidden = true;
     $('side').scrollTop = 0;
     box.scrollIntoView({ block: 'nearest' });
     ta.focus();
   };
-  const closeComposer = () => { composing = null; const box = $('composer'); box.hidden = true; box.replaceChildren(); };
+  const closeComposer = () => { composing = null; attached = []; const box = $('composer'); box.hidden = true; box.replaceChildren(); };
+  // The picked files as chips in the composer, each with an × that drops it.
+  const drawChips = () => {
+    const chips = document.querySelector('#composer .chips');
+    if (!chips) return;
+    chips.replaceChildren(...attached.map((f) => {
+      const c = el('span', 'chip', f.name);
+      c.title = f.path;
+      const x = button('×', '', () => { attached = attached.filter((g) => g.path !== f.path); drawChips(); });
+      x.title = 'Remove';
+      c.appendChild(x);
+      return c;
+    }));
+  };
 
   // Highlight to comment: a floating button over the selection, inside the article only.
   document.addEventListener('selectionchange', () => {
@@ -685,6 +688,11 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     const m = ev.data;
     if (!m) return;
     if (m.type === 'doc' && m.doc) { doc = m.doc; $('err').hidden = true; render(); }
+    else if (m.type === 'picked') {
+      if (!composing) return;
+      for (const f of Array.isArray(m.files) ? m.files : []) if (f && typeof f.path === 'string' && !attached.some((g) => g.path === f.path)) attached.push({ path: f.path, name: String(f.name || f.path) });
+      drawChips();
+    }
     else if (m.type === 'busy') { const b = $('busy'); b.textContent = m.what || ''; b.hidden = !m.what; }
     else if (m.type === 'error') { const e = $('err'); e.textContent = m.msg || ''; e.hidden = !m.msg; $('busy').hidden = true; }
   });
