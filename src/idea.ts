@@ -118,7 +118,7 @@ export interface IdeaComments {
 export interface Idea {
     slug: string;
     dir: string;
-    file: string;
+    file?: string;
     meta: IdeaMeta;
     markdown: string;
     comments: IdeaComment[];
