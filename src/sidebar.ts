@@ -7,7 +7,8 @@ import { hiddenWorkspaces, type AgentBoardWatcher } from './agentStatus';
 import { isCorgiInstalled } from './corgiCommands';
 import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 import { page } from './sidebarHtml';
-import { build, DaemonInfo, InboxNode, KanbanCard, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
+import { IdeaListEntry } from './idea';
+import { build, DaemonInfo, IdeaNode, InboxNode, KanbanCard, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
 import { InboxItem, itemName, readInbox } from './watchInbox';
 
 /**
@@ -31,10 +32,11 @@ const ALLOWED = new Set([
     'corgi.agent.workspacePause', 'corgi.agent.workspaceResume', 'corgi.agent.watchEnable', 'corgi.agent.watchDisable',
     'corgi.sidebar.reload', 'corgi.installWithHomebrew',
     'corgi.agent.leftDone', 'corgi.agent.pullMerge', 'corgi.agent.stalledWork',
+    'corgi.idea.open', 'corgi.idea.new', 'corgi.idea.openMarkdown', 'corgi.idea.build',
 ]);
 
 type WorkspaceNode = { kind: 'workspace'; id: string };
-type Node = SessionNode | InboxNode | WorkspaceNode | LeftNode | StalledNode;
+type Node = SessionNode | InboxNode | WorkspaceNode | LeftNode | StalledNode | IdeaNode;
 type Message = { type: string; command?: string; node?: Node; url?: string };
 
 /** One read of everything the minute-poll fetches beside the inbox. */
@@ -45,12 +47,13 @@ interface Snapshot {
     watched: WatchedWorkspace[];
     running: string[];
     paused: string[];
+    ideas: IdeaListEntry[];
 }
 
 export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposable {
     static readonly viewId = 'corgiSidebar';
     private view: vscode.WebviewView | undefined;
-    private snap: Snapshot = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [] };
+    private snap: Snapshot = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
     private installed = true;
     private timer: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
@@ -124,7 +127,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             const state = build({
                 board: this.watcher.current(), inbox: this.snap.items, hidden: hiddenWorkspaces(), bots: readBots(this.agentDir), now: new Date(),
                 installed: this.installed, daemon, mutedUntil, cards: this.snap.cards,
-                workspaces: this.snap.workspaces, watched: this.snap.watched, running: this.snap.running, paused: this.snap.paused,
+                workspaces: this.snap.workspaces, watched: this.snap.watched, running: this.snap.running, paused: this.snap.paused, ideas: this.snap.ideas,
             });
             const json = JSON.stringify(state);
             if (json === this.lastJson) {
@@ -140,17 +143,18 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
     async refresh(): Promise<void> {
         this.installed = await isCorgiInstalled();
         if (!this.installed) {
-            this.snap = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [] };
+            this.snap = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
             this.push();
             return;
         }
         const hidden = hiddenWorkspaces();
-        const [items, kanban, workspaces, watch, status] = await Promise.all([
+        const [items, kanban, workspaces, watch, status, ideas] = await Promise.all([
             readInbox(corgiBinary(), hidden),
             corgiJSON<{ cards?: KanbanCard[] }>(['agent', 'kanban', '--json']),
             corgiJSON<WorkspaceInfo[]>(['agent', 'workspaces', '--json']),
             corgiJSON<{ workspaces?: WatchedWorkspace[] }>(['agent', 'watch', '--json']),
             corgiJSON<{ workspaces?: { workspaceId: string; running?: boolean }[] }>(['agent', 'status', '--json']),
+            corgiJSON<{ ideas?: IdeaListEntry[] }>(['idea', 'list', '--json']),
         ]);
         const supervised = status?.workspaces ?? [];
         this.snap = {
@@ -160,6 +164,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             watched: watch?.workspaces ?? [],
             running: supervised.filter((w) => w.running).map((w) => w.workspaceId),
             paused: (Array.isArray(workspaces) ? workspaces : []).filter((w) => w && w.id && !supervised.some((s) => s.workspaceId === w.id)).map((w) => w.id),
+            ideas: (ideas?.ideas ?? []).filter((i) => i && typeof i.slug === 'string' && !hidden.includes(i.workspace ?? '')),
         };
         this.push();
     }
@@ -218,6 +223,13 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 items.push({ label: '$(git-pull-request) Mark ready', command: 'corgi.agent.inboxPrReady' }, { label: '$(git-merge) Merge', command: 'corgi.agent.inboxPrMerge' }, { label: '$(git-pull-request-closed) Close', command: 'corgi.agent.inboxPrClose' });
             }
             items.push({ label: '$(bell-slash) Ignore', command: 'corgi.agent.inboxIgnore' });
+        } else if (node.kind === 'idea') {
+            title = node.slug;
+            items.push(
+                { label: '$(open-preview) Open the page beside the code', command: 'corgi.idea.open' },
+                { label: '$(edit) Edit the markdown', command: 'corgi.idea.openMarkdown' },
+                { label: '$(rocket) Build it: hand the page to the agent', command: 'corgi.idea.build' },
+            );
         } else if (node.kind === 'workspace') {
             title = node.id;
             items.push(

@@ -456,6 +456,56 @@
         "title": "Corgi: Move to another column…"
       },
       {
+        "command": "corgi.idea.new",
+        "title": "Corgi: New idea page…",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "corgi.idea.fromFile",
+        "title": "Corgi: Keep this markdown as an idea page",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "corgi.idea.open",
+        "title": "Corgi: Open idea page",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "corgi.idea.openMarkdown",
+        "title": "Corgi: Edit idea page markdown",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "corgi.idea.build",
+        "title": "Corgi: Build it (hand an idea page to the agent)",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "corgi.idea.commentSelection",
+        "title": "Corgi: Comment on this for the idea page",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "corgi.idea.replyThread",
+        "title": "Reply",
+        "icon": "$(reply)"
+      },
+      {
+        "command": "corgi.idea.createThread",
+        "title": "Comment",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "corgi.idea.resolveThread",
+        "title": "Resolve",
+        "icon": "$(check)"
+      },
+      {
+        "command": "corgi.idea.reopenThread",
+        "title": "Reopen",
+        "icon": "$(debug-restart)"
+      },
+      {
         "command": "corgi.commands",
         "title": "Corgi: all commands",
         "icon": "$(ellipsis)"
@@ -490,6 +540,11 @@
           "command": "corgi.agent.sendSelection",
           "when": "editorHasSelection",
           "group": "corgi@1"
+        },
+        {
+          "command": "corgi.idea.commentSelection",
+          "when": "editorHasSelection && resourceFilename == idea.md",
+          "group": "corgi@2"
         }
       ],
       "editor/title": [
@@ -502,6 +557,11 @@
           "command": "corgi.stop",
           "group": "navigation",
           "when": "resourceFilename =~ /corgi-*.*\\.y(a)?ml/"
+        },
+        {
+          "command": "corgi.idea.fromFile",
+          "group": "corgi",
+          "when": "resourceLangId == markdown"
         }
       ],
       "view/title": [
@@ -598,6 +658,54 @@
         {
           "command": "corgi.sidebar.reload",
           "when": "false"
+        },
+        {
+          "command": "corgi.idea.replyThread",
+          "when": "false"
+        },
+        {
+          "command": "corgi.idea.createThread",
+          "when": "false"
+        },
+        {
+          "command": "corgi.idea.resolveThread",
+          "when": "false"
+        },
+        {
+          "command": "corgi.idea.reopenThread",
+          "when": "false"
+        },
+        {
+          "command": "corgi.idea.commentSelection",
+          "when": "resourceFilename == idea.md"
+        },
+        {
+          "command": "corgi.idea.fromFile",
+          "when": "resourceLangId == markdown"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "corgi.idea.createThread",
+          "group": "inline",
+          "when": "commentController == corgi.idea && commentThreadIsEmpty"
+        },
+        {
+          "command": "corgi.idea.replyThread",
+          "group": "inline",
+          "when": "commentController == corgi.idea && !commentThreadIsEmpty"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "corgi.idea.resolveThread",
+          "group": "inline",
+          "when": "commentController == corgi.idea && commentThread == open"
+        },
+        {
+          "command": "corgi.idea.reopenThread",
+          "group": "inline",
+          "when": "commentController == corgi.idea && commentThread == resolved"
         }
       ]
     },
@@ -668,6 +776,11 @@
           },
           "default": [],
           "markdownDescription": "Workspaces tucked away while this editor is shown to someone: their sessions, inbox items and runs leave the views and the status bar, and nothing about them toasts. By workspace id, session label, or a folder's last path component. Nothing on the machine changes. Right-click a workspace in the sessions view to add one; `Corgi: Hidden workspaces…` to bring them back."
+        },
+        "corgi.idea.author": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The name on comments you leave on an idea page (`corgi idea comment --by`). Empty: your login name."
         }
       }
     }
@@ -691,8 +804,11 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
     "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "7.18.0",
+    "@typescript-eslint/parser": "7.18.0",
     "@vscode/test-electron": "^2.3.2",
     "copy-webpack-plugin": "11.0.0",
+    "eslint": "8.57.1",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
     "ts-loader": "^9.4.3",

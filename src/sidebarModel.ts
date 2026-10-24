@@ -1,4 +1,5 @@
 import { Board, BoardAccount, BoardLeft, BoardStalled, BoardRunSpend, BoardGroup, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
+import { epicRef, IdeaListEntry, ideaCounts, ideaStatusLabel, typeLabel } from './idea';
 import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl } from './watchInbox';
 
 /**
@@ -10,6 +11,7 @@ export type SessionNode = { kind: 'session'; session: BoardSession };
 export type InboxNode = { kind: 'item'; item: InboxItem };
 export type LeftNode = { kind: 'left'; id: string };
 export type StalledNode = { kind: 'stalled'; link: string; workspace: string; prompt: string };
+export type IdeaNode = { kind: 'idea'; slug: string };
 export type Tone = 'ask' | 'bad' | 'live' | 'quiet';
 
 export interface UsageWindow {
@@ -120,6 +122,19 @@ export interface StalledRow {
     node: StalledNode;
 }
 
+/** One idea page in the sidebar: its name, where it stands, what waits. */
+export interface IdeaRow {
+    slug: string;
+    title: string;
+    /** "idea", "spec", "HLD", "RFC": the pill after the name. */
+    type: string;
+    detail: string;
+    tooltip: string;
+    elapsed: string;
+    tone: Tone;
+    node: IdeaNode;
+}
+
 export interface SpendView {
     line: string;
     detail: string;
@@ -149,6 +164,8 @@ export interface SidebarState {
     tickets: TicketGroup[];
     ended: SessionRow[];
     workspaces: WorkspaceRow[];
+    /** Idea pages (`corgi idea list`), the last changed first. */
+    ideas: IdeaRow[];
     turn: YourTurn;
     counts: { inbox: number; active: number; board: number; turn: number };
     profiles: string[];
@@ -427,6 +444,27 @@ export interface BuildInput {
     watched?: WatchedWorkspace[];
     running?: string[];
     paused?: string[];
+    ideas?: IdeaListEntry[];
+}
+
+/** Idea pages as rows: building ones live, a draft with an open conversation asks, the rest quiet. */
+export function ideaRows(list: IdeaListEntry[], now: Date): IdeaRow[] {
+    return list.filter((i) => i && i.slug).map((i) => {
+        const open = i.open ?? 0;
+        const forAgent = i.forAgent ?? 0;
+        const epic = epicRef(i.sent);
+        const detail = [ideaStatusLabel(i.status), ideaCounts(open, forAgent), epic ? `epic ${epic}` : ''].filter(Boolean).join(' · ');
+        return {
+            slug: i.slug,
+            title: i.name || i.title || i.slug,
+            type: typeLabel(i.type),
+            detail,
+            tooltip: [i.title || i.name || i.slug, i.summary, i.workspace ? `workspace ${i.workspace}` : '', i.tags?.length ? i.tags.join(', ') : ''].filter(Boolean).join('\n'),
+            elapsed: formatElapsed(i.updatedAt, now),
+            tone: i.status === 'building' ? 'live' : i.status !== 'built' && open > 0 && forAgent < open ? 'ask' : 'quiet',
+            node: { kind: 'idea', slug: i.slug },
+        };
+    });
 }
 
 export function build(input: BuildInput): SidebarState {
@@ -459,6 +497,7 @@ export function build(input: BuildInput): SidebarState {
         tickets,
         ended,
         workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
+        ideas: ideaRows(input.ideas ?? [], now),
         turn,
         counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount, turn: turn.open + turn.stalled.length },
         profiles: accounts.map((a) => a.profile).filter(Boolean),

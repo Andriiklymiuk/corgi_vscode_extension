@@ -1,11 +1,27 @@
 import * as assert from 'node:assert';
-import { boardGroups, build, inboxRow, mutedLine, sessionRow, ticketGroups, usageWindows, workspaceRows } from '../sidebarModel';
+import { boardGroups, build, ideaRows, inboxRow, mutedLine, sessionRow, ticketGroups, usageWindows, workspaceRows } from '../sidebarModel';
 import type { Board, BoardSession } from '../agentBoard';
 
 const now = new Date('2026-09-16T10:00:00Z');
 const s = (over: Partial<BoardSession>): BoardSession => ({ id: 'a', label: 'api', status: 'working', statusSince: '2026-09-16T09:50:00Z', ...over });
 
 describe('sidebarModel', () => {
+    it('lists idea pages with where they stand and what waits', () => {
+        const rows = ideaRows([
+            { slug: 'coffee', title: 'Coffee shop scheduling', name: 'coffee', status: 'draft', open: 3, forAgent: 1, updatedAt: '2026-09-16T09:30:00Z', summary: 'shifts for baristas' },
+            { slug: 'shop', title: 'Shop', type: 'spec', status: 'building', open: 0, forAgent: 0, sent: [{ kind: 'epic', ref: 'SHOP-12', url: 'https://j/12' }] },
+            { slug: 'done', title: 'Done', type: 'rfc', status: 'built', open: 2, forAgent: 2 },
+        ], now);
+        assert.deepStrictEqual(rows.map((r) => [r.title, r.type, r.detail, r.tone, r.elapsed]), [
+            ['coffee', 'idea', 'draft · 3 open · 1 waiting on the agent', 'ask', '30m'],
+            ['Shop', 'spec', 'building · 0 open · epic SHOP-12', 'live', ''],
+            ['Done', 'RFC', 'built · 2 open · 2 waiting on the agent', 'quiet', ''],
+        ]);
+        assert.deepStrictEqual(rows[0].node, { kind: 'idea', slug: 'coffee' });
+        assert.ok(rows[0].tooltip.includes('shifts for baristas'));
+        assert.deepStrictEqual(build({ inbox: [], hidden: [], bots: [], now }).ideas, []);
+        assert.strictEqual(build({ inbox: [], hidden: [], bots: [], now, ideas: [{ slug: 'a', title: 'A', status: 'draft', open: 0, forAgent: 0 }] }).ideas.length, 1);
+    });
     it('folds sessions by the daemon groups, the rest under no ticket', () => {
         const rows = [s({ id: 'a', label: 'api' }), s({ id: 'b', label: 'web' }), s({ id: 'c', label: 'api' })].map((x) => sessionRow(x, [], now));
         const groups = ticketGroups([{ key: 'ABC-12', ticket: 'https://tracker/ABC-12', sessions: ['a', 'b', 'zz'], workspaces: ['api', 'web'], branches: ['feature/abc-12', 'feature/abc-12-web'], worktrees: ['/w/api/.corgi/wt'], prs: ['https://forge/p/1'] }], rows);

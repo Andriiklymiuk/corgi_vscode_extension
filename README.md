@@ -176,6 +176,79 @@ session's, or your own - has **ready for review**, **merge** and **close**
 *ready to merge · checks ✓ · approved*, or *checks ✗ · changes requested*
 (corgi 2.20.19 reads that from GitHub or GitLab once a round).
 
+### An idea page beside the code
+
+`corgi idea new "a scheduling app for a coffee shop"` has the agent write one
+page - the thing you want built, as markdown - and from then on the page is
+where it gets argued over: people highlight words and comment, the agent
+answers in the thread and amends the page, and when it reads right, **Build
+it** hands it over. The extension puts that page in VS Code.
+
+**Corgi: New idea page…** asks for the sentence, then what kind of page it
+is - *idea* (something to build from nothing), *spec* (a feature in an
+existing product), *HLD* (a high-level design) or *RFC* (a proposal to
+decide) - waits while the agent writes (a progress notification; it takes a
+minute or a few), and opens the page beside the code. A markdown file you
+already have becomes a page with **Corgi: Keep this markdown as an idea
+page** (the editor's title bar on any `.md`; `corgi idea new --from`).
+**Corgi: Open idea page** picks one from the list (name, type, summary,
+*3 open · 1 waiting on the agent*, the epic it was sent as). The **Ideas**
+section of the side bar lists them too, with the type as a pill and the same
+counts, a **+ new** link, an **Edit** button for the markdown and `⋯` for
+the rest.
+
+The panel shows the page as corgi renders it on the left, the comments on
+the right (below it when the panel is narrow); a thin bar along the top says
+how far down the page you are, and **On this page**, above the comments,
+lists the sections with how many open comments each has - click one to jump,
+the one in view is marked as you scroll. Select words on the page and a
+**Comment** button floats over the selection: your words go in with the
+quote, so the comment sits on those words - highlighted on the page, tinted
+by its status - and a click on a card's quote scrolls there. Hover a section
+heading for **+ comment**, a comment on the whole section. **Comment on the
+whole page** is at the bottom, next to **Build it**, under *Hand it to the
+agent*.
+
+Above that, **Tickets (N)**, folded: the agent's split of the page into
+tickets - number, title, the tracker ref as a link once it has one, its
+state, *after 1, 2* for what it waits on; click a row for the body. Under
+it, chips for where the page went: *🎯 SHOP-12 · BrewShift*, *📄 page 99*.
+When corgi has credentials for Jira, Linear or Confluence, **Send to jira**
+/ **linear** / **confluence** sits next to Build it: it asks for the project
+or team key (the space key for Confluence) when corgi does not know it,
+confirms *an epic and N tickets will be created in KEY*, runs `corgi idea
+send` and offers to open what it made.
+
+Each card says who, when, **proposal** when the agent proposed something,
+and the status: *open*, *answered* (the agent replied without touching the
+page), *changed the page*, *resolved*. Every card ends in a one-line reply
+box - type, Enter sends (Shift+Enter for a new line), the agent reads it. A
+proposal nobody answered has **Accept** (a reply, after which the agent
+acts) and **Dismiss**; everything else has **Resolve** or **Reopen**. The
+filter is All / Open / Proposals / Resolved. The agent answers on its own
+while the corgi dashboard runs (`corgi agent up`): the panel re-reads the
+moment the files change, and *agent is answering…* shows while it works -
+nothing here waits on it.
+
+**Edit markdown** (also *Corgi: Edit idea page markdown*) opens `idea.md`
+in a normal editor, and the comments show there as VS Code comment threads
+on the lines their words are on (page-level ones on the first line), the
+status in the thread's label, the replies under it. Reply in the thread's
+box, Resolve or Reopen from its title, or press the gutter's `+` on a line
+and write: that is a comment on those lines. With text selected the
+editor's context menu has **Corgi: Comment on this for the idea page**.
+
+**Build it** runs `corgi idea build` under a progress notification and says
+what came of it - the plan and its tasks, or why it could not start.
+**Open in browser** opens the same page in the corgi dashboard; it is the
+same page on the phone, so a comment left from the train is on the page
+here when you sit down.
+
+Comments carry your login name; `corgi.idea.author` sets another. Commands:
+Corgi: New idea page…, Keep this markdown as an idea page, Open idea page,
+Edit idea page markdown, Build it (hand an idea page to the agent), Comment
+on this for the idea page.
+
 **Reload** (↻ on either view) is a real reload: the daemon rescans sessions
 and polls every tracker now, and the phone, the menu bar and this editor
 re-read the same fresh picture.
