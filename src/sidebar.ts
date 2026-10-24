@@ -8,6 +8,7 @@ import { isCorgiInstalled } from './corgiCommands';
 import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 import { page } from './sidebarHtml';
 import { IdeaListEntry } from './idea';
+import { onIdeasChanged } from './ideaCli';
 import { build, DaemonInfo, IdeaNode, InboxNode, KanbanCard, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
 import { InboxItem, itemName, readInbox } from './watchInbox';
 
@@ -57,6 +58,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
     private installed = true;
     private timer: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
+    private ideasTimer: NodeJS.Timeout | undefined;
     private lastJson = '';
     private readonly disposables: vscode.Disposable[] = [];
 
@@ -167,6 +169,25 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             ideas: (ideas?.ideas ?? []).filter((i) => i && typeof i.slug === 'string' && !hidden.includes(i.workspace ?? '')),
         };
         this.push();
+    }
+
+    /** Only the Ideas section re-read, a moment after a panel or the threads view wrote, or the files moved. */
+    refreshIdeas(): void {
+        if (this.ideasTimer) {
+            clearTimeout(this.ideasTimer);
+        }
+        this.ideasTimer = setTimeout(() => {
+            this.ideasTimer = undefined;
+            void (async () => {
+                if (!this.installed) {
+                    return;
+                }
+                const hidden = hiddenWorkspaces();
+                const ideas = await corgiJSON<{ ideas?: IdeaListEntry[] }>(['idea', 'list', '--json']);
+                this.snap.ideas = (ideas?.ideas ?? []).filter((i) => i && typeof i.slug === 'string' && !hidden.includes(i.workspace ?? ''));
+                this.push();
+            })();
+        }, 400);
     }
 
     /** The row's ⋯: everything the row can do that is not a hover button. */
@@ -280,6 +301,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         };
         this.disposables.push(
             this.watcher.onDidChangeBoard(() => this.push()),
+            onIdeasChanged(() => this.refreshIdeas()),
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (e.affectsConfiguration('corgi.agent.hiddenWorkspaces')) {
                     void this.refresh();
@@ -513,6 +535,9 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         }
         if (this.debounce) {
             clearTimeout(this.debounce);
+        }
+        if (this.ideasTimer) {
+            clearTimeout(this.ideasTimer);
         }
         for (const d of this.disposables) {
             d.dispose();

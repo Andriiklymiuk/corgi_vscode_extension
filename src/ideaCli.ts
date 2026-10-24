@@ -3,15 +3,18 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CorgiResult, runCorgi } from './corgiExec';
-import { authorName, changedMarker, ideasDir } from './idea';
+import { authorName, changedMarker, ideasDir, isSlug } from './idea';
 
 /**
- * What the idea panel and the comment threads share: the author for --by,
- * the `corgi idea … --json` call, and the watcher on the idea files.
+ * What the idea panel, the comment threads and the sidebar share: the
+ * author for --by, the `corgi idea … --json` call, the watcher on the idea
+ * files, and one event that says "an idea changed" to whoever draws them.
  */
 
 /** The agent writes or plans for minutes: the slow verbs get this long. */
 export const SLOW_MS = 6 * 60_000;
+/** A write (comment, reply, resolve) notifies the desktop and a webhook before it exits: a minute, not 15 s. */
+export const WRITE_MS = 60_000;
 const POLL_MS = 5000;
 const DEBOUNCE_MS = 250;
 
@@ -52,27 +55,84 @@ export async function ideaJSON<T>(args: string[], timeoutMs?: number): Promise<{
     }
 }
 
+const ideasChanged = new vscode.EventEmitter<string | undefined>();
+/**
+ * An idea changed, by slug when known: a panel or the threads view wrote
+ * through corgi, or a watcher saw the files move. The sidebar re-reads its
+ * Ideas section on this, so the counts follow the panel.
+ */
+export const onIdeasChanged = ideasChanged.event;
+export function fireIdeasChanged(slug?: string): void {
+    ideasChanged.fire(slug);
+}
+
+/** The newest mtime among the marker and, for one idea, its three files; -1 when none is there. */
+export function ideaStamp(agentDir: string, slug?: string): number {
+    let mtime = -1;
+    const look = (file: string) => {
+        try {
+            mtime = Math.max(mtime, fs.statSync(file).mtimeMs);
+        } catch {
+            // not written yet
+        }
+    };
+    look(changedMarker(agentDir));
+    if (slug) {
+        for (const f of ['idea.md', 'meta.json', 'comments.json']) {
+            look(path.join(ideasDir(agentDir), slug, f));
+        }
+    }
+    return mtime;
+}
+
 /**
  * Change under <agent dir>/ideas: corgi touches ideas/changed on every
  * change to any idea, and the idea's own folder changes with it. fs.watch
- * on both, a slow poll on the marker's mtime for the platforms that drop
- * events, and one debounced event out.
+ * on both (armed again by the poll once a missing folder appears), a slow
+ * poll on the mtimes for the platforms that drop events, and one debounced
+ * event out, with the slug when the event named one. start() seeds the
+ * baseline without firing; the first real change fires, even from nothing.
  */
 export class IdeaFilesWatcher implements vscode.Disposable {
-    private readonly changed = new vscode.EventEmitter<void>();
+    private readonly changed = new vscode.EventEmitter<string | undefined>();
     readonly onDidChange = this.changed.event;
     private readonly watchers = new Map<string, fs.FSWatcher>();
     private poll: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
     private lastMtime = -1;
+    private pendingSlug: string | undefined | null = null;
     private disposed = false;
 
     constructor(private readonly agentDir: string, private readonly slug?: string) { }
 
+    get running(): boolean {
+        return !!this.poll;
+    }
+
     start(): this {
+        if (this.poll || this.disposed) {
+            return this;
+        }
+        this.lastMtime = ideaStamp(this.agentDir, this.slug);
+        this.arm();
         this.poll = setInterval(() => this.tick(), POLL_MS);
-        this.tick();
         return this;
+    }
+
+    /** Quiet until start() again: no poll, no fs.watch. */
+    stop(): void {
+        if (this.poll) {
+            clearInterval(this.poll);
+            this.poll = undefined;
+        }
+        if (this.debounce) {
+            clearTimeout(this.debounce);
+            this.debounce = undefined;
+        }
+        for (const w of this.watchers.values()) {
+            w.close();
+        }
+        this.watchers.clear();
     }
 
     private dirs(): string[] {
@@ -94,9 +154,13 @@ export class IdeaFilesWatcher implements vscode.Disposable {
             try {
                 const w = fs.watch(dir, (_event, filename) => {
                     const name = filename ? filename.toString() : '';
-                    // In ideas/ itself only the marker and this idea's folder matter (everything, without a slug).
-                    if (!name || dir !== ideasDir(this.agentDir) || !this.slug || name === 'changed' || name === this.slug) {
-                        this.schedule();
+                    if (dir !== ideasDir(this.agentDir)) {
+                        this.schedule(this.slug);
+                    } else if (!name || name === 'changed') {
+                        this.schedule(undefined);
+                    } else if (!this.slug || name === this.slug) {
+                        // A folder named by its slug changed.
+                        this.schedule(isSlug(name) ? name : undefined);
                     }
                 });
                 w.on('error', () => {
@@ -111,59 +175,38 @@ export class IdeaFilesWatcher implements vscode.Disposable {
     }
 
     private tick(): void {
-        if (this.disposed) {
+        if (this.disposed || !this.poll) {
             return;
         }
         this.arm();
-        let mtime = -1;
-        try {
-            mtime = fs.statSync(changedMarker(this.agentDir)).mtimeMs;
-            if (this.slug) {
-                for (const f of ['idea.md', 'meta.json', 'comments.json']) {
-                    try {
-                        mtime = Math.max(mtime, fs.statSync(path.join(ideasDir(this.agentDir), this.slug, f)).mtimeMs);
-                    } catch {
-                        // a file corgi has not written yet
-                    }
-                }
-            }
-        } catch {
-            // no marker: nothing has changed yet
-        }
+        const mtime = ideaStamp(this.agentDir, this.slug);
         if (mtime !== this.lastMtime) {
-            const first = this.lastMtime === -1;
             this.lastMtime = mtime;
-            if (!first) {
-                this.schedule();
-            }
+            this.schedule(this.slug);
         }
     }
 
-    private schedule(): void {
+    private schedule(slug: string | undefined): void {
+        // Two events in one burst: keep the slug only when both agree.
+        this.pendingSlug = this.pendingSlug === null ? slug : this.pendingSlug === slug ? slug : undefined;
         if (this.debounce) {
             clearTimeout(this.debounce);
         }
         this.debounce = setTimeout(() => {
             this.debounce = undefined;
+            const which = this.pendingSlug ?? undefined;
+            this.pendingSlug = null;
             if (!this.disposed) {
-                this.changed.fire();
+                // The poll must not fire again for what fs.watch just reported.
+                this.lastMtime = ideaStamp(this.agentDir, this.slug);
+                this.changed.fire(which);
             }
         }, DEBOUNCE_MS);
     }
 
     dispose(): void {
         this.disposed = true;
-        if (this.poll) {
-            clearInterval(this.poll);
-        }
-        if (this.debounce) {
-            clearTimeout(this.debounce);
-        }
-        for (const w of this.watchers.values()) {
-            w.close();
-        }
-        this.watchers.clear();
+        this.stop();
         this.changed.dispose();
     }
 }
-

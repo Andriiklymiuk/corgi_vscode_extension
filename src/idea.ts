@@ -7,7 +7,9 @@ import * as path from 'node:path';
  * under <agent dir>/ideas/<slug>/ - idea.md, meta.json, comments.json and
  * a files/ folder - and touches ideas/changed on every change. This module
  * reads those files and finds a comment's words on the page; it imports no
- * vscode, so the tests run in plain node.
+ * vscode, so the tests run in plain node. The functions marked "shared with
+ * the webview" are injected into the page script by their source, so they
+ * reference nothing outside themselves but each other.
  */
 
 export type IdeaStatus = 'draft' | 'building' | 'built';
@@ -205,38 +207,23 @@ export function readIdea(ideas: string, slug: string): Idea | undefined {
     };
 }
 
-/** Every idea in the folder, newest change first. */
-export function listIdeas(ideas: string): IdeaListEntry[] {
-    let names: string[];
-    try {
-        names = fs.readdirSync(ideas);
-    } catch {
-        return [];
-    }
-    const out: IdeaListEntry[] = [];
-    for (const name of names) {
-        const idea = readIdea(ideas, name);
-        if (idea) {
-            out.push({ ...idea.meta, open: openCount(idea.comments), forAgent: forAgentCount(idea.comments), file: idea.file });
-        }
-    }
-    return out.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
-}
-
 /** The first heading of the page, as a title. */
 export function titleOf(markdown: string): string {
     const m = /^#\s+(.+?)\s*$/m.exec(markdown);
     return m ? m[1].replace(/\s+#+$/, '') : '';
 }
 
-export const isAgent = (by: string | undefined): boolean => (by ?? '').toLowerCase() === AGENT;
+/** Shared with the webview. */
+export function isAgent(by: string | undefined): boolean {
+    return (by ?? '').toLowerCase() === 'agent';
+}
 
-/** Someone other than the agent replied: a proposal that got this is accepted. */
+/** Someone other than the agent replied: a proposal that got this is accepted. Shared with the webview. */
 export function personReplied(c: IdeaComment): boolean {
     return (c.replies ?? []).some((r) => !isAgent(r.by));
 }
 
-/** An open proposal nobody answered: it waits on a person to accept or dismiss it. */
+/** An open proposal nobody answered: it waits on a person to accept or dismiss it. Shared with the webview. */
 export function waitsOnPerson(c: IdeaComment): boolean {
     return c.kind === 'proposal' && c.status === 'open' && !personReplied(c);
 }
@@ -246,7 +233,10 @@ export function waitsOnAgent(c: IdeaComment): boolean {
     return c.status === 'open' && !waitsOnPerson(c);
 }
 
-export const isOpen = (c: IdeaComment): boolean => c.status !== 'resolved';
+/** Shared with the webview. */
+export function isOpen(c: IdeaComment): boolean {
+    return c.status !== 'resolved';
+}
 
 export function openCount(comments: readonly IdeaComment[]): number {
     return comments.filter(isOpen).length;
@@ -256,7 +246,7 @@ export function forAgentCount(comments: readonly IdeaComment[]): number {
     return comments.filter(waitsOnAgent).length;
 }
 
-/** The status, in words. */
+/** The status, in words. Shared with the webview. */
 export function statusLabel(status: CommentStatus | string | undefined): string {
     switch (status) {
         case 'answered': return 'answered';
@@ -266,7 +256,7 @@ export function statusLabel(status: CommentStatus | string | undefined): string 
     }
 }
 
-/** The page's type as a pill: "idea", "spec", "HLD", "RFC". */
+/** The page's type as a pill: "idea", "spec", "HLD", "RFC". Shared with the webview. */
 export function typeLabel(type: IdeaType | string | undefined): string {
     switch ((type ?? '').toLowerCase()) {
         case 'spec': return 'spec';
@@ -289,7 +279,7 @@ export function epicRef(sent: readonly SentLink[] | null | undefined): string {
     return (sent ?? []).find((l) => l && l.kind === 'epic' && l.ref)?.ref ?? '';
 }
 
-/** "🎯 SHOP-12 · BrewShift" for an epic or ticket, "📄 page 99" for a wiki page. */
+/** "🎯 SHOP-12 · BrewShift" for an epic or ticket, "📄 page 99" for a wiki page. Shared with the webview. */
 export function sentLabel(l: SentLink): string {
     if (l.kind === 'page') {
         return `📄 ${l.title || (l.ref ? `page ${l.ref}` : 'page')}`;
@@ -312,12 +302,12 @@ export function sendTargets(send: SendOptions | null | undefined): { to: 'jira' 
     return out;
 }
 
-/** "after 1, 2" for a ticket that waits on others; "". */
+/** "after 1, 2" for a ticket that waits on others; "". Shared with the webview. */
 export function afterLine(t: IdeaTicket): string {
     return t.after?.length ? `after ${t.after.join(', ')}` : '';
 }
 
-/** How many comments that are not resolved sit under a heading (by their anchor's heading). */
+/** How many comments that are not resolved sit under a heading (by their anchor's heading). Shared with the webview. */
 export function openUnder(comments: readonly IdeaComment[], heading: string): number {
     const key = heading.trim().toLowerCase();
     return comments.filter((c) => isOpen(c) && (c.anchor?.heading ?? '').trim().toLowerCase() === key).length;
@@ -343,8 +333,8 @@ export function authorName(setting: string | undefined, username: string): strin
     return s || username.trim() || 'someone';
 }
 
-/** How many characters at the end of a match the end of b: "abc" and "xbc" share 2. */
-function sharedTail(a: string, b: string): number {
+/** How many characters at the end of a match the end of b: "abc" and "xbc" share 2. Shared with the webview. */
+export function sharedTail(a: string, b: string): number {
     let n = 0;
     while (n < a.length && n < b.length && a[a.length - 1 - n] === b[b.length - 1 - n]) {
         n++;
@@ -352,7 +342,8 @@ function sharedTail(a: string, b: string): number {
     return n;
 }
 
-function sharedHead(a: string, b: string): number {
+/** Shared with the webview. */
+export function sharedHead(a: string, b: string): number {
     let n = 0;
     while (n < a.length && n < b.length && a[n] === b[n]) {
         n++;
@@ -360,10 +351,11 @@ function sharedHead(a: string, b: string): number {
     return n;
 }
 
-const CONTEXT = 40;
+/** Characters of context an anchor keeps on each side of its words. */
+export const QUOTE_CONTEXT = 40;
 
-/** Every start offset of needle in text. */
-function occurrences(text: string, needle: string): number[] {
+/** Every start offset of needle in text. Shared with the webview. */
+export function occurrences(text: string, needle: string): number[] {
     const out: number[] = [];
     for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + 1)) {
         out.push(i);
@@ -371,12 +363,31 @@ function occurrences(text: string, needle: string): number[] {
     return out;
 }
 
+/** Of several copies of the words, the one whose surroundings match the anchor's prefix and suffix best. Shared with the webview. */
+export function pickOccurrence(text: string, starts: number[], length: number, anchor: IdeaAnchor): number {
+    if (starts.length === 1 || (!anchor.prefix && !anchor.suffix)) {
+        return starts[0];
+    }
+    let best = starts[0];
+    let bestScore = -1;
+    for (const s of starts) {
+        const before = text.slice(Math.max(0, s - 40), s);
+        const after = text.slice(s + length, s + length + 40);
+        const score = sharedTail(before, anchor.prefix ?? '') + sharedHead(after, anchor.suffix ?? '');
+        if (score > bestScore) {
+            best = s;
+            bestScore = score;
+        }
+    }
+    return best;
+}
+
 /**
  * Where the anchor's words are in text, as [start, end) offsets. With the
  * quote on the page more than once, the copy whose surroundings match the
  * anchor's prefix and suffix best wins - a text-quote selector. Whitespace
  * differences are forgiven when an exact match fails. Null when the words
- * are gone (the page changed under the comment).
+ * are gone (the page changed under the comment). Shared with the webview.
  */
 export function findQuote(text: string, anchor: IdeaAnchor | undefined): { start: number; end: number } | null {
     const quote = anchor?.quote ?? '';
@@ -385,7 +396,7 @@ export function findQuote(text: string, anchor: IdeaAnchor | undefined): { start
     }
     const exact = occurrences(text, quote);
     if (exact.length) {
-        const start = pick(text, exact, quote.length, anchor!);
+        const start = pickOccurrence(text, exact, quote.length, anchor!);
         return { start, end: start + quote.length };
     }
     // Loose: whitespace runs count as one space; map the hit back.
@@ -412,26 +423,8 @@ export function findQuote(text: string, anchor: IdeaAnchor | undefined): { start
         return null;
     }
     const looseAnchor: IdeaAnchor = { quote: needle, prefix: anchor!.prefix?.replace(/\s+/g, ' '), suffix: anchor!.suffix?.replace(/\s+/g, ' ') };
-    const at = pick(loose, hits, needle.length, looseAnchor);
+    const at = pickOccurrence(loose, hits, needle.length, looseAnchor);
     return { start: map[at], end: map[at + needle.length - 1] + 1 };
-}
-
-function pick(text: string, starts: number[], length: number, anchor: IdeaAnchor): number {
-    if (starts.length === 1 || (!anchor.prefix && !anchor.suffix)) {
-        return starts[0];
-    }
-    let best = starts[0];
-    let bestScore = -1;
-    for (const s of starts) {
-        const before = text.slice(Math.max(0, s - CONTEXT), s);
-        const after = text.slice(s + length, s + length + CONTEXT);
-        const score = sharedTail(before, anchor.prefix ?? '') + sharedHead(after, anchor.suffix ?? '');
-        if (score > bestScore) {
-            best = s;
-            bestScore = score;
-        }
-    }
-    return best;
 }
 
 /** The nearest markdown heading above offset, without its hashes; "" above the first. */
@@ -451,8 +444,8 @@ export function anchorFor(text: string, start: number, end: number): IdeaAnchor 
     const e = Math.min(text.length, Math.max(start, end));
     return {
         quote: text.slice(s, e),
-        prefix: text.slice(Math.max(0, s - CONTEXT), s),
-        suffix: text.slice(e, e + CONTEXT),
+        prefix: text.slice(Math.max(0, s - QUOTE_CONTEXT), s),
+        suffix: text.slice(e, e + QUOTE_CONTEXT),
         heading: headingAbove(text, s),
     };
 }
@@ -490,23 +483,91 @@ export function lineStart(text: string, line: number): number {
     return at;
 }
 
-/** "just now", "4m", "2h 10m", "3d" for a card. */
-export function timeAgo(at: string | undefined, now: Date = new Date()): string {
-    if (!at) {
-        return '';
+/**
+ * Words selected in the markdown, as a quote corgi can place: heading
+ * marks, list bullets and quote marks are stripped at the start of every
+ * line, because the rendered page has none of them.
+ */
+export function cleanQuote(text: string): string {
+    return text.split('\n').map((line) => line.replace(/^\s*(#{1,6}\s+|[-*+]\s+|\d+[.)]\s+|>\s*)+/, '')).join('\n').trim();
+}
+
+/**
+ * The anchor for text[start, end) selected in the markdown: the quote with
+ * heading marks and bullets stripped, placed where the cleaned words are
+ * (so prefix and suffix abut them), the heading above. A quote that is
+ * all markup becomes empty: a comment on the whole page.
+ */
+export function selectionAnchor(text: string, start: number, end: number): IdeaAnchor {
+    const s = Math.max(0, Math.min(start, end));
+    const e = Math.min(text.length, Math.max(start, end));
+    const quote = cleanQuote(text.slice(s, e));
+    if (!quote) {
+        return { quote: '' };
     }
-    const ms = now.getTime() - new Date(at).getTime();
-    if (!Number.isFinite(ms)) {
-        return '';
+    const at = text.indexOf(quote, s);
+    if (at >= 0 && at < e) {
+        return anchorFor(text, at, at + quote.length);
     }
-    const s = Math.floor(ms / 1000);
-    if (s < 60) {
-        return 'just now';
+    // Several lines with marks inside: the raw span's context, the cleaned words.
+    return { ...anchorFor(text, s, e), quote };
+}
+
+/** What a comment or reply carries to `corgi idea comment`. */
+export interface CommentWrite {
+    slug: string;
+    text: string;
+    by: string;
+    anchor?: IdeaAnchor;
+    replyTo?: CommentId;
+    links?: string[];
+    files?: string[];
+}
+
+/**
+ * The argument list for `corgi idea comment`: every flag first, then `--`,
+ * then the slug and the text - so words that start with a dash ("-1 on
+ * sqlite") are text, not flags. The anchor goes whole: quote, prefix, suffix
+ * and heading, so corgi places the comment on the right copy of the words.
+ */
+export function commentArgs(w: CommentWrite): string[] {
+    const args = ['idea', 'comment', '--by', w.by, '--json'];
+    if (w.replyTo !== undefined && w.replyTo !== '') {
+        args.push('--reply-to', String(w.replyTo));
     }
-    const m = Math.floor(s / 60);
-    if (m < 60) {
-        return `${m}m`;
+    const quote = w.anchor?.quote ?? '';
+    if (quote.trim()) {
+        args.push('--quote', quote);
+        if (w.anchor!.prefix) {
+            args.push('--prefix', w.anchor!.prefix);
+        }
+        if (w.anchor!.suffix) {
+            args.push('--suffix', w.anchor!.suffix);
+        }
+        if (w.anchor!.heading) {
+            args.push('--heading', w.anchor!.heading);
+        }
     }
-    const h = Math.floor(m / 60);
-    return h < 24 ? `${h}h${m % 60 ? ` ${m % 60}m` : ''}` : `${Math.floor(h / 24)}d`;
+    for (const l of w.links ?? []) {
+        if (/^https?:\/\//.test(l)) {
+            args.push('--link', l);
+        }
+    }
+    for (const f of w.files ?? []) {
+        if (f) {
+            args.push('--file', f);
+        }
+    }
+    args.push('--', w.slug, w.text);
+    return args;
+}
+
+/** The argument list for `corgi idea new`: flags, `--`, the sentence (empty with --from). */
+export function newArgs(text: string, type: IdeaType, from?: string): string[] {
+    const args = ['idea', 'new', '--type', type, '--json'];
+    if (from) {
+        args.push('--from', from);
+    }
+    args.push('--', text);
+    return args;
 }

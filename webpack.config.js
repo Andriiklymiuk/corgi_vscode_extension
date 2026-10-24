@@ -46,6 +46,14 @@ const extensionConfig = {
       ],
     }),
   ],
+  // The idea page's webview script is built from the source of functions
+  // the host also runs (ideaHtml.ts sharedScript): their names and bodies
+  // must survive the release build as written, so no concatenation
+  // renaming and no mangling.
+  optimization: {
+    minimize: false,
+    concatenateModules: false,
+  },
   devtool: 'nosources-source-map',
   infrastructureLogging: {
     level: "log",

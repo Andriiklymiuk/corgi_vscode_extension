@@ -3,8 +3,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
-    afterLine, anchorFor, authorName, epicRef, findQuote, forAgentCount, headingAbove, ideaCounts, ideaSlugOf, IdeaComment, lineRangeOf, lineStart, listIdeas, openCount, openUnder, readIdea, sendTargets,
-    sentLabel, statusLabel, timeAgo, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
+    afterLine, anchorFor, authorName, cleanQuote, commentArgs, epicRef, findQuote, forAgentCount, headingAbove, ideaCounts, ideaSlugOf, IdeaComment, lineRangeOf, lineStart, newArgs, openCount, openUnder,
+    readIdea, selectionAnchor, sendTargets, sentLabel, statusLabel, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
 } from '../idea';
 
 const page = `# Coffee shop scheduling
@@ -84,10 +84,6 @@ describe('idea', () => {
         assert.strictEqual(statusLabel(undefined), 'open');
         assert.strictEqual(ideaCounts(3, 1), '3 open · 1 waiting on the agent');
         assert.strictEqual(ideaCounts(0, 0), '0 open');
-        const now = new Date('2026-10-24T12:00:00Z');
-        assert.strictEqual(timeAgo('2026-10-24T11:59:30Z', now), 'just now');
-        assert.strictEqual(timeAgo('2026-10-24T09:50:00Z', now), '2h 10m');
-        assert.strictEqual(timeAgo(undefined, now), '');
         assert.strictEqual(authorName('', 'ann'), 'ann');
         assert.strictEqual(authorName(' Ann B ', 'ann'), 'Ann B');
         assert.strictEqual(titleOf(page), 'Coffee shop scheduling');
@@ -109,7 +105,34 @@ describe('idea', () => {
         assert.strictEqual(openUnder(comments, 'data'), 1);
         assert.strictEqual(openUnder(comments, 'Screens'), 0);
     });
-    it('reads an idea from its folder and lists the folder', () => {
+    it('puts every flag first and -- before the slug and the text, the anchor whole', () => {
+        const args = commentArgs({ slug: 'coffee', text: '-1 on sqlite', by: 'ann', anchor: { quote: 'SQLite', prefix: 'Infra\n\n', suffix: ' on a VPS', heading: 'Infra' }, links: ['https://x/y', 'ftp://no'], files: ['/tmp/a.png', ''] });
+        assert.deepStrictEqual(args, ['idea', 'comment', '--by', 'ann', '--json', '--quote', 'SQLite', '--prefix', 'Infra\n\n', '--suffix', ' on a VPS', '--heading', 'Infra', '--link', 'https://x/y', '--file', '/tmp/a.png', '--', 'coffee', '-1 on sqlite']);
+        assert.deepStrictEqual(commentArgs({ slug: 'coffee', text: 'yes', by: 'ann', replyTo: 7 }), ['idea', 'comment', '--by', 'ann', '--json', '--reply-to', '7', '--', 'coffee', 'yes']);
+        assert.deepStrictEqual(commentArgs({ slug: 'coffee', text: 'whole page', by: 'ann', anchor: { quote: '  ' } }), ['idea', 'comment', '--by', 'ann', '--json', '--', 'coffee', 'whole page']);
+        assert.deepStrictEqual(commentArgs({ slug: 'coffee', text: 'at the start', by: 'ann', anchor: { quote: 'Coffee', prefix: '', suffix: ' shop', heading: '' } }), ['idea', 'comment', '--by', 'ann', '--json', '--quote', 'Coffee', '--suffix', ' shop', '--', 'coffee', 'at the start']);
+        assert.deepStrictEqual(newArgs('- a waitlist app', 'spec'), ['idea', 'new', '--type', 'spec', '--json', '--', '- a waitlist app']);
+        assert.deepStrictEqual(newArgs('', 'rfc', '/w/notes.md'), ['idea', 'new', '--type', 'rfc', '--json', '--from', '/w/notes.md', '--', '']);
+    });
+    it('turns selected markdown lines into a quote corgi can place', () => {
+        assert.strictEqual(cleanQuote('## Shifts'), 'Shifts');
+        assert.strictEqual(cleanQuote('- one\n* two\n3. three\n> quoted\n'), 'one\ntwo\nthree\nquoted');
+        assert.strictEqual(cleanQuote('#'), '#', 'a lone hash is not a heading');
+        const start = page.indexOf('## Shifts');
+        const a = selectionAnchor(page, start, start + '## Shifts'.length);
+        assert.strictEqual(a.quote, 'Shifts');
+        assert.ok(a.prefix!.endsWith('## '), 'placed where the cleaned words are: ' + JSON.stringify(a.prefix));
+        assert.strictEqual(a.suffix!.slice(0, 2), '\n\n');
+        assert.strictEqual(a.heading, 'Who it is for', 'the heading above the selection, not the selection itself');
+        assert.deepStrictEqual(findQuote(page, a), { start: start + 3, end: start + 9 });
+        assert.deepStrictEqual(selectionAnchor(page, 0, 0), { quote: '' });
+        // Several lines with marks inside: the cleaned words, the raw span's context.
+        const multi = '# T\n\n- one\n- two\n';
+        const m = selectionAnchor(multi, multi.indexOf('- one'), multi.length);
+        assert.strictEqual(m.quote, 'one\ntwo');
+        assert.strictEqual(m.heading, 'T');
+    });
+    it('reads an idea from its folder', () => {
         const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), 'corgi-idea-'));
         const ideas = path.join(agentDir, 'ideas');
         const dir = path.join(ideas, 'coffee');
@@ -129,8 +152,6 @@ describe('idea', () => {
             assert.deepStrictEqual(bare.meta, { slug: 'bare', title: 'Bare', status: 'draft' });
             assert.strictEqual(readIdea(ideas, 'missing'), undefined);
             assert.strictEqual(readIdea(ideas, '../coffee'), undefined);
-            const list = listIdeas(ideas);
-            assert.deepStrictEqual(list.map((i) => [i.slug, i.open, i.forAgent]), [['coffee', 2, 1], ['bare', 0, 0]]);
             assert.strictEqual(ideaSlugOf(agentDir, idea.file), 'coffee');
             assert.strictEqual(ideaSlugOf(agentDir, path.join(dir, 'meta.json')), undefined);
             assert.strictEqual(ideaSlugOf(agentDir, path.join(agentDir, 'idea.md')), undefined);

@@ -2,8 +2,8 @@ import * as crypto from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CorgiResult, runCorgi } from './corgiExec';
-import { anchorFor, epicRef, IDEA_TYPES, IdeaDoc, IdeaListEntry, IdeaType, ideaCounts, ideaSlugOf, ideasDir, ideaStatusLabel, isSlug, sendTargets, SentLink, sentLabel, typeDescriptions, typeLabel } from './idea';
-import { ideaAuthor, IdeaFilesWatcher, ideaJSON, lastLine, SLOW_MS } from './ideaCli';
+import { commentArgs, epicRef, IDEA_TYPES, IdeaDoc, IdeaListEntry, IdeaType, ideaCounts, ideaSlugOf, ideasDir, ideaStatusLabel, isSlug, newArgs, selectionAnchor, sendTargets, SentLink, sentLabel, typeDescriptions, typeLabel } from './idea';
+import { fireIdeasChanged, ideaAuthor, IdeaFilesWatcher, ideaJSON, lastLine, SLOW_MS, WRITE_MS } from './ideaCli';
 import { IdeaCommentThreads } from './ideaComments';
 import { ideaPage } from './ideaHtml';
 import { insideFolder } from './utils/insideFolder';
@@ -20,7 +20,8 @@ import { insideFolder } from './utils/insideFolder';
 
 type Message =
     | { type: 'ready' }
-    | { type: 'comment'; text?: string; quote?: string; prefix?: string; suffix?: string; heading?: string; link?: string }
+    | { type: 'comment'; text?: string; quote?: string; prefix?: string; suffix?: string; heading?: string; link?: string; files?: unknown }
+    | { type: 'pickFiles' }
     | { type: 'reply'; id?: string | number; text?: string }
     | { type: 'status'; id?: string | number; status?: string }
     | { type: 'build' }
@@ -36,6 +37,10 @@ export class IdeaPanel {
     private readonly ideaDir: string;
     private doc: IdeaDoc | undefined;
     private disposed = false;
+    /** The number of the latest `corgi idea show`: an older one that lands later is dropped. */
+    private seq = 0;
+    /** Paths the person picked in the open dialog: the only ones a comment may attach. */
+    private readonly picked = new Set<string>();
 
     static show(agentDir: string, slug: string, title?: string): void {
         if (!isSlug(slug)) {
@@ -66,7 +71,10 @@ export class IdeaPanel {
         this.panel.onDidDispose(() => this.dispose());
         this.panel.webview.onDidReceiveMessage((m: Message) => void this.onMessage(m));
         this.watcher = new IdeaFilesWatcher(agentDir, slug).start();
-        this.watcher.onDidChange(() => void this.load());
+        this.watcher.onDidChange(() => {
+            void this.load();
+            fireIdeasChanged(slug);
+        });
     }
 
     private post(m: unknown): void {
@@ -88,7 +96,11 @@ export class IdeaPanel {
         if (this.disposed) {
             return;
         }
+        const mine = ++this.seq;
         const r = await ideaJSON<IdeaDoc>(['show', this.slug, '--json']);
+        if (this.disposed || mine !== this.seq) {
+            return; // a newer read is on its way or landed already
+        }
         if (!r.ok) {
             this.error(`corgi could not read the idea: ${r.why}`);
             return;
@@ -110,11 +122,14 @@ export class IdeaPanel {
         return { ...doc, comments: (doc.comments ?? []).map((c) => ({ ...fix(c), replies: c.replies?.map(fix) })) };
     }
 
-    private async act(what: string, args: string[], failure: string, timeoutMs?: number): Promise<CorgiResult> {
+    /** A write through corgi: busy while it runs, a minute allowed (it notifies before it exits), then a re-read. */
+    private async act(what: string, args: string[], failure: string): Promise<CorgiResult> {
         this.busy(what);
-        const r = await runCorgi(['idea', ...args], undefined, timeoutMs);
+        const r = await runCorgi(args, undefined, WRITE_MS);
         if (!r.ok) {
             this.error(`${failure}: ${lastLine(r)}`);
+        } else {
+            fireIdeasChanged(this.slug);
         }
         this.busy('');
         await this.load();
@@ -131,14 +146,26 @@ export class IdeaPanel {
                 if (!text) {
                     return;
                 }
-                const args = ['comment', this.slug, text, '--by', ideaAuthor(), '--json'];
-                if (m.quote?.trim()) {
-                    args.push('--quote', m.quote);
-                }
-                if (m.link && /^https?:\/\//.test(m.link)) {
-                    args.push('--link', m.link);
-                }
+                const files = (Array.isArray(m.files) ? m.files : []).filter((f): f is string => typeof f === 'string' && this.picked.has(f));
+                const args = commentArgs({
+                    slug: this.slug, text, by: ideaAuthor(),
+                    anchor: m.quote?.trim() ? { quote: m.quote, prefix: m.prefix || undefined, suffix: m.suffix || undefined, heading: m.heading || undefined } : undefined,
+                    links: m.link ? [m.link] : [],
+                    files,
+                });
                 await this.act('sending your comment…', args, 'corgi could not add the comment');
+                for (const f of files) {
+                    this.picked.delete(f);
+                }
+                return;
+            }
+            case 'pickFiles': {
+                const uris = await vscode.window.showOpenDialog({ canSelectMany: true, canSelectFiles: true, canSelectFolders: false, openLabel: 'Attach to the comment' });
+                const files = (uris ?? []).filter((u) => u.scheme === 'file').map((u) => ({ path: u.fsPath, name: path.basename(u.fsPath) }));
+                for (const f of files) {
+                    this.picked.add(f.path);
+                }
+                this.post({ type: 'picked', files });
                 return;
             }
             case 'reply': {
@@ -146,12 +173,12 @@ export class IdeaPanel {
                 if (!text || m.id === undefined || m.id === '') {
                     return;
                 }
-                await this.act('sending your reply…', ['comment', this.slug, text, '--reply-to', String(m.id), '--by', ideaAuthor(), '--json'], 'corgi could not add the reply');
+                await this.act('sending your reply…', commentArgs({ slug: this.slug, text, by: ideaAuthor(), replyTo: m.id }), 'corgi could not add the reply');
                 return;
             }
             case 'status':
                 if (m.id !== undefined && m.id !== '' && (m.status === 'resolved' || m.status === 'open')) {
-                    await this.act(m.status === 'resolved' ? 'resolving…' : 'reopening…', [m.status === 'resolved' ? 'resolve' : 'reopen', this.slug, String(m.id), '--json'], 'corgi could not change the comment');
+                    await this.act(m.status === 'resolved' ? 'resolving…' : 'reopening…', ['idea', m.status === 'resolved' ? 'resolve' : 'reopen', '--json', '--', this.slug, String(m.id)], 'corgi could not change the comment');
                 }
                 return;
             case 'send':
@@ -269,7 +296,7 @@ export async function pickType(placeHolder = 'What kind of page is it?'): Promis
 /** `corgi idea new`: the agent writes the page, under a progress notification, then the panel opens on it. */
 async function writeIdea(agentDir: string, args: string[]): Promise<void> {
     await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'corgi: the agent is writing the idea page…' }, async () => {
-        const r = await ideaJSON<{ idea?: { slug?: string; title?: string } }>(['new', ...args, '--json'], SLOW_MS);
+        const r = await ideaJSON<{ idea?: { slug?: string; title?: string } }>(args.slice(1), SLOW_MS);
         if (!r.ok) {
             void vscode.window.showWarningMessage(`corgi could not write the page: ${r.why}`);
             return;
@@ -279,6 +306,7 @@ async function writeIdea(agentDir: string, args: string[]): Promise<void> {
             void vscode.window.showWarningMessage('corgi wrote no page.');
             return;
         }
+        fireIdeasChanged(slug);
         IdeaPanel.show(agentDir, slug, r.value.idea?.title);
     });
 }
@@ -293,7 +321,7 @@ export async function newIdea(agentDir: string): Promise<void> {
     if (!type) {
         return;
     }
-    await writeIdea(agentDir, [text.trim(), '--type', type]);
+    await writeIdea(agentDir, newArgs(text.trim(), type));
 }
 
 /** The markdown in front of you kept as an idea page: `corgi idea new --from <file>`. */
@@ -310,7 +338,7 @@ export async function ideaFromFile(agentDir: string): Promise<void> {
     if (!type) {
         return;
     }
-    await writeIdea(agentDir, ['', '--from', editor.document.fileName, '--type', type]);
+    await writeIdea(agentDir, newArgs('', type, editor.document.fileName));
 }
 
 interface IdeaPick extends vscode.QuickPickItem {
@@ -358,7 +386,7 @@ export async function openIdeaMarkdown(agentDir: string, slug: string, file?: st
 }
 
 /** A sidebar row or a slug: what the idea commands take. */
-export type IdeaArg = { kind: 'idea'; slug: string } | string | undefined;
+export type IdeaArg = { kind: 'idea'; slug: string; file?: string } | string | undefined;
 
 function slugOf(arg: IdeaArg): string | undefined {
     const slug = typeof arg === 'string' ? arg : arg?.kind === 'idea' ? arg.slug : undefined;
@@ -380,9 +408,11 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
             }
         }),
         vscode.commands.registerCommand('corgi.idea.openMarkdown', async (arg?: IdeaArg) => {
+            // The list already said where the file is: no `corgi idea path` for a row.
+            const file = typeof arg === 'object' && arg?.kind === 'idea' && typeof arg.file === 'string' ? arg.file : undefined;
             const slug = await pickSlug(arg, 'Idea page to edit as markdown');
             if (slug) {
-                await openIdeaMarkdown(agentDir, slug);
+                await openIdeaMarkdown(agentDir, slug, file);
             }
         }),
         vscode.commands.registerCommand('corgi.idea.build', async (arg?: IdeaArg) => {
@@ -400,23 +430,25 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
                 void vscode.window.showInformationMessage('Open an idea page (corgi: Edit idea page markdown) and select the words to comment on.');
                 return;
             }
+            // corgi reads the file: the saved text is what the anchor must match.
+            if (editor.document.isDirty) {
+                await editor.document.save();
+            }
             const text = editor.document.getText();
-            const anchor = editor.selection.isEmpty ? undefined : anchorFor(text, editor.document.offsetAt(editor.selection.start), editor.document.offsetAt(editor.selection.end));
+            const found = editor.selection.isEmpty ? undefined : selectionAnchor(text, editor.document.offsetAt(editor.selection.start), editor.document.offsetAt(editor.selection.end));
+            const anchor = found?.quote ? found : undefined;
             const words = await vscode.window.showInputBox({ prompt: anchor ? `Comment on "${anchor.quote.trim().slice(0, 60)}"` : 'Comment on the whole page', placeHolder: 'What about this? The agent answers and amends the page.', ignoreFocusOut: true });
             if (!words?.trim()) {
                 return;
             }
-            const args = ['comment', slug, words.trim(), '--by', ideaAuthor(), '--json'];
-            if (anchor?.quote.trim()) {
-                args.push('--quote', anchor.quote);
-            }
-            const r = await runCorgi(['idea', ...args]);
+            const r = await runCorgi(commentArgs({ slug, text: words.trim(), by: ideaAuthor(), anchor }), undefined, WRITE_MS);
             if (!r.ok) {
                 void vscode.window.showWarningMessage(`corgi could not add the comment: ${lastLine(r)}`);
                 return;
             }
-            threads.rebuild(editor.document);
+            threads.rebuild(editor.document, true);
             IdeaPanel.reload(slug);
+            fireIdeasChanged(slug);
         }),
     );
 }
