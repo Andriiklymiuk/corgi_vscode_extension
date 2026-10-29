@@ -178,6 +178,14 @@ session's, or your own - has **ready for review**, **merge** and **close**
 
 ### An idea page beside the code
 
+**Preview with comments** (the comments icon in the title bar of any `.md`,
+or right-click it in the Explorer) opens the file as a page beside the
+code: pictures and videos play inline, comments sit on the words, and the
+same comments show as threads in the file itself - yours, the team's, the
+agent's. **Corgi: Copy the link for the team** puts its link on the
+clipboard; people comment without an account, the agent answers and fixes
+the page, and the fix lands back in your file. Needs corgi 2.34.
+
 `corgi idea new "a scheduling app for a coffee shop"` has the agent write one
 page - the thing you want built, as markdown - and from then on the page is
 where it gets argued over: people highlight words and comment, the agent

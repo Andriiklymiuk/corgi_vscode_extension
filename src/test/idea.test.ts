@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import {
     afterLine, anchorFor, authorName, cleanQuote, commentArgs, epicRef, findQuote, forAgentCount, headingAbove, ideaCounts, ideaSlugOf, IdeaComment, lineRangeOf, lineStart, newArgs, openCount, openUnder,
-    readIdea, selectionAnchor, sendTargets, sentLabel, statusLabel, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
+    readIdea, selectionAnchor, sendTargets, sourceSlugOf, sentLabel, statusLabel, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
 } from '../idea';
 
 const page = `# Coffee shop scheduling
@@ -158,5 +158,17 @@ describe('idea', () => {
         } finally {
             fs.rmSync(agentDir, { recursive: true, force: true });
         }
+    });
+});
+
+describe('a markdown file shared as a page', () => {
+    it('its comments land on the file it came from', () => {
+        const agent = fs.mkdtempSync(path.join(os.tmpdir(), 'corgi-src-'));
+        const spec = path.join(agent, 'docs', 'spec.md');
+        fs.mkdirSync(path.join(agent, 'ideas', 'checkout'), { recursive: true });
+        fs.writeFileSync(path.join(agent, 'ideas', 'checkout', 'meta.json'), JSON.stringify({ slug: 'checkout', title: 'Checkout', status: 'draft', source: spec }));
+        fs.writeFileSync(path.join(agent, 'ideas', 'changed'), '1');
+        assert.strictEqual(sourceSlugOf(agent, spec), 'checkout');
+        assert.strictEqual(sourceSlugOf(agent, path.join(agent, 'docs', 'other.md')), undefined);
     });
 });

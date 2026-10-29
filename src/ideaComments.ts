@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { runCorgi } from './corgiExec';
-import { commentArgs, findQuote, IdeaComment, ideaSlugOf, ideasDir, isAgent, lineRangeOf, readIdea, selectionAnchor, statusLabel, waitsOnPerson } from './idea';
+import { commentArgs, findQuote, IdeaComment, ideaSlugOf, ideasDir, isAgent, lineRangeOf, readIdea, selectionAnchor, sourceSlugOf, statusLabel, waitsOnPerson } from './idea';
 import { fireIdeasChanged, ideaAuthor, IdeaFilesWatcher, ideaStamp, lastLine, WRITE_MS } from './ideaCli';
 
 /**
@@ -54,7 +54,10 @@ export class IdeaCommentThreads implements vscode.Disposable {
     }
 
     private slugOf(document: vscode.TextDocument): string | undefined {
-        return document.uri.scheme === 'file' ? ideaSlugOf(this.agentDir, document.uri.fsPath) : undefined;
+        if (document.uri.scheme !== 'file') {
+            return undefined;
+        }
+        return ideaSlugOf(this.agentDir, document.uri.fsPath) ?? sourceSlugOf(this.agentDir, document.uri.fsPath);
     }
 
     /** An idea.md opened: its threads, and the watcher if it was the first. */

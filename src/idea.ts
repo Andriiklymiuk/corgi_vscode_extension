@@ -29,6 +29,8 @@ export interface IdeaMeta {
     status: IdeaStatus;
     type?: IdeaType;
     key?: string;
+    /** The markdown file the page was shared from, when it was. */
+    source?: string;
     auto?: boolean;
     tasks?: number[];
     plan?: number;
@@ -145,6 +147,8 @@ export interface IdeaDoc {
     forAgent?: number;
     file?: string;
     link?: string;
+    /** Where the panel finds the page's own files (set by the panel, not corgi). */
+    filesBase?: string;
 }
 
 export const AGENT = 'agent';
@@ -172,6 +176,36 @@ export function ideaSlugOf(agentDir: string, file: string): string | undefined {
         return undefined;
     }
     return parts[0];
+}
+
+let sources: { stamp: number; bySource: Map<string, string> } | undefined;
+
+/** The slug of the page shared from file (corgi idea share/open <file>); undefined when none was. */
+export function sourceSlugOf(agentDir: string, file: string): string | undefined {
+    const dir = ideasDir(agentDir);
+    let stamp = 0;
+    try {
+        stamp = fs.statSync(changedMarker(agentDir)).mtimeMs;
+    } catch {
+        // no page changed yet
+    }
+    if (!sources || sources.stamp !== stamp) {
+        const bySource = new Map<string, string>();
+        let slugs: string[] = [];
+        try {
+            slugs = fs.readdirSync(dir).filter(isSlug);
+        } catch {
+            // no ideas folder
+        }
+        for (const slug of slugs) {
+            const meta = readJson<IdeaMeta>(path.join(dir, slug, 'meta.json'));
+            if (meta?.source) {
+                bySource.set(path.resolve(meta.source), slug);
+            }
+        }
+        sources = { stamp, bySource };
+    }
+    return sources.bySource.get(path.resolve(file));
 }
 
 function readJson<T>(file: string): T | undefined {

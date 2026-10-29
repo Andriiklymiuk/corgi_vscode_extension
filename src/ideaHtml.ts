@@ -40,7 +40,7 @@ export function sharedScript(): string {
 export function ideaPage(nonce: string, cspSource = ''): string {
     const img = cspSource ? `${cspSource} data:` : `'none'`;
     return `<!doctype html><html><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${img};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${img}; media-src ${cspSource || "'none'"};">
 <style>
   :root {
     color-scheme: light dark;
@@ -131,7 +131,8 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   article blockquote { margin: 0 0 10px; padding: 2px 12px; border-left: 3px solid var(--line); color: var(--dim); }
   article table { border-collapse: collapse; margin: 0 0 10px; }
   article th, article td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
-  article img { max-width: 100%; }
+  article img, article video { max-width: 100%; border-radius: 4px; }
+  article video { display: block; width: 100%; background: #000; margin: 8px 0; }
   article mark { color: inherit; background: var(--open); border-radius: 2px; cursor: pointer; padding: 1px 0; }
   article mark.st-answered { background: var(--answered); }
   article mark.st-fixed { background: var(--fixed); }
@@ -361,6 +362,8 @@ ${sharedScript()}
   const drawPage = () => {
     // The one place markup is set from data: corgi rendered the markdown with raw HTML stripped and safe links only.
     page.innerHTML = String(doc.html || '');
+    // A picture or video the page took along: its copy beside the page, through the webview.
+    for (const m of page.querySelectorAll('[data-file]')) { const u = (doc.filesBase || '') + '/' + encodeURIComponent(m.getAttribute('data-file') || ''); if (doc.filesBase) m.setAttribute('src', u); }
     $('empty').hidden = !!doc.html;
     $('empty').textContent = 'The page is empty.';
     for (const a of page.querySelectorAll('a[href]')) a.addEventListener('click', (e) => { e.preventDefault(); const u = a.getAttribute('href'); if (httpUrl(u)) post({ type: 'openLink', url: u }); });

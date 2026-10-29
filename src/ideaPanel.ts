@@ -119,7 +119,8 @@ export class IdeaPanel {
                 return insideFolder(this.ideaDir, abs) ? { ...f, uri: this.panel.webview.asWebviewUri(vscode.Uri.file(abs)).toString() } : f;
             }),
         });
-        return { ...doc, comments: (doc.comments ?? []).map((c) => ({ ...fix(c), replies: c.replies?.map(fix) })) };
+        const filesBase = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(this.ideaDir, 'files'))).toString();
+        return { ...doc, filesBase, comments: (doc.comments ?? []).map((c) => ({ ...fix(c), replies: c.replies?.map(fix) })) };
     }
 
     /** A write through corgi: busy while it runs, a minute allowed (it notifies before it exits), then a re-read. */
@@ -325,6 +326,34 @@ export async function newIdea(agentDir: string): Promise<void> {
 }
 
 /** The markdown in front of you kept as an idea page: `corgi idea new --from <file>`. */
+interface Shared {
+    slug: string;
+    name?: string;
+    link?: string;
+    public?: boolean;
+    hint?: string;
+}
+
+/** The markdown file in front (or the one clicked) as a page, word for word: no agent run, the same page each time. */
+async function shareMarkdown(uri?: vscode.Uri): Promise<Shared | undefined> {
+    const target = uri?.scheme === 'file' ? uri : vscode.window.activeTextEditor?.document.uri;
+    if (!target || target.scheme !== 'file' || !/\.(md|markdown)$/i.test(target.fsPath)) {
+        void vscode.window.showInformationMessage('Open a markdown file first.');
+        return undefined;
+    }
+    const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === target.toString());
+    if (open?.isDirty) {
+        await open.save();
+    }
+    const r = await ideaJSON<Shared>(['share', target.fsPath, '--json', '--no-copy']);
+    if (!r.ok) {
+        void vscode.window.showWarningMessage(`corgi could not share it: ${r.why}`);
+        return undefined;
+    }
+    fireIdeasChanged(r.value.slug);
+    return r.value;
+}
+
 export async function ideaFromFile(agentDir: string): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.uri.scheme !== 'file' || (editor.document.languageId !== 'markdown' && !/\.(md|markdown)$/i.test(editor.document.fileName))) {
@@ -401,6 +430,27 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
         threads.onDidWrite((slug) => IdeaPanel.reload(slug)),
         vscode.commands.registerCommand('corgi.idea.new', () => newIdea(agentDir)),
         vscode.commands.registerCommand('corgi.idea.fromFile', () => ideaFromFile(agentDir)),
+        vscode.commands.registerCommand('corgi.idea.preview', async (uri?: vscode.Uri) => {
+            const shared = await shareMarkdown(uri);
+            if (shared) {
+                IdeaPanel.show(agentDir, shared.slug, shared.name);
+            }
+        }),
+        vscode.commands.registerCommand('corgi.idea.shareFile', async (uri?: vscode.Uri) => {
+            const shared = await shareMarkdown(uri);
+            if (!shared?.link) {
+                if (shared) {
+                    void vscode.window.showWarningMessage(shared.hint || 'No link yet - corgi agent up first.');
+                }
+                return;
+            }
+            await vscode.env.clipboard.writeText(shared.link);
+            const note = shared.public ? 'Link copied - anyone with it reads and comments; the agent answers.' : 'Copied, but the link works on this Mac only - corgi agent up gives it a public address.';
+            const go = await vscode.window.showInformationMessage(note, 'Preview with comments');
+            if (go) {
+                IdeaPanel.show(agentDir, shared.slug, shared.name);
+            }
+        }),
         vscode.commands.registerCommand('corgi.idea.open', async (arg?: IdeaArg) => {
             const slug = await pickSlug(arg, 'Idea page to open beside the code');
             if (slug) {

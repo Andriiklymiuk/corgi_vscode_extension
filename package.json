@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.31.0",
+  "version": "2.32.0",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -466,6 +466,16 @@
         "icon": "$(lightbulb)"
       },
       {
+        "command": "corgi.idea.preview",
+        "title": "Corgi: Preview with comments",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "corgi.idea.shareFile",
+        "title": "Corgi: Copy the link for the team",
+        "icon": "$(link)"
+      },
+      {
         "command": "corgi.idea.open",
         "title": "Corgi: Open idea page",
         "icon": "$(open-preview)"
@@ -547,6 +557,18 @@
           "group": "corgi@2"
         }
       ],
+      "explorer/context": [
+        {
+          "command": "corgi.idea.preview",
+          "group": "corgi",
+          "when": "resourceExtname == .md"
+        },
+        {
+          "command": "corgi.idea.shareFile",
+          "group": "corgi",
+          "when": "resourceExtname == .md"
+        }
+      ],
       "editor/title": [
         {
           "command": "corgi.run",
@@ -557,6 +579,16 @@
           "command": "corgi.stop",
           "group": "navigation",
           "when": "resourceFilename =~ /corgi-*.*\\.y(a)?ml/"
+        },
+        {
+          "command": "corgi.idea.preview",
+          "group": "navigation",
+          "when": "resourceLangId == markdown && resourceScheme == file"
+        },
+        {
+          "command": "corgi.idea.shareFile",
+          "group": "corgi",
+          "when": "resourceLangId == markdown && resourceScheme == file"
         },
         {
           "command": "corgi.idea.fromFile",
