@@ -12,7 +12,7 @@ import * as path from 'node:path';
  * reference nothing outside themselves but each other.
  */
 
-export type IdeaStatus = 'draft' | 'building' | 'built';
+export type IdeaStatus = 'draft' | 'approved' | 'building' | 'built';
 /** What kind of page: something to build from nothing, a feature in a product, a high-level design, a proposal to decide. */
 export type IdeaType = 'idea' | 'spec' | 'hld' | 'rfc';
 export const IDEA_TYPES: readonly IdeaType[] = ['idea', 'spec', 'hld', 'rfc'];
@@ -41,6 +41,23 @@ export interface IdeaMeta {
     /** The stored copy of the agent's split into tickets; `IdeaDoc.tickets` carries the live board state. */
     tickets?: IdeaTicket[];
     sent?: SentLink[];
+    /** Sign-offs, each for the text as it read then; `IdeaDoc.approvers` are the ones that still stand. */
+    approvals?: { by: string; at?: string; rev?: number }[];
+    needed?: number;
+    buildWhenApproved?: boolean;
+    /** What the threads settled: one line each, written when a thread is resolved. */
+    decisions?: IdeaDecision[];
+    /** The clickable mockup under files/, once drawn; mocking while the agent draws it. */
+    mock?: string;
+    mockAt?: string;
+    mocking?: boolean;
+}
+
+export interface IdeaDecision {
+    comment?: number;
+    text: string;
+    by?: string;
+    at?: string;
 }
 
 /** One ticket of the agent's proposed split of the page. */
@@ -149,6 +166,11 @@ export interface IdeaDoc {
     link?: string;
     /** Where the panel finds the page's own files (set by the panel, not corgi). */
     filesBase?: string;
+    approvers?: string[];
+    needed?: number;
+    approved?: boolean;
+    /** The name this editor signs and comments as (set by the panel). */
+    me?: string;
 }
 
 export const AGENT = 'agent';
@@ -296,7 +318,7 @@ export function typeLabel(type: IdeaType | string | undefined): string {
         case 'spec': return 'spec';
         case 'hld': return 'HLD';
         case 'rfc': return 'RFC';
-        default: return 'idea';
+        default: return /^[a-z0-9][a-z0-9-]{0,31}$/.test(type ?? '') ? String(type) : 'idea';
     }
 }
 
@@ -307,6 +329,12 @@ export const typeDescriptions: Record<IdeaType, string> = {
     hld: 'a high-level design',
     rfc: 'a proposal to decide',
 };
+
+/** The mockup in a panel of its own: its scripts run, but it reaches nothing outside itself. */
+export function mockHtml(html: string): string {
+    const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">`;
+    return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (m) => m + csp) : csp + html;
+}
 
 /** The epic the page was sent as, when it was: its ref. */
 export function epicRef(sent: readonly SentLink[] | null | undefined): string {
@@ -349,7 +377,7 @@ export function openUnder(comments: readonly IdeaComment[], heading: string): nu
 
 /** The idea's standing, for a row: "draft", "building", "built". */
 export function ideaStatusLabel(status: IdeaStatus | string | undefined): string {
-    return status === 'building' ? 'building' : status === 'built' ? 'built' : 'draft';
+    return status === 'building' || status === 'built' || status === 'approved' ? status : 'draft';
 }
 
 /** "3 open · 1 waiting on the agent" for a row under an idea's name. */

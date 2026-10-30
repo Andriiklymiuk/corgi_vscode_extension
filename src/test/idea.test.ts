@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import {
     afterLine, anchorFor, authorName, cleanQuote, commentArgs, epicRef, findQuote, forAgentCount, headingAbove, ideaCounts, ideaSlugOf, IdeaComment, lineRangeOf, lineStart, newArgs, openCount, openUnder,
-    readIdea, selectionAnchor, sendTargets, sourceSlugOf, sentLabel, statusLabel, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
+    mockHtml, readIdea, selectionAnchor, sendTargets, sourceSlugOf, sentLabel, statusLabel, titleOf, typeLabel, waitsOnAgent, waitsOnPerson,
 } from '../idea';
 
 const page = `# Coffee shop scheduling
@@ -89,7 +89,7 @@ describe('idea', () => {
         assert.strictEqual(titleOf(page), 'Coffee shop scheduling');
     });
     it('names the type, the epic, the destinations and what a ticket waits on', () => {
-        assert.deepStrictEqual(['idea', 'spec', 'hld', 'rfc', undefined, 'odd'].map(typeLabel), ['idea', 'spec', 'HLD', 'RFC', 'idea', 'idea']);
+        assert.deepStrictEqual(['idea', 'spec', 'hld', 'rfc', undefined, 'prd', 'Not a type!'].map(typeLabel), ['idea', 'spec', 'HLD', 'RFC', 'idea', 'prd', 'idea']);
         const sent = [{ kind: 'ticket', ref: 'SHOP-13', url: 'https://j/13' }, { kind: 'epic', ref: 'SHOP-12', title: 'BrewShift' }, { kind: 'page', ref: '99' }];
         assert.strictEqual(epicRef(sent), 'SHOP-12');
         assert.strictEqual(epicRef(undefined), '');
@@ -170,5 +170,11 @@ describe('a markdown file shared as a page', () => {
         fs.writeFileSync(path.join(agent, 'ideas', 'changed'), '1');
         assert.strictEqual(sourceSlugOf(agent, spec), 'checkout');
         assert.strictEqual(sourceSlugOf(agent, path.join(agent, 'docs', 'other.md')), undefined);
+    });
+
+    it('the mockup is shut in by its own CSP', () => {
+        const withHead = mockHtml('<!doctype html><html><head><title>m</title></head><body></body></html>');
+        assert.ok(withHead.includes("<head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none';"));
+        assert.ok(mockHtml('<p>bare</p>').startsWith('<meta http-equiv="Content-Security-Policy"'));
     });
 });

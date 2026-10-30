@@ -34,7 +34,7 @@ export function sharedScript(): string {
  *
  * Webview → host: ready, comment {text, quote, prefix, suffix, heading, link?, files?},
  * pickFiles, reply {id, text}, status {id, status}, build, send {to},
- * openMarkdown, openBrowser, openLink {url}. Host → webview: doc {doc},
+ * openMarkdown, openBrowser, openLink {url}, approve {undo}, mock, openMock. Host → webview: doc {doc},
  * picked {files}, busy {what}, error {msg}.
  */
 export function ideaPage(nonce: string, cspSource = ''): string {
@@ -98,6 +98,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   .pill.st-answered { background: var(--answered); color: var(--fg); }
   .pill.st-fixed { background: var(--fixed); color: var(--fg); }
   .pill.st-resolved { background: var(--resolved); color: var(--dim); }
+  [hidden] { display: none !important; }
   #answering { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; white-space: nowrap; }
   #answering .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .3; } }
@@ -214,6 +215,14 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   #composer .row .left { margin-right: auto; }
   #float { position: absolute; z-index: 5; padding: 3px 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
   .none { color: var(--dim); font-size: 12px; padding: 8px 2px; }
+  #signed { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  #signoff.on { background: var(--fixed); color: var(--fg); }
+  #decisions { padding: 14px 16px; }
+  #decisions h3 { margin-bottom: 6px; }
+  #decisions ol { margin: 0; padding-left: 20px; }
+  #decisions li { margin: 4px 0; }
+  #decisions li[data-c] { cursor: pointer; }
+  #decisions .by { color: var(--dim); font-size: 11px; margin-left: 6px; }
 </style></head><body>
 <div id="progress"></div>
 <header id="top">
@@ -222,6 +231,8 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   <span id="status" class="pill" hidden></span>
   <span id="answering" hidden><span class="dot"></span><span>agent is answering…</span></span>
   <span class="sp"></span>
+  <span id="signed"></span>
+  <button id="signoff" class="quiet" title="Sign the page off as it reads now">Looks good</button>
   <button id="editMd" class="quiet" title="Open idea.md in an editor; comments show as threads there">Edit markdown</button>
   <button id="browser" class="quiet" title="The same page in the browser (needs corgi agent up)">Open in browser</button>
   <button id="buildTop" title="Hand the page to the agent: it plans the work and starts">Build it</button>
@@ -232,6 +243,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   <div id="left">
     <article id="page"></article>
     <div id="empty" hidden>Loading the page…</div>
+    <section id="decisions" class="endcap" hidden></section>
     <section id="tickets" class="endcap closed" hidden></section>
     <div id="sent"></div>
     <section id="hand" class="endcap" hidden></section>
@@ -340,9 +352,35 @@ ${sharedScript()}
     ty.textContent = typeLabel(idea.type);
     const st = $('status');
     st.hidden = false;
-    st.textContent = idea.status === 'building' ? 'building' : idea.status === 'built' ? 'built' : 'draft';
+    st.textContent = ['approved', 'building', 'built'].includes(idea.status) ? idea.status : 'draft';
     $('answering').hidden = !idea.answering;
     $('buildTop').disabled = idea.status === 'building';
+    const who = Array.isArray(doc.approvers) ? doc.approvers : [];
+    const need = doc.needed || 1;
+    const mine = !!doc.me && who.some((w) => String(w).toLowerCase() === String(doc.me).toLowerCase());
+    $('signed').textContent = who.length || need > 1 ? who.length + '/' + need + ' signed' : '';
+    $('signed').title = who.join(', ');
+    const so = $('signoff');
+    so.textContent = mine ? '✓ Signed off' : 'Looks good';
+    so.title = mine ? 'Take your sign-off back' : 'Sign the page off as it reads now';
+    so.classList.toggle('on', mine);
+    so.dataset.mine = mine ? '1' : '';
+  };
+
+  // What the threads settled: a click goes to the thread it came from.
+  const drawDecisions = () => {
+    const list = Array.isArray(doc.idea && doc.idea.decisions) ? doc.idea.decisions.filter((d) => d && d.text) : [];
+    const sec = $('decisions');
+    sec.hidden = list.length === 0;
+    if (!list.length) { sec.replaceChildren(); return; }
+    const ol = el('ol');
+    for (const d of list) {
+      const li = el('li', '', d.text);
+      li.appendChild(el('span', 'by', [d.by && !isAgent(d.by) ? d.by : '', ago(d.at)].filter(Boolean).join(' · ')));
+      if (d.comment) { li.dataset.c = String(d.comment); li.title = 'The thread it came from'; li.addEventListener('click', () => { filter = 'all'; persist(); drawComments(); lit(String(d.comment), true); }); }
+      ol.appendChild(li);
+    }
+    sec.replaceChildren(el('h3', '', 'Decisions'), ol);
   };
 
   // Every h2 and h3 gets a "+ comment" at its right end on hover: a comment on the section, quote = the heading.
@@ -424,6 +462,7 @@ ${sharedScript()}
     const bits = [];
     if (idea.status === 'building') bits.push('building now');
     else if (idea.status === 'built') bits.push('built');
+    else if (idea.status === 'approved') bits.push('approved: build it when you are ready');
     else bits.push('a draft: comment until it reads right, then build it');
     if (plan && plan.ref) bits.push('plan ' + plan.ref + (plan.state ? ' · ' + plan.state : '') + (typeof plan.done === 'number' ? ' · ' + plan.done + ' done' : '') + (typeof plan.doing === 'number' && plan.doing ? ' · ' + plan.doing + ' doing' : '') + (typeof plan.todo === 'number' && plan.todo ? ' · ' + plan.todo + ' to do' : ''));
     if (typeof doc.forAgent === 'number' && doc.forAgent) bits.push(doc.forAgent + ' waiting on the agent');
@@ -448,6 +487,14 @@ ${sharedScript()}
     }
     acts.appendChild(button('Comment on the whole page', 'quiet', () => openComposer(null)));
     out.push(acts);
+    const mock = el('div', 'acts');
+    if (idea.mock) mock.appendChild(button('Open the mockup', '', () => post({ type: 'openMock' })));
+    const draw = button(idea.mocking ? 'Drawing the mockup…' : idea.mock ? 'Draw it again' : 'Show me: a clickable mockup', 'quiet', () => post({ type: 'mock' }));
+    draw.disabled = !!idea.mocking;
+    draw.title = 'The agent draws the screens of the page as one clickable HTML page';
+    mock.appendChild(draw);
+    if (idea.mock) mock.appendChild(button('Comment on the mockup', 'quiet', () => openComposer({ quote: 'Mockup', prefix: '', suffix: '', heading: 'Mockup' })));
+    out.push(mock);
     hand.replaceChildren(...out);
   };
 
@@ -670,6 +717,7 @@ ${sharedScript()}
   $('editMd').addEventListener('click', () => post({ type: 'openMarkdown' }));
   $('browser').addEventListener('click', () => post({ type: 'openBrowser' }));
   $('buildTop').addEventListener('click', () => post({ type: 'build' }));
+  $('signoff').addEventListener('click', () => post({ type: 'approve', undo: $('signoff').dataset.mine === '1' }));
 
   const render = () => {
     const y = window.scrollY;
@@ -679,6 +727,7 @@ ${sharedScript()}
     drawTickets();
     drawSent();
     drawHand();
+    drawDecisions();
     drawOutline();
     drawFilter();
     drawComments();

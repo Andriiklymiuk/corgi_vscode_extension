@@ -186,6 +186,21 @@ agent's. **Corgi: Copy the link for the team** puts its link on the
 clipboard; people comment without an account, the agent answers and fixes
 the page, and the fix lands back in your file. Needs corgi 2.34.
 
+You do not need the preview to comment: select words in any `.md` and
+right-click **Corgi: Comment on this** - the file becomes a page if it was
+not one, and the comment lands on those words for the team and the agent.
+The status bar says how many comments are open on the file in front
+(*💬 3 open · approved*); a click opens the preview.
+
+With corgi 2.35.0 the panel also has **Looks good** in its title bar - a
+sign-off for the page as it reads now (*2/2 signed* once enough people
+have, and the page turns *approved*) - a **Decisions** list under the page
+(what each resolved thread settled; click one for its thread), and **Show
+me: a clickable mockup**: the agent draws the page's screens as one HTML
+page, **Open the mockup** opens it in a tab of its own (sandboxed: it
+reaches nothing outside itself), and **Comment on the mockup** goes into
+the next drawing.
+
 `corgi idea new "a scheduling app for a coffee shop"` has the agent write one
 page - the thing you want built, as markdown - and from then on the page is
 where it gets argued over: people highlight words and comment, the agent

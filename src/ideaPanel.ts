@@ -1,8 +1,10 @@
 import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CorgiResult, runCorgi } from './corgiExec';
-import { commentArgs, epicRef, IDEA_TYPES, IdeaDoc, IdeaListEntry, IdeaType, ideaCounts, ideaSlugOf, ideasDir, ideaStatusLabel, isSlug, newArgs, selectionAnchor, sendTargets, SentLink, sentLabel, typeDescriptions, typeLabel } from './idea';
+import { commentArgs, epicRef, IDEA_TYPES, IdeaDoc, IdeaListEntry, IdeaType, ideaCounts, ideaSlugOf, ideasDir, ideaStatusLabel, isSlug, mockHtml, newArgs, openCount, readIdea, selectionAnchor, sendTargets, SentLink, sentLabel, sourceSlugOf, typeDescriptions, typeLabel } from './idea';
+import { onIdeasChanged } from './ideaCli';
 import { fireIdeasChanged, ideaAuthor, IdeaFilesWatcher, ideaJSON, lastLine, SLOW_MS, WRITE_MS } from './ideaCli';
 import { IdeaCommentThreads } from './ideaComments';
 import { ideaPage } from './ideaHtml';
@@ -28,7 +30,10 @@ type Message =
     | { type: 'send'; to?: string }
     | { type: 'openMarkdown' }
     | { type: 'openBrowser' }
-    | { type: 'openLink'; url?: string };
+    | { type: 'openLink'; url?: string }
+    | { type: 'approve'; undo?: boolean }
+    | { type: 'mock' }
+    | { type: 'openMock' };
 
 export class IdeaPanel {
     private static readonly open = new Map<string, IdeaPanel>();
@@ -107,7 +112,7 @@ export class IdeaPanel {
         }
         this.doc = r.value;
         this.panel.title = `idea · ${r.value.idea?.title || r.value.idea?.name || this.slug}`;
-        this.post({ type: 'doc', doc: this.withFileUris(r.value) });
+        this.post({ type: 'doc', doc: { ...this.withFileUris(r.value), me: ideaAuthor() } });
     }
 
     /** Attachments under the idea's files/ folder get a webview URI, so an image shows inline. */
@@ -211,6 +216,16 @@ export class IdeaPanel {
                     await vscode.env.openExternal(vscode.Uri.parse(m.url));
                 }
                 return;
+            case 'approve':
+                await this.act(m.undo ? 'taking your sign-off back…' : 'signing it off…', ['idea', 'approve', '--json', '--by', ideaAuthor(), ...(m.undo ? ['--undo'] : []), '--', this.slug], 'corgi could not sign it off');
+                return;
+            case 'mock':
+                await drawMock(this.slug, this.doc?.idea?.title);
+                await this.load();
+                return;
+            case 'openMock':
+                openMock(this.ideaDir, this.doc?.idea?.title || this.slug);
+                return;
         }
     }
 
@@ -219,6 +234,31 @@ export class IdeaPanel {
         this.watcher.dispose();
         IdeaPanel.open.delete(this.slug);
     }
+}
+
+/** The agent draws the page's screens as one clickable HTML file: a minute or two, under a progress notification. */
+async function drawMock(slug: string, title?: string): Promise<void> {
+    const name = title || slug;
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `corgi: drawing the mockup of "${name}"…` }, async () => {
+        const r = await ideaJSON<{ mock?: string }>(['mock', slug, '--json'], 11 * 60_000);
+        if (!r.ok) {
+            void vscode.window.showWarningMessage(`corgi could not draw the mockup: ${r.why}`);
+            return;
+        }
+        fireIdeasChanged(slug);
+    });
+}
+
+function openMock(ideaDir: string, title: string): void {
+    let html: string;
+    try {
+        html = fs.readFileSync(path.join(ideaDir, 'files', 'mock.html'), 'utf8');
+    } catch {
+        void vscode.window.showInformationMessage('No mockup yet: press "Show me" on the page.');
+        return;
+    }
+    const panel = vscode.window.createWebviewPanel('corgi.ideaMock', `mockup · ${title}`, vscode.ViewColumn.Active, { enableScripts: true, localResourceRoots: [] });
+    panel.webview.html = mockHtml(html);
 }
 
 /** Hand the page to the agent: it plans the work and starts; minutes, under a progress notification. */
@@ -472,17 +512,22 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
                 IdeaPanel.reload(slug);
             }
         }),
-        // Lines selected in idea.md: a comment on those words, like a highlight on the page.
+        // Words selected in any markdown file: a comment on them, like a highlight on the page. A file
+        // that is not a page yet becomes one (word for word, no agent run), so the team sees the comment too.
         vscode.commands.registerCommand('corgi.idea.commentSelection', async () => {
             const editor = vscode.window.activeTextEditor;
-            const slug = editor && editor.document.uri.scheme === 'file' ? ideaSlugOf(agentDir, editor.document.uri.fsPath) : undefined;
-            if (!editor || !slug) {
-                void vscode.window.showInformationMessage('Open an idea page (corgi: Edit idea page markdown) and select the words to comment on.');
+            const file = editor && editor.document.uri.scheme === 'file' ? editor.document.uri.fsPath : undefined;
+            if (!editor || !file || (editor.document.languageId !== 'markdown' && !/\.(md|markdown)$/i.test(file))) {
+                void vscode.window.showInformationMessage('Open a markdown file and select the words to comment on.');
                 return;
             }
             // corgi reads the file: the saved text is what the anchor must match.
             if (editor.document.isDirty) {
                 await editor.document.save();
+            }
+            const slug = ideaSlugOf(agentDir, file) ?? (await shareMarkdown(editor.document.uri))?.slug;
+            if (!slug) {
+                return;
             }
             const text = editor.document.getText();
             const found = editor.selection.isEmpty ? undefined : selectionAnchor(text, editor.document.offsetAt(editor.selection.start), editor.document.offsetAt(editor.selection.end));
@@ -500,5 +545,49 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
             IdeaPanel.reload(slug);
             fireIdeasChanged(slug);
         }),
+        vscode.commands.registerCommand('corgi.idea.previewHere', async () => {
+            const editor = vscode.window.activeTextEditor;
+            const slug = editor?.document.uri.scheme === 'file' ? ideaSlugOf(agentDir, editor.document.uri.fsPath) : undefined;
+            if (slug) {
+                IdeaPanel.show(agentDir, slug);
+                return;
+            }
+            await vscode.commands.executeCommand('corgi.idea.preview', editor?.document.uri);
+        }),
+        commentsStatus(agentDir),
+    );
+}
+
+/** The comments on the markdown file in front, in the status bar: a click opens the preview. */
+function commentsStatus(agentDir: string): vscode.Disposable {
+    const bar = vscode.window.createStatusBarItem('corgi.idea.comments', vscode.StatusBarAlignment.Right, 90);
+    bar.name = 'Corgi: comments on this markdown';
+    bar.command = 'corgi.idea.previewHere';
+    const refresh = () => {
+        const doc = vscode.window.activeTextEditor?.document;
+        const file = doc?.uri.scheme === 'file' ? doc.uri.fsPath : '';
+        if (!doc || !file || (doc.languageId !== 'markdown' && !/\.(md|markdown)$/i.test(file))) {
+            bar.hide();
+            return;
+        }
+        const slug = ideaSlugOf(agentDir, file) ?? sourceSlugOf(agentDir, file);
+        const idea = slug ? readIdea(ideasDir(agentDir), slug) : undefined;
+        if (!idea) {
+            bar.text = '$(comment-discussion) Comment';
+            bar.tooltip = 'Preview with comments: the team highlights words and comments, the agent answers and fixes the file';
+        } else {
+            const open = openCount(idea.comments);
+            const status = idea.meta.status === 'draft' ? '' : ` · ${ideaStatusLabel(idea.meta.status)}`;
+            bar.text = `$(comment-discussion) ${open ? `${open} open` : 'no open comments'}${status}`;
+            bar.tooltip = `${idea.meta.name || idea.meta.title}: preview with comments`;
+        }
+        bar.show();
+    };
+    refresh();
+    return vscode.Disposable.from(
+        bar,
+        vscode.window.onDidChangeActiveTextEditor(refresh),
+        vscode.workspace.onDidSaveTextDocument(refresh),
+        onIdeasChanged(refresh),
     );
 }
