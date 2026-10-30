@@ -114,6 +114,7 @@ export interface IdeaReply {
     changed?: boolean;
     files?: IdeaFile[];
     links?: string[];
+    guest?: boolean;
 }
 
 export interface IdeaComment {
@@ -127,6 +128,8 @@ export interface IdeaComment {
     updatedAt?: string;
     files?: IdeaFile[];
     links?: string[];
+    /** Written through the shared link: by is what they typed. */
+    guest?: boolean;
     replies?: IdeaReply[];
 }
 

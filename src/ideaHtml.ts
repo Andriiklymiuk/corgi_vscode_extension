@@ -600,7 +600,9 @@ ${sharedScript()}
     const d = el('div', 'card ' + (c.status || 'open') + (c.kind === 'proposal' ? ' proposal' : ''));
     d.id = 'c-' + idOf(c);
     const head = el('div', 'head');
-    head.append(el('span', 'by' + (isAgent(c.by) ? ' agent' : ''), c.by || '?'), el('span', 'when', ago(c.at)));
+    head.append(el('span', 'by' + (isAgent(c.by) ? ' agent' : ''), c.by || '?'));
+    if (c.guest) { const g = el('span', 'pill type', 'via link'); g.title = 'Written by someone with the link: the name is what they typed'; head.appendChild(g); }
+    head.appendChild(el('span', 'when', ago(c.at)));
     if (c.kind === 'proposal') head.appendChild(el('span', 'pill prop', 'proposal'));
     head.appendChild(el('span', 'sp'));
     head.appendChild(el('span', 'pill st-' + (c.status || 'open'), statusLabel(c.status)));
@@ -617,7 +619,9 @@ ${sharedScript()}
     for (const r of c.replies || []) {
       const rd = el('div', 'reply');
       const rh = el('div', 'head');
-      rh.append(el('span', 'by' + (isAgent(r.by) ? ' agent' : ''), r.by || '?'), el('span', 'when', ago(r.at)));
+      rh.append(el('span', 'by' + (isAgent(r.by) ? ' agent' : ''), r.by || '?'));
+      if (r.guest) rh.appendChild(el('span', 'pill type', 'via link'));
+      rh.appendChild(el('span', 'when', ago(r.at)));
       if (r.changed) rh.appendChild(el('span', 'changed', '✎ changed the page'));
       rd.append(rh, el('div', 'text', r.text || ''));
       const rl = linksOf(r.links); if (rl) rd.appendChild(rl);
