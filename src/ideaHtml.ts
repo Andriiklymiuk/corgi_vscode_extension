@@ -38,9 +38,9 @@ export function sharedScript(): string {
  * picked {files}, busy {what}, error {msg}.
  */
 export function ideaPage(nonce: string, cspSource = ''): string {
-    const img = cspSource ? `${cspSource} data:` : `'none'`;
+    const img = cspSource ? `${cspSource} data: https:` : `'none'`;
     return `<!doctype html><html><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${img}; media-src ${cspSource || "'none'"};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${img}; media-src ${cspSource ? cspSource + ' https:' : "'none'"};">
 <style>
   :root {
     color-scheme: light dark;
@@ -106,15 +106,38 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   #busy, #err { padding: 6px 16px; font-size: 12px; border-bottom: 1px solid var(--line); }
   #busy { color: var(--dim); }
   #err { color: var(--err); }
-  main { display: flex; gap: 0; align-items: flex-start; }
-  #left { flex: 1 1 0; min-width: 0; padding: 12px 28px 48px; max-width: 860px; }
-  #side { flex: 0 0 360px; position: sticky; top: 41px; max-height: calc(100vh - 41px); overflow: auto; border-left: 1px solid var(--line); background: var(--panel); padding: 10px 12px 24px; }
-  @media (max-width: 760px) {
-    main { flex-direction: column; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); align-items: start; }
+  body.noside main { grid-template-columns: minmax(0, 1fr); }
+  body.noside #side { display: none; }
+  #left { min-width: 0; width: 100%; max-width: 880px; margin: 0 auto; padding: 16px 32px 56px; }
+  #side { position: sticky; top: var(--top, 45px); max-height: calc(100vh - var(--top, 45px)); overflow: auto; border-left: 1px solid var(--line); background: var(--panel); padding: 10px 12px 24px; min-width: 0; }
+  #top { flex-wrap: wrap; row-gap: 6px; }
+  #top .acts-top { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  #sideToggle .n { margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--open); font-size: 11px; }
+  @media (max-width: 820px) {
+    main { grid-template-columns: minmax(0, 1fr); }
     #left { padding: 12px 16px 24px; }
-    #side { position: static; flex: none; width: 100%; max-height: none; border-left: 0; border-top: 1px solid var(--line); }
+    #side { position: static; max-height: none; border-left: 0; border-top: 1px solid var(--line); }
+    #top button { padding: 3px 8px; }
   }
-  article { font-size: 14px; line-height: 1.6; }
+  article { font-size: 14px; line-height: 1.65; overflow-wrap: break-word; }
+  article a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--link) 40%, transparent); text-underline-offset: 2px; }
+  article p:has(> img:only-child), article p:has(> a:only-child > img) { text-align: center; }
+  article p:has(> img:only-child) + p:has(> em:only-child) { text-align: center; color: var(--dim); font-size: 12px; margin-top: -4px; }
+  article img { height: auto; vertical-align: middle; }
+  article p > a > img { margin: 0 2px; }
+  article table { display: block; max-width: 100%; overflow-x: auto; }
+  article pre { max-width: 100%; }
+  article h2 .fold { position: absolute; left: -22px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; padding: 0; background: transparent; color: var(--dim); font-size: 10px; line-height: 18px; text-align: center; opacity: 0; }
+  article h2 .fold::before { content: "▾"; }
+  article h2.folded .fold::before { content: "▸"; }
+  article h2:hover .fold, article h2.folded .fold, article h2 .fold:focus-visible { opacity: 1; }
+  article h2.folded { color: var(--dim); }
+  article .folded-away { display: none !important; }
+  article mark.st-pending { background: var(--answered); outline: 1px solid var(--focus); cursor: default; }
+  #composer.inline { position: absolute; z-index: 8; width: min(420px, calc(100vw - 24px)); margin: 0; box-shadow: 0 10px 32px rgba(0,0,0,.35); }
+  #composer .hint { font-size: 11px; color: var(--dim); margin-right: auto; align-self: center; }
+  #outline .head .fx { margin-left: auto; display: flex; gap: 2px; text-transform: none; letter-spacing: 0; font-weight: 400; }
   article h1 { font-size: 24px; margin: 8px 0 12px; }
   article h2 { font-size: 18px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
   article h3 { font-size: 15px; margin: 18px 0 6px; }
@@ -213,7 +236,7 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   #composer .chip button { padding: 0 4px; margin-left: 4px; font-size: 12px; line-height: 1; background: transparent; color: var(--dim); }
   #composer .chip button:hover { color: var(--err); }
   #composer .row .left { margin-right: auto; }
-  #float { position: absolute; z-index: 5; padding: 3px 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  #floatOld { position: absolute; z-index: 5; padding: 3px 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
   .none { color: var(--dim); font-size: 12px; padding: 8px 2px; }
   #signed { color: var(--dim); font-size: 12px; white-space: nowrap; }
   #signoff.on { background: var(--fixed); color: var(--fg); }
@@ -233,9 +256,12 @@ export function ideaPage(nonce: string, cspSource = ''): string {
   <span class="sp"></span>
   <span id="signed"></span>
   <button id="signoff" class="quiet" title="Sign the page off as it reads now">Looks good</button>
+  <span class="acts-top">
+  <button id="sideToggle" class="quiet" title="Show or hide the comments">Comments</button>
   <button id="editMd" class="quiet" title="Open idea.md in an editor; comments show as threads there">Edit markdown</button>
   <button id="browser" class="quiet" title="The same page in the browser (needs corgi agent up)">Open in browser</button>
   <button id="buildTop" title="Hand the page to the agent: it plans the work and starts">Build it</button>
+  </span>
 </header>
 <div id="busy" hidden></div>
 <div id="err" hidden></div>
@@ -255,7 +281,6 @@ export function ideaPage(nonce: string, cspSource = ''): string {
     <div id="comments"></div>
   </aside>
 </main>
-<button id="float" hidden>Comment</button>
 <script nonce="${nonce}">
 ${sharedScript()}
 (() => {
@@ -264,6 +289,9 @@ ${sharedScript()}
   let filter = typeof saved.filter === 'string' ? saved.filter : 'all';
   let outlineOpen = saved.outlineOpen !== false;
   let ticketsOpen = saved.ticketsOpen === true;
+  let sideOpen = saved.sideOpen !== false;
+  const folded = new Set(Array.isArray(saved.folded) ? saved.folded : []);
+  let waitingRender = false;
   let doc = null;
   let pending = null;
   let composing = null;
@@ -277,7 +305,17 @@ ${sharedScript()}
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
   const post = (m) => vscode.postMessage(m);
   const button = (label, cls, onClick) => { const b = el('button', cls, label); b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); }); return b; };
-  const persist = () => vscode.setState({ filter, outlineOpen, ticketsOpen });
+  const persist = () => vscode.setState({ filter, outlineOpen, ticketsOpen, sideOpen, folded: [...folded] });
+  const applySide = () => { document.body.classList.toggle('noside', !sideOpen); const open = doc ? (doc.comments || []).filter((c) => c.status !== 'resolved').length : 0; const b = $('sideToggle'); b.replaceChildren(document.createTextNode(sideOpen ? 'Hide comments' : 'Comments')); if (!sideOpen && open) b.appendChild(el('span', 'n', String(open))); };
+  // Fold a section by its heading: the h2 and everything to the next h2. No text node is added, so offsets stay the markdown's.
+  const applyFolds = () => {
+    let away = false;
+    for (const n of [...page.children]) {
+      if (n.tagName === 'H1' || n.tagName === 'H2') { away = n.tagName === 'H2' && folded.has(n.textContent.trim()); n.classList.toggle('folded', away); continue; }
+      n.classList.toggle('folded-away', away);
+    }
+  };
+  const foldAll = (on) => { folded.clear(); if (on) for (const h of page.querySelectorAll('h2')) folded.add(h.textContent.trim()); persist(); applyFolds(); };
   const ago = (at) => formatElapsed(at) || (at ? 'just now' : '');
   const httpUrl = (u) => typeof u === 'string' && /^https?:\\/\\//i.test(u);
   const idOf = (c) => String(c.id);
@@ -384,6 +422,18 @@ ${sharedScript()}
   };
 
   // Every h2 and h3 gets a "+ comment" at its right end on hover: a comment on the section, quote = the heading.
+  const foldButtons = () => {
+    for (const h of page.querySelectorAll('h2')) {
+      const text = h.textContent.trim();
+      if (!text) continue;
+      const b = el('button', 'fold');
+      b.title = 'Fold or unfold this section';
+      b.setAttribute('aria-label', 'Fold ' + text);
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', (e) => { e.stopPropagation(); if (folded.has(text)) folded.delete(text); else folded.add(text); persist(); applyFolds(); });
+      h.prepend(b);
+    }
+  };
   const headingButtons = () => {
     for (const h of page.querySelectorAll('h2, h3')) {
       const text = h.textContent.trim();
@@ -407,6 +457,8 @@ ${sharedScript()}
     for (const a of page.querySelectorAll('a[href]')) a.addEventListener('click', (e) => { e.preventDefault(); const u = a.getAttribute('href'); if (httpUrl(u)) post({ type: 'openLink', url: u }); });
     markAnchors();
     headingButtons();
+    foldButtons();
+    applyFolds();
   };
 
   const tickets = () => (Array.isArray(doc.tickets) && doc.tickets.length ? doc.tickets : Array.isArray(doc.idea && doc.idea.tickets) ? doc.idea.tickets : []).filter((t) => t && t.title);
@@ -509,7 +561,9 @@ ${sharedScript()}
     if (!heads.length) { box.replaceChildren(); return; }
     const comments = doc.comments || [];
     const head = el('div', 'head');
-    head.append(el('span', 'chev', outlineOpen ? '▾' : '▸'), el('span', '', 'On this page'));
+    const fx = el('span', 'fx');
+    fx.append(button('fold all', 'link', () => foldAll(true)), button('unfold all', 'link', () => foldAll(false)));
+    head.append(el('span', 'chev', outlineOpen ? '▾' : '▸'), el('span', '', 'On this page'), fx);
     head.addEventListener('click', () => { outlineOpen = !outlineOpen; persist(); drawOutline(); });
     const list = el('div', 'list');
     for (const h of heads) {
@@ -519,7 +573,7 @@ ${sharedScript()}
       row.appendChild(el('span', 't', text));
       const n = openUnder(comments, text);
       if (n) row.appendChild(el('span', 'n', String(n)));
-      row.addEventListener('click', () => h.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+      row.addEventListener('click', () => { if (folded.delete(text)) { persist(); applyFolds(); } h.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
       list.appendChild(row);
     }
     box.replaceChildren(head, list);
@@ -649,14 +703,27 @@ ${sharedScript()}
     $('comments').replaceChildren(...out);
   };
 
-  const openComposer = (sel) => {
-    composing = sel ? { quote: sel.quote, prefix: sel.prefix, suffix: sel.suffix, heading: sel.heading } : { quote: '', prefix: '', suffix: '', heading: '' };
+  // From a selection the box opens right under the words, the words marked while you write; from a
+  // section or the whole page it opens at the top of the comments.
+  const openComposer = (sel, at) => {
+    closeComposer(true);
+    composing = sel ? { quote: sel.quote, prefix: sel.prefix, suffix: sel.suffix, heading: sel.heading, start: sel.start, end: sel.end } : { quote: '', prefix: '', suffix: '', heading: '' };
+    composing.inline = !!at;
     const box = $('composer');
     box.hidden = false;
+    box.classList.toggle('inline', composing.inline);
+    if (composing.inline) {
+      document.body.appendChild(box);
+      if (typeof sel.start === 'number') wrap(sel.start, sel.end, 'pending', '-1');
+    } else {
+      if (!sideOpen) { sideOpen = true; persist(); applySide(); }
+      $('side').insertBefore(box, $('comments'));
+    }
     const onSection = composing.quote && composing.quote === composing.heading;
     const what = el('div', 'what', onSection ? 'On the section ' + composing.heading : composing.quote ? 'On these words' + (composing.heading ? ' under ' + composing.heading : '') : 'On the whole page');
     const ta = el('textarea');
     ta.placeholder = composing.quote ? 'What about this? The agent answers in the thread and amends the page.' : 'What should change? The agent answers and amends the page.';
+    ta.value = (composing.quote && composeDrafts[composing.quote]) || '';
     const link = el('input');
     link.type = 'url'; link.placeholder = 'Link (optional)';
     const chips = el('div', 'chips');
@@ -664,26 +731,48 @@ ${sharedScript()}
     const attach = button('Attach…', 'quiet left', () => post({ type: 'pickFiles' }));
     attach.title = 'Files to attach to the comment';
     row.appendChild(attach);
-    row.appendChild(button('Cancel', 'quiet', closeComposer));
+    row.appendChild(el('span', 'hint', '⌘↵ sends · Esc closes'));
+    row.appendChild(button('Cancel', 'quiet', () => closeComposer(false)));
     row.appendChild(button('Comment', '', () => {
       const t = ta.value.trim();
       if (!t) return;
       const m = { type: 'comment', text: t, quote: composing.quote, prefix: composing.prefix, suffix: composing.suffix, heading: composing.heading, files: attached.map((f) => f.path) };
       if (httpUrl(link.value.trim())) m.link = link.value.trim();
       post(m);
-      closeComposer();
+      if (composing.quote) delete composeDrafts[composing.quote];
+      closeComposer(false);
     }));
-    ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); row.lastChild.click(); } });
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); row.lastChild.click(); } else if (e.key === 'Escape') { e.preventDefault(); closeComposer(true); } });
     const parts = [what];
     if (composing.quote && !onSection) parts.push(el('div', 'quote', composing.quote));
     parts.push(ta, link, chips, row);
     box.replaceChildren(...parts);
-    $('float').hidden = true;
-    $('side').scrollTop = 0;
-    box.scrollIntoView({ block: 'nearest' });
-    ta.focus();
+    if (composing.inline) {
+      const w = box.offsetWidth, sx = window.scrollX, sy = window.scrollY;
+      box.style.left = Math.max(sx + 8, Math.min(sx + at.left + at.width / 2 - w / 2, sx + document.documentElement.clientWidth - w - 8)) + 'px';
+      box.style.top = (at.bottom + box.offsetHeight + 16 > window.innerHeight && at.top > box.offsetHeight + 60 ? sy + at.top - box.offsetHeight - 8 : sy + at.bottom + 8) + 'px';
+      ta.focus({ preventScroll: true });
+    } else {
+      box.style.left = ''; box.style.top = '';
+      $('side').scrollTop = 0;
+      box.scrollIntoView({ block: 'nearest' });
+      ta.focus();
+    }
   };
-  const closeComposer = () => { composing = null; attached = []; const box = $('composer'); box.hidden = true; box.replaceChildren(); };
+  // Closing keeps what you typed for those words, unless it was sent or cancelled.
+  const closeComposer = (keep) => {
+    if (!composing) return;
+    const box = $('composer');
+    const ta = box.querySelector('textarea');
+    if (keep && composing.quote && ta && ta.value.trim()) composeDrafts[composing.quote] = ta.value;
+    const wasInline = composing.inline;
+    composing = null; attached = [];
+    box.hidden = true; box.classList.remove('inline'); box.replaceChildren();
+    $('side').insertBefore(box, $('comments'));
+    for (const m of [...page.querySelectorAll('mark[data-id="-1"]')]) { const p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); p.normalize(); }
+    if (wasInline && waitingRender) { waitingRender = false; render(); }
+  };
+  const composeDrafts = {};
   // The picked files as chips in the composer, each with an × that drops it.
   const drawChips = () => {
     const chips = document.querySelector('#composer .chips');
@@ -698,26 +787,35 @@ ${sharedScript()}
     }));
   };
 
-  // Highlight to comment: a floating button over the selection, inside the article only.
-  document.addEventListener('selectionchange', () => {
-    const float = $('float');
+  // Highlight to comment: the box opens under the words the moment the mouse lets go.
+  let selecting = false;
+  const fromSelection = () => {
     const sel = document.getSelection();
-    if (!doc || !sel || sel.isCollapsed || !sel.rangeCount) { float.hidden = true; return; }
+    if (!doc || !sel || sel.isCollapsed || !sel.rangeCount) return;
     const r = sel.getRangeAt(0);
-    if (!page.contains(r.startContainer) || !page.contains(r.endContainer)) { float.hidden = true; return; }
+    if (!page.contains(r.startContainer) || !page.contains(r.endContainer)) return;
     const nodes = textNodes();
     const text = textOf(nodes);
     const start = offsetOf(nodes, r.startContainer, r.startOffset);
     const end = offsetOf(nodes, r.endContainer, r.endOffset);
-    if (start < 0 || end <= start || !text.slice(start, end).trim()) { float.hidden = true; return; }
-    pending = { quote: text.slice(start, end), prefix: text.slice(Math.max(0, start - CONTEXT), start), suffix: text.slice(end, end + CONTEXT), heading: headingAbove(nodes, start) };
+    if (start < 0 || end <= start || !text.slice(start, end).trim()) return;
+    pending = { quote: text.slice(start, end), prefix: text.slice(Math.max(0, start - CONTEXT), start), suffix: text.slice(end, end + CONTEXT), heading: headingAbove(nodes, start), start, end };
     const rect = r.getBoundingClientRect();
-    float.style.left = Math.max(8, rect.left + window.scrollX) + 'px';
-    float.style.top = Math.max(8, rect.top + window.scrollY - 30) + 'px';
-    float.hidden = false;
-  });
-  $('float').addEventListener('mousedown', (e) => e.preventDefault());
-  $('float').addEventListener('click', () => { if (pending) openComposer(pending); });
+    sel.removeAllRanges();
+    openComposer(pending, rect);
+  };
+  page.addEventListener('mousedown', (e) => { if (e.button === 0) selecting = true; });
+  document.addEventListener('mouseup', () => { if (!selecting) return; selecting = false; setTimeout(fromSelection, 0); });
+  page.addEventListener('keyup', (e) => { if (e.shiftKey) fromSelection(); });
+  document.addEventListener('mousedown', (e) => {
+    const box = $('composer');
+    if (composing && composing.inline && !box.contains(e.target)) closeComposer(true);
+    if (!e.target.closest('mark, .card')) for (const x of document.querySelectorAll('.lit')) x.classList.remove('lit');
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && composing) closeComposer(true); });
+  $('sideToggle').addEventListener('click', () => { sideOpen = !sideOpen; persist(); applySide(); });
+  const fitTop = () => document.documentElement.style.setProperty('--top', $('top').offsetHeight + 'px');
+  window.addEventListener('resize', fitTop);
   $('editMd').addEventListener('click', () => post({ type: 'openMarkdown' }));
   $('browser').addEventListener('click', () => post({ type: 'openBrowser' }));
   $('buildTop').addEventListener('click', () => post({ type: 'build' }));
@@ -727,7 +825,7 @@ ${sharedScript()}
     const y = window.scrollY;
     const focused = document.activeElement && document.activeElement.classList.contains('quick') ? document.activeElement.closest('.card').id : '';
     drawTop();
-    drawPage();
+    if (composing && composing.inline) waitingRender = true; else drawPage();
     drawTickets();
     drawSent();
     drawHand();
@@ -735,6 +833,8 @@ ${sharedScript()}
     drawOutline();
     drawFilter();
     drawComments();
+    applySide();
+    fitTop();
     window.scrollTo(0, y);
     progress();
     current();

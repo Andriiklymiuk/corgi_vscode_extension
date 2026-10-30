@@ -17,13 +17,19 @@ describe('idea page', () => {
         assert.strictEqual(uses, 1);
         assert.ok(html.includes('page.innerHTML = String(doc.html'));
     });
-    it('has the article, the comments, the composer and the floating Comment button', () => {
-        for (const id of ['page', 'hand', 'filter', 'composer', 'comments', 'float', 'answering', 'buildTop', 'progress', 'outline', 'tickets', 'sent', 'type']) {
+    it('has the article, the comments, the composer and the comments toggle', () => {
+        for (const id of ['page', 'hand', 'filter', 'composer', 'comments', 'sideToggle', 'answering', 'buildTop', 'progress', 'outline', 'tickets', 'sent', 'type']) {
             assert.ok(html.includes(`id="${id}"`), id);
         }
     });
+    it('opens the comment box under a selection when the mouse lets go, and folds sections', () => {
+        assert.ok(html.includes("document.addEventListener('mouseup'"));
+        assert.ok(html.includes("box.classList.toggle('inline', composing.inline)"));
+        assert.ok(html.includes("const foldButtons = () =>"));
+        assert.ok(!html.includes('id="float"'));
+    });
     it('speaks every message the host understands', () => {
-        for (const type of ['ready', 'comment', 'reply', 'status', 'build', 'send', 'openMarkdown', 'openBrowser', 'openLink']) {
+        for (const type of ['ready', 'comment', 'reply', 'status', 'build', 'send', 'openMarkdown', 'openBrowser', 'openLink', 'approve', 'mock', 'openMock']) {
             assert.ok(html.includes(`type: '${type}'`), type);
         }
         for (const type of ['doc', 'busy', 'error']) {
