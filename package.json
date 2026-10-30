@@ -3,7 +3,7 @@
   "displayName": "corgi",
   "publisher": "corgi",
   "description": "corgi-compose.yml autocomplete + validation, a corgi runner, and an AI assistant (@corgi chat + Copilot agent tools) for VS Code",
-  "version": "2.33.0",
+  "version": "2.33.1",
   "license": "MIT",
   "repository": "https://github.com/Andriiklymiuk/corgi_vscode_extension",
   "icon": "resources/icon.png",
@@ -467,12 +467,12 @@
       },
       {
         "command": "corgi.idea.preview",
-        "title": "Corgi: Preview with comments",
+        "title": "Open in Corgi Preview",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "corgi.idea.shareFile",
-        "title": "Corgi: Copy the link for the team",
+        "title": "Corgi: Copy the link for comments",
         "icon": "$(link)"
       },
       {
@@ -497,7 +497,7 @@
       },
       {
         "command": "corgi.idea.previewHere",
-        "title": "Corgi: Preview with comments",
+        "title": "Open in Corgi Preview",
         "icon": "$(comment-discussion)"
       },
       {
@@ -560,18 +560,35 @@
           "command": "corgi.idea.commentSelection",
           "when": "editorHasSelection && resourceLangId == markdown && resourceScheme == file",
           "group": "corgi@2"
+        },
+        {
+          "command": "corgi.idea.previewHere",
+          "when": "resourceLangId == markdown && resourceScheme == file",
+          "group": "corgi@3"
         }
       ],
       "explorer/context": [
         {
           "command": "corgi.idea.preview",
-          "group": "corgi",
-          "when": "resourceExtname == .md"
+          "group": "navigation@20",
+          "when": "resourceExtname =~ /^\\.(md|markdown)$/"
         },
         {
           "command": "corgi.idea.shareFile",
-          "group": "corgi",
-          "when": "resourceExtname == .md"
+          "group": "navigation@21",
+          "when": "resourceExtname =~ /^\\.(md|markdown)$/"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "corgi.idea.preview",
+          "group": "corgi@1",
+          "when": "resourceLangId == markdown && resourceScheme == file"
+        },
+        {
+          "command": "corgi.idea.shareFile",
+          "group": "corgi@2",
+          "when": "resourceLangId == markdown && resourceScheme == file"
         }
       ],
       "editor/title": [

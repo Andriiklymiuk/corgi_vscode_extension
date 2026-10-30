@@ -178,11 +178,11 @@ session's, or your own - has **ready for review**, **merge** and **close**
 
 ### An idea page beside the code
 
-**Preview with comments** (the comments icon in the title bar of any `.md`,
-or right-click it in the Explorer) opens the file as a page beside the
+**Open in Corgi Preview** (the comments icon in the title bar of any `.md`,
+or right-click the file in the Explorer, its tab, or inside the editor) opens the file as a page beside the
 code: pictures and videos play inline, comments sit on the words, and the
 same comments show as threads in the file itself - yours, the team's, the
-agent's. **Corgi: Copy the link for the team** puts its link on the
+agent's. **Corgi: Copy the link for comments** (the link icon beside it) puts its link on the
 clipboard; people comment without an account, the agent answers and fixes
 the page, and the fix lands back in your file. Needs corgi 2.34.
 

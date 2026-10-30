@@ -486,7 +486,7 @@ export function registerIdeas(context: vscode.ExtensionContext, agentDir: string
             }
             await vscode.env.clipboard.writeText(shared.link);
             const note = shared.public ? 'Link copied - anyone with it reads and comments; the agent answers.' : 'Copied, but the link works on this Mac only - corgi agent up gives it a public address.';
-            const go = await vscode.window.showInformationMessage(note, 'Preview with comments');
+            const go = await vscode.window.showInformationMessage(note, 'Open in Corgi Preview');
             if (go) {
                 IdeaPanel.show(agentDir, shared.slug, shared.name);
             }
@@ -574,12 +574,12 @@ function commentsStatus(agentDir: string): vscode.Disposable {
         const idea = slug ? readIdea(ideasDir(agentDir), slug) : undefined;
         if (!idea) {
             bar.text = '$(comment-discussion) Comment';
-            bar.tooltip = 'Preview with comments: the team highlights words and comments, the agent answers and fixes the file';
+            bar.tooltip = 'Open in Corgi Preview: the team highlights words and comments, the agent answers and fixes the file';
         } else {
             const open = openCount(idea.comments);
             const status = idea.meta.status === 'draft' ? '' : ` · ${ideaStatusLabel(idea.meta.status)}`;
             bar.text = `$(comment-discussion) ${open ? `${open} open` : 'no open comments'}${status}`;
-            bar.tooltip = `${idea.meta.name || idea.meta.title}: preview with comments`;
+            bar.tooltip = `${idea.meta.name || idea.meta.title}: open in Corgi Preview`;
         }
         bar.show();
     };
