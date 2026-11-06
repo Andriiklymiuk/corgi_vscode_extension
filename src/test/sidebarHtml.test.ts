@@ -19,6 +19,10 @@ describe('sidebar page', () => {
     it('drops a click on the session already in front', () => {
         assert.ok(html.includes('if (r.front || now - focusing < 1200) return;'));
     });
+    it('counts only what is worth counting: no badge for one row, Sessions counts who waits', () => {
+        assert.ok(html.includes(`if (count > 1) head.appendChild(el('span', 'badge', String(count)))`));
+        assert.ok(html.includes(`badge('sessions', state.counts.waiting)`));
+    });
     it('offers the Homebrew install when corgi is missing', () => {
         assert.ok(html.includes(`'corgi.installWithHomebrew'`));
         assert.ok(html.includes('id="install"'));

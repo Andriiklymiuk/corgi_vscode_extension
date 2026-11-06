@@ -108,7 +108,13 @@ describe('sidebarModel', () => {
         const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', label: 'web', status: 'needs_input' }), s({ id: '3', status: 'done' })] };
         const st = build({ board: b, inbox: [], hidden: ['web'], bots: [], now });
         assert.strictEqual(st.sessions[0].rows.length, 2);
-        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1, board: 0, turn: 0 });
+        assert.deepStrictEqual(st.counts, { inbox: 0, active: 1, board: 0, turn: 0, waiting: 0 });
+    });
+    it('counts as waiting only sessions stopped on you, whatever else is on the list', () => {
+        const b: Board = { sessions: [s({ id: '1' }), s({ id: '2', status: 'needs_input' }), s({ id: '3', status: 'done' })] };
+        const st = build({ board: b, inbox: [], hidden: [], bots: [], now });
+        assert.strictEqual(st.counts.waiting, 1);
+        assert.strictEqual(st.counts.active, 2);
     });
     it('says when corgi is not installed', () => {
         assert.strictEqual(build({ board: undefined, inbox: [], hidden: [], bots: [], now }).installed, true);

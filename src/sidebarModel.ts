@@ -167,7 +167,8 @@ export interface SidebarState {
     /** Idea pages (`corgi idea list`), the last changed first. */
     ideas: IdeaRow[];
     turn: YourTurn;
-    counts: { inbox: number; active: number; board: number; turn: number };
+    /** `waiting` is sessions stopped on you right now: the one number worth a badge on the icon. */
+    counts: { inbox: number; active: number; board: number; turn: number; waiting: number };
     profiles: string[];
     /** False when the corgi binary is not on the machine: the page shows how to install it. */
     installed: boolean;
@@ -499,7 +500,7 @@ export function build(input: BuildInput): SidebarState {
         workspaces: workspaceRows(input.workspaces ?? [], input.watched ?? [], new Set(input.running ?? []), new Set(input.paused ?? [])),
         ideas: ideaRows(input.ideas ?? [], now),
         turn,
-        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount, turn: turn.open + turn.stalled.length },
+        counts: { inbox: inbox.length, active: live.filter((s) => s.status === 'working' || s.status === 'needs_input').length, board: boardCount, turn: turn.open + turn.stalled.length, waiting: live.filter((s) => s.status === 'needs_input').length },
         profiles: accounts.map((a) => a.profile).filter(Boolean),
         installed: input.installed !== false,
     };

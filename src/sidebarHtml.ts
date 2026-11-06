@@ -245,7 +245,8 @@ export function page(nonce: string): string {
     const head = el('div', 'ws' + (closedGroups.has(key) ? ' closed' : ''));
     head.appendChild(el('span', 'chev', closedGroups.has(key) ? '▸' : '▾'));
     head.appendChild(el('span', '', label));
-    head.appendChild(el('span', 'badge', String(count)));
+    // A count says something only when there is more than one row to count.
+    if (count > 1) head.appendChild(el('span', 'badge', String(count)));
     const list = el('div', 'rows');
     for (const r of rows) list.appendChild(r);
     head.addEventListener('click', () => {
@@ -314,7 +315,7 @@ export function page(nonce: string): string {
         if (l.url) d.addEventListener('click', () => open(l.url));
         return d;
       });
-      out.push(...group('turn', 'Left for you by runs', t.open, rows));
+      out.push(...group('turn', 'Left for you by runs', t.stalled.length ? t.open : 0, rows));
     }
     if (t.spend) {
       const box = el('div', 'spend');
@@ -376,7 +377,7 @@ export function page(nonce: string): string {
   };
 
   const drawSessions = (state) => {
-    badge('sessions', state.counts.active);
+    badge('sessions', state.counts.waiting);
     const out = [];
     const fresh = el('div', 'big');
     fresh.append(el('span', 'plus', '+'), el('span', '', 'New session'));

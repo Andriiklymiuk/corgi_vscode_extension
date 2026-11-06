@@ -122,7 +122,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         }
         this.debounce = setTimeout(() => {
             this.debounce = undefined;
-            if (!this.view?.visible) {
+            if (!this.view) {
                 return;
             }
             const { daemon, mutedUntil } = this.daemonInfo();
@@ -131,13 +131,17 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
                 installed: this.installed, daemon, mutedUntil, cards: this.snap.cards,
                 workspaces: this.snap.workspaces, watched: this.snap.watched, running: this.snap.running, paused: this.snap.paused, ideas: this.snap.ideas,
             });
+            // The icon is read while the panel is closed, so it follows the board either way.
+            const waiting = state.counts.waiting;
+            this.view.badge = waiting ? { value: waiting, tooltip: waiting === 1 ? '1 session waits for you' : `${waiting} sessions wait for you` } : undefined;
+            if (!this.view.visible) {
+                return;
+            }
             const json = JSON.stringify(state);
             if (json === this.lastJson) {
                 return;
             }
             this.lastJson = json;
-            const waiting = state.counts.turn;
-            this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} for you: left by runs, or your pull requests that wait` } : undefined;
             void this.view.webview.postMessage({ type: 'state', state });
         }, DEBOUNCE_MS);
     }
