@@ -451,7 +451,6 @@ export async function typeIntoPanel(sessionId: string, text: string, enter: bool
     });
 }
 
-/** The System Events lines that press one key sequence: Return is key code 36, Escape 53, a digit is typed. */
 export function keyLines(text: string): string[] {
     const out: string[] = [];
     for (const ch of text) {
@@ -467,11 +466,6 @@ export function keyLines(text: string): string[] {
     return out;
 }
 
-/**
- * Keys for a dialog in a Claude Code chat tab - Allow is Return, Always is 2
- * then Return, Deny is Escape. The tab and its window come to the front
- * first, so the keys land on that dialog and nowhere else.
- */
 export async function pressInPanel(sessionId: string, title: string | undefined, text: string): Promise<void> {
     if (!(title && await activateClaudeTab(title))) {
         await vscode.commands.executeCommand(openWithPrompt, sessionId, '');

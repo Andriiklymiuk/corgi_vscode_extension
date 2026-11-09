@@ -132,7 +132,6 @@ export function page(nonce: string): string {
   if (!saved.seededBoard) { closedGroups.add('board:Done'); closedGroups.add('board:Review'); }
   let filter = typeof saved.filter === 'string' ? saved.filter : '';
   let showEnded = saved.showEnded === true;
-  // Done is history: hidden until asked for, so the live work comes first.
   let showDone = saved.showDone === true;
   let byTicket = saved.byTicket === true;
   let last = null;

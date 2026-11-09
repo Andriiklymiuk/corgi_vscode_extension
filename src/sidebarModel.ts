@@ -59,15 +59,12 @@ export interface KanbanCard {
     updatedAt?: string;
     fix?: { running?: boolean; outcome?: string; prs?: string[] };
     standing?: { word?: string };
-    /** what is happening on a Running card this minute (corgi 2.40) */
     now?: { doing?: string; model?: string; agent?: string };
     cost?: { tokens?: number; usd?: number; runs?: number; sessions?: number; models?: string[]; agents?: string[] };
-    /** the plan or parent ticket this card is one piece of (corgi 2.40) */
     feature?: { ref?: string; title?: string };
     after?: string[];
 }
 
-/** One feature of `corgi agent kanban --json`: several cards that make one thing, and the order they run in. */
 export interface KanbanFeature {
     ref: string;
     title?: string;
@@ -390,7 +387,6 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
 /** The kanban's column order; anything else lands after these. */
 export const boardColumns = ['Features', 'Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
 
-/** Who worked and what it cost, as one clause: `1.2M tok · $0.40 · sonnet-4-5`. */
 export function costClause(cost: KanbanCard['cost']): string {
     if (!cost || !(cost.tokens || cost.usd)) {
         return '';
@@ -409,7 +405,6 @@ export function costClause(cost: KanbanCard['cost']): string {
     return bits.filter(Boolean).join(' · ');
 }
 
-/** A feature as one row: its state, why, and the order its cards run in. */
 export function featureRow(f: KanbanFeature, now: number): BoardRow {
     const order = (f.waves ?? []).map((w) => w.join(' + ')).join(' → ');
     const tone: Tone = f.state === 'blocked' ? 'bad' : f.state === 'running' ? 'live' : f.state === 'done' ? 'quiet' : 'ask';
@@ -542,7 +537,6 @@ export function build(input: BuildInput): SidebarState {
     const cards = input.cards ?? [];
     const inboxKeys = new Set(inbox.map((i) => i.key));
     const board = boardGroups(cards, now.getTime(), inboxKeys, input.features ?? []);
-    // Done is history: the badge counts what is live.
     const boardCount = board.filter((g) => g.column !== 'Done').reduce((n, g) => n + g.rows.length, 0);
     const turn = yourTurn(shown, now);
     return {
