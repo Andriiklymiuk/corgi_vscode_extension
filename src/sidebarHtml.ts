@@ -132,9 +132,11 @@ export function page(nonce: string): string {
   if (!saved.seededBoard) { closedGroups.add('board:Done'); closedGroups.add('board:Review'); }
   let filter = typeof saved.filter === 'string' ? saved.filter : '';
   let showEnded = saved.showEnded === true;
+  // Done is history: hidden until asked for, so the live work comes first.
+  let showDone = saved.showDone === true;
   let byTicket = saved.byTicket === true;
   let last = null;
-  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded, byTicket, seededBoard: true });
+  const persist = () => vscode.setState({ closed: [...closed], closedGroups: [...closedGroups], filter, showEnded, showDone, byTicket, seededBoard: true });
   persist();
   // One focus at a time: a second click while the first is still landing is dropped.
   let focusing = 0;
@@ -346,13 +348,27 @@ export function page(nonce: string): string {
   const drawBoard = (state) => {
     badge('board', state.counts.board);
     const out = [];
+    let done = 0;
     for (const g of state.board) {
+      if (g.column === 'Done' && !showDone) { done = g.rows.length; continue; }
       const rows = g.rows.map((r) => {
         const d = row(r.tone, false, r.title, r.detail, r.elapsed, r.title);
         if (r.url) d.addEventListener('click', () => open(r.url));
         return d;
       });
       out.push(...group('board', g.column, g.rows.length, rows));
+    }
+    if (done) {
+      const head = el('div', 'ws closed');
+      head.append(el('span', 'chev', '▸'), el('span', '', 'Done'), el('span', 'badge', String(done)));
+      head.title = 'Show what finished; corgi agent history has the rest';
+      head.addEventListener('click', () => { showDone = true; persist(); drawBoard(state); });
+      out.push(head);
+    } else if (showDone && state.board.some((g) => g.column === 'Done')) {
+      const hide = el('div', 'ws');
+      hide.append(el('span', 'chev', '▾'), el('span', '', 'Hide done'));
+      hide.addEventListener('click', () => { showDone = false; persist(); drawBoard(state); });
+      out.push(hide);
     }
     if (out.length === 0) out.push(el('div', 'empty', 'No cards. Tickets the watch follows, and tasks of your own, land here.'));
     body('board').replaceChildren(...out);

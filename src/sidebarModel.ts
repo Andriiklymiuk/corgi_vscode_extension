@@ -59,6 +59,27 @@ export interface KanbanCard {
     updatedAt?: string;
     fix?: { running?: boolean; outcome?: string; prs?: string[] };
     standing?: { word?: string };
+    /** what is happening on a Running card this minute (corgi 2.40) */
+    now?: { doing?: string; model?: string; agent?: string };
+    cost?: { tokens?: number; usd?: number; runs?: number; sessions?: number; models?: string[]; agents?: string[] };
+    /** the plan or parent ticket this card is one piece of (corgi 2.40) */
+    feature?: { ref?: string; title?: string };
+    after?: string[];
+}
+
+/** One feature of `corgi agent kanban --json`: several cards that make one thing, and the order they run in. */
+export interface KanbanFeature {
+    ref: string;
+    title?: string;
+    workspace?: string;
+    url?: string;
+    state?: string;
+    why?: string;
+    waves?: string[][];
+    total?: number;
+    done?: number;
+    cost?: KanbanCard['cost'];
+    updatedAt?: string;
 }
 
 export interface BoardRow {
@@ -367,15 +388,46 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
 }
 
 /** The kanban's column order; anything else lands after these. */
-export const boardColumns = ['Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
+export const boardColumns = ['Features', 'Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
+
+/** Who worked and what it cost, as one clause: `1.2M tok · $0.40 · sonnet-4-5`. */
+export function costClause(cost: KanbanCard['cost']): string {
+    if (!cost || !(cost.tokens || cost.usd)) {
+        return '';
+    }
+    const tok = cost.tokens ?? 0;
+    const bits = [tok >= 1_000_000 ? `${(tok / 1_000_000).toFixed(1)}M tok` : tok >= 1000 ? `${Math.round(tok / 1000)}k tok` : tok ? `${tok} tok` : ''];
+    if (cost.usd) {
+        bits.push(`$${cost.usd.toFixed(2)}`);
+    }
+    if (cost.models?.length) {
+        bits.push(cost.models.join(', '));
+    }
+    if (cost.agents?.some((a) => a !== 'claude')) {
+        bits.push(cost.agents.join(' + '));
+    }
+    return bits.filter(Boolean).join(' · ');
+}
+
+/** A feature as one row: its state, why, and the order its cards run in. */
+export function featureRow(f: KanbanFeature, now: number): BoardRow {
+    const order = (f.waves ?? []).map((w) => w.join(' + ')).join(' → ');
+    const tone: Tone = f.state === 'blocked' ? 'bad' : f.state === 'running' ? 'live' : f.state === 'done' ? 'quiet' : 'ask';
+    const detail = [f.workspace, [f.state, f.why].filter(Boolean).join(' · '), order, costClause(f.cost)].filter(Boolean).join(' · ');
+    const url = f.url && /^https:\/\//.test(f.url) ? f.url : undefined;
+    return { key: `${f.workspace ?? ''}/${f.ref}`, title: `${f.ref}  ${f.title ?? ''}`.trim(), detail, elapsed: elapsed(f.updatedAt, now), tone, url };
+}
 
 /**
  * Cards by column, in the board's own order, newest first inside one. A
  * card the inbox section already shows (same key) is left out: it would be
  * the same line twice on one page.
  */
-export function boardGroups(cards: KanbanCard[], now: number, shown: ReadonlySet<string> = new Set()): { column: string; rows: BoardRow[] }[] {
+export function boardGroups(cards: KanbanCard[], now: number, shown: ReadonlySet<string> = new Set(), features: KanbanFeature[] = []): { column: string; rows: BoardRow[] }[] {
     const groups = new Map<string, BoardRow[]>();
+    if (features.length) {
+        groups.set('Features', features.filter((f) => f && f.ref).map((f) => featureRow(f, now)));
+    }
     for (const c of cards) {
         if (!c.ref && !c.key) {
             continue;
@@ -384,9 +436,11 @@ export function boardGroups(cards: KanbanCard[], now: number, shown: ReadonlySet
             continue;
         }
         const column = c.column || 'Inbox';
-        const running = !!c.fix?.running;
+        const running = !!c.fix?.running || column === 'Running';
         const tone: Tone = column === 'Blocked' ? 'bad' : running ? 'live' : column === 'Ready' ? 'ask' : 'quiet';
-        const detail = [c.workspace, c.why || c.standing?.word, running ? 'fix running' : c.fix?.prs?.length ? `PR ${c.fix.prs[c.fix.prs.length - 1]}` : ''].filter(Boolean).join(' · ');
+        const live = c.now?.doing ? `now: ${[c.now.doing, c.now.model, c.now.agent && c.now.agent !== 'claude' ? c.now.agent : ''].filter(Boolean).join(' · ')}` : '';
+        const part = c.feature?.ref ? `part of ${c.feature.ref}${c.after?.length ? ` · after ${c.after.join(', ')}` : ''}` : '';
+        const detail = [c.workspace, live || c.why || c.standing?.word, c.fix?.running ? 'fix running' : c.fix?.prs?.length ? `PR ${c.fix.prs[c.fix.prs.length - 1]}` : '', part, costClause(c.cost)].filter(Boolean).join(' · ');
         const url = c.url && /^https:\/\//.test(c.url) ? c.url : undefined;
         groups.set(column, [...(groups.get(column) ?? []), { key: c.key || c.ref!, title: c.ref ? `${c.ref}  ${c.title ?? ''}`.trim() : c.title ?? '', detail, elapsed: elapsed(c.updatedAt, now), tone, url }]);
     }
@@ -441,6 +495,7 @@ export interface BuildInput {
     daemon?: DaemonInfo;
     mutedUntil?: string;
     cards?: KanbanCard[];
+    features?: KanbanFeature[];
     workspaces?: WorkspaceInfo[];
     watched?: WatchedWorkspace[];
     running?: string[];
@@ -486,8 +541,9 @@ export function build(input: BuildInput): SidebarState {
     const accounts = shown?.accounts ?? [];
     const cards = input.cards ?? [];
     const inboxKeys = new Set(inbox.map((i) => i.key));
-    const board = boardGroups(cards, now.getTime(), inboxKeys);
-    const boardCount = board.reduce((n, g) => n + g.rows.length, 0);
+    const board = boardGroups(cards, now.getTime(), inboxKeys, input.features ?? []);
+    // Done is history: the badge counts what is live.
+    const boardCount = board.filter((g) => g.column !== 'Done').reduce((n, g) => n + g.rows.length, 0);
     const turn = yourTurn(shown, now);
     return {
         daemon: { running: !!input.daemon?.pid, version: input.daemon?.version ?? '', muted: mutedLine(input.mutedUntil, now) },

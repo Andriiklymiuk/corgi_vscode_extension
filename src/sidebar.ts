@@ -9,7 +9,7 @@ import { corgiBinary, isolateArgs, runCorgi } from './corgiExec';
 import { page } from './sidebarHtml';
 import { IdeaListEntry } from './idea';
 import { onIdeasChanged } from './ideaCli';
-import { build, DaemonInfo, IdeaNode, InboxNode, KanbanCard, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
+import { build, DaemonInfo, IdeaNode, InboxNode, KanbanCard, KanbanFeature, LeftNode, SessionNode, StalledNode, WatchedWorkspace, WorkspaceInfo } from './sidebarModel';
 import { InboxItem, itemName, readInbox } from './watchInbox';
 
 /**
@@ -44,6 +44,7 @@ type Message = { type: string; command?: string; node?: Node; url?: string };
 interface Snapshot {
     items: InboxItem[];
     cards: KanbanCard[];
+    features: KanbanFeature[];
     workspaces: WorkspaceInfo[];
     watched: WatchedWorkspace[];
     running: string[];
@@ -54,7 +55,7 @@ interface Snapshot {
 export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposable {
     static readonly viewId = 'corgiSidebar';
     private view: vscode.WebviewView | undefined;
-    private snap: Snapshot = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
+    private snap: Snapshot = { items: [], cards: [], features: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
     private installed = true;
     private timer: NodeJS.Timeout | undefined;
     private debounce: NodeJS.Timeout | undefined;
@@ -128,7 +129,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
             const { daemon, mutedUntil } = this.daemonInfo();
             const state = build({
                 board: this.watcher.current(), inbox: this.snap.items, hidden: hiddenWorkspaces(), bots: readBots(this.agentDir), now: new Date(),
-                installed: this.installed, daemon, mutedUntil, cards: this.snap.cards,
+                installed: this.installed, daemon, mutedUntil, cards: this.snap.cards, features: this.snap.features,
                 workspaces: this.snap.workspaces, watched: this.snap.watched, running: this.snap.running, paused: this.snap.paused, ideas: this.snap.ideas,
             });
             // The icon is read while the panel is closed, so it follows the board either way.
@@ -149,14 +150,14 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
     async refresh(): Promise<void> {
         this.installed = await isCorgiInstalled();
         if (!this.installed) {
-            this.snap = { items: [], cards: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
+            this.snap = { items: [], cards: [], features: [], workspaces: [], watched: [], running: [], paused: [], ideas: [] };
             this.push();
             return;
         }
         const hidden = hiddenWorkspaces();
         const [items, kanban, workspaces, watch, status, ideas] = await Promise.all([
             readInbox(corgiBinary(), hidden),
-            corgiJSON<{ cards?: KanbanCard[] }>(['agent', 'kanban', '--json']),
+            corgiJSON<{ cards?: KanbanCard[]; features?: KanbanFeature[] }>(['agent', 'kanban', '--json']),
             corgiJSON<WorkspaceInfo[]>(['agent', 'workspaces', '--json']),
             corgiJSON<{ workspaces?: WatchedWorkspace[] }>(['agent', 'watch', '--json']),
             corgiJSON<{ workspaces?: { workspaceId: string; running?: boolean }[] }>(['agent', 'status', '--json']),
@@ -166,6 +167,7 @@ export class CorgiSidebar implements vscode.WebviewViewProvider, vscode.Disposab
         this.snap = {
             items,
             cards: (kanban?.cards ?? []).filter((c) => !hidden.includes(c.workspace ?? '')),
+            features: (kanban?.features ?? []).filter((f) => !hidden.includes(f.workspace ?? '')),
             workspaces: (Array.isArray(workspaces) ? workspaces : []).filter((w) => w && w.id && !hidden.includes(w.id)),
             watched: watch?.workspaces ?? [],
             running: supervised.filter((w) => w.running).map((w) => w.workspaceId),

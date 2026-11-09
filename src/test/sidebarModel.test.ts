@@ -166,15 +166,20 @@ describe('sidebarModel', () => {
     it('groups kanban cards by column in the board order', () => {
         const groups = boardGroups([
             { ref: 'B-2', title: 'later', column: 'Done', workspace: 'api', updatedAt: '2026-09-16T09:00:00Z' },
-            { ref: 'A-1', title: 'now', column: 'Running', fix: { running: true }, url: 'https://t/1' },
-            { ref: 'C-3', column: 'Blocked', why: 'breaker' },
+            { ref: 'A-1', title: 'now', column: 'Running', fix: { running: true }, url: 'https://t/1', now: { doing: 'Edit cmd/x.go', model: 'sonnet-4-5', agent: 'claude' }, cost: { tokens: 1_200_000, usd: 0.4, models: ['sonnet-4-5'] } },
+            { ref: 'C-3', column: 'Blocked', why: 'breaker', feature: { ref: 'P-1' }, after: ['TASK-1'], cost: { tokens: 500, agents: ['codex'], models: ['gpt-5-codex'] } },
             { title: 'no ref no key' },
-        ], now.getTime());
-        assert.deepStrictEqual(groups.map((g) => g.column), ['Running', 'Blocked', 'Done']);
+        ], now.getTime(), new Set(), [{ ref: 'P-1', title: 'Ship it', workspace: 'api', state: 'running', why: 'one card runs · 2 left', waves: [['TASK-1'], ['TASK-2', 'TASK-3']], updatedAt: '2026-09-16T09:30:00Z' }]);
+        assert.deepStrictEqual(groups.map((g) => g.column), ['Features', 'Running', 'Blocked', 'Done']);
+        assert.strictEqual(groups[0].rows[0].title, 'P-1  Ship it');
+        assert.strictEqual(groups[0].rows[0].detail, 'api · running · one card runs · 2 left · TASK-1 → TASK-2 + TASK-3');
         assert.strictEqual(groups[0].rows[0].tone, 'live');
-        assert.strictEqual(groups[0].rows[0].url, 'https://t/1');
-        assert.strictEqual(groups[1].rows[0].tone, 'bad');
-        assert.strictEqual(groups[2].rows[0].elapsed, '1h');
+        assert.strictEqual(groups[1].rows[0].tone, 'live');
+        assert.strictEqual(groups[1].rows[0].url, 'https://t/1');
+        assert.strictEqual(groups[1].rows[0].detail, 'now: Edit cmd/x.go · sonnet-4-5 · fix running · 1.2M tok · $0.40 · sonnet-4-5');
+        assert.strictEqual(groups[2].rows[0].tone, 'bad');
+        assert.strictEqual(groups[2].rows[0].detail, 'breaker · part of P-1 · after TASK-1 · 500 tok · gpt-5-codex · codex');
+        assert.strictEqual(groups[3].rows[0].elapsed, '1h');
     });
     it('describes each workspace', () => {
         const rows = workspaceRows([{ id: 'api' }, { id: 'web', status: 'missing' }], [{ workspace: 'api', action: 'fix', sources: ['linear'] }], new Set(['api']), new Set(['web']));

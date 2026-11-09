@@ -330,6 +330,10 @@ export class AgentWindow implements vscode.Disposable {
             return;
         }
         if (request.panel && request.text && request.sessionId) {
+            if (isKeySequence(request.text)) {
+                await pressInPanel(request.sessionId, request.title, request.text);
+                return;
+            }
             await typeIntoPanel(request.sessionId, request.text, request.enter === true);
             return;
         }
@@ -443,6 +447,43 @@ export async function typeIntoPanel(sessionId: string, text: string, enter: bool
         if (err) {
             void vscode.window.showInformationMessage(
                 `corgi put "${text}" into the Claude Code chat - press Enter to send it. To send it by itself, allow ${vscode.env.appName} in System Settings › Privacy & Security › Accessibility`);
+        }
+    });
+}
+
+/** The System Events lines that press one key sequence: Return is key code 36, Escape 53, a digit is typed. */
+export function keyLines(text: string): string[] {
+    const out: string[] = [];
+    for (const ch of text) {
+        if (ch === '\r') {
+            out.push('key code 36');
+        } else if (ch === '\x1b') {
+            out.push('key code 53');
+        } else if (/[0-9]/.test(ch)) {
+            out.push(`keystroke "${ch}"`);
+        }
+        out.push('delay 0.15');
+    }
+    return out;
+}
+
+/**
+ * Keys for a dialog in a Claude Code chat tab - Allow is Return, Always is 2
+ * then Return, Deny is Escape. The tab and its window come to the front
+ * first, so the keys land on that dialog and nowhere else.
+ */
+export async function pressInPanel(sessionId: string, title: string | undefined, text: string): Promise<void> {
+    if (!(title && await activateClaudeTab(title))) {
+        await vscode.commands.executeCommand(openWithPrompt, sessionId, '');
+    }
+    await sleep(500);
+    await vscode.commands.executeCommand('claude-vscode.focus');
+    await sleep(250);
+    const script = [`tell application "${vscode.env.appName}" to activate`, 'delay 0.4', 'tell application "System Events"', ...keyLines(text), 'end tell'].join('\n');
+    execFile('osascript', ['-e', script], (err) => {
+        if (err) {
+            void vscode.window.showInformationMessage(
+                `corgi could not press the keys in the Claude Code chat - answer it here. To let it, allow ${vscode.env.appName} in System Settings › Privacy & Security › Accessibility`);
         }
     });
 }
