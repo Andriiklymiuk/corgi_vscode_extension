@@ -663,9 +663,11 @@
                                 {
                                     "type": "string",
                                     "enum": [
-                                        "docker"
+                                        "docker",
+                                        "k8s",
+                                        "kubernetes"
                                     ],
-                                    "description": "Shorthand: run this service in Docker."
+                                    "description": "Shorthand: run this service in Docker, or in a Kubernetes cluster (k8s)."
                                 },
                                 {
                                     "type": "object",
@@ -673,8 +675,37 @@
                                         "name": {
                                             "type": "string",
                                             "enum": [
-                                                "docker"
+                                                "docker",
+                                                "k8s",
+                                                "kubernetes"
                                             ]
+                                        },
+                                        "kubeContext": {
+                                            "type": "string",
+                                            "description": "k8s: the kube context to deploy to. Without it corgi uses the current context only when it is a local cluster (kind-*, k3d-*, minikube, docker-desktop, orbstack, rancher-desktop, colima)."
+                                        },
+                                        "namespace": {
+                                            "type": "string",
+                                            "description": "k8s: namespace to deploy into. Default corgi-<stack name>; created when missing."
+                                        },
+                                        "manifests": {
+                                            "type": "string",
+                                            "description": "k8s: a directory or file of manifests, relative to the service dir. A kustomization.yaml makes it kubectl apply -k. Mutually exclusive with chart."
+                                        },
+                                        "chart": {
+                                            "type": "string",
+                                            "description": "k8s: a helm chart (path or reference), installed as helm upgrade --install <service>. Mutually exclusive with manifests."
+                                        },
+                                        "values": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "description": "k8s: helm values files for chart, relative to the service dir."
+                                        },
+                                        "resource": {
+                                            "type": "string",
+                                            "description": "k8s: the workload to wait on and port-forward to, e.g. deployment/api. Default: the one named like the service, else the first deployment, statefulset or daemonset applied."
                                         },
                                         "dockerfile": {
                                             "type": "string",
