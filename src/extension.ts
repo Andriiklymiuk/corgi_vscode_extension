@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { registerTerminalMirror } from './terminalMirrorRegister';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -160,6 +161,7 @@ export async function activate(context: vscode.ExtensionContext) {
     registerCorgiCommands(context);
     registerCorgiAi(context);
     registerAgentWindow(context);
+    registerTerminalMirror(context, corgiAgentDir());
     registerAgentBoard(context, corgiAgentDir(), stableWindowId(context));
     // Idea pages: the preview beside the code, the comment threads on idea.md, the commands.
     registerIdeas(context, corgiAgentDir());
