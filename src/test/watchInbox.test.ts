@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, kindLabel, openableUrl, pullLine, pullReady } from '../watchInbox';
+import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, itemTitle, kindLabel, openableUrl, pullLine, pullReady } from '../watchInbox';
 
 const NOW = Date.parse('2026-09-10T18:00:00Z');
 const at = (minutesAgo: number) => new Date(NOW - minutesAgo * 60_000).toISOString();
@@ -80,5 +80,19 @@ describe('blocked items and who said what', () => {
         assert.ok(itemDetail({ key: 'k', kind: 'issue.comment', blocked: '2 runs failed', state: 'Todo', at: new Date().toISOString() }, Date.now()).startsWith('comment · blocked: 2 runs failed'));
         assert.ok(itemDetail({ key: 'k', kind: 'pr.review', author: 'maria', body: 'nit: name', at: new Date().toISOString() }, Date.now()).includes('maria: nit: name'));
         assert.strictEqual(kindLabel({ key: 'k', kind: 'review.requested' }), 'review asked');
+    });
+});
+
+describe('inbox row names', () => {
+    it('shows what it is about, with the id beside it', () => {
+        const task = { key: 'task:corgi:15', ref: 'TASK-15', title: 'Retro: store review notes edited without being asked', kind: 'task', state: 'Todo', at: '' };
+        assert.strictEqual(itemTitle(task), 'Retro: store review notes edited without being asked');
+        assert.ok(itemDetail(task, Date.now()).startsWith('TASK-15 · '));
+        const routine = { key: 'r', ref: 'routine/retro', title: 'retro - 20 runs, 3 tasks filed', kind: 'routine', at: '' };
+        assert.strictEqual(itemTitle(routine), 'retro - 20 runs, 3 tasks filed');
+        assert.ok(!itemDetail(routine, Date.now()).includes('routine/retro'));
+        const bare = { key: 'k1', ref: 'ABC-7', kind: 'ticket', at: '' };
+        assert.strictEqual(itemTitle(bare), 'ABC-7');
+        assert.ok(!itemDetail(bare, Date.now()).startsWith('ABC-7'));
     });
 });

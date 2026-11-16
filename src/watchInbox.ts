@@ -107,11 +107,20 @@ export function itemName(item: InboxItem): string {
     return item.ref?.trim() || item.key;
 }
 
+export function itemTitle(item: InboxItem): string {
+    return item.title?.trim() || itemName(item);
+}
+
+function refShown(item: InboxItem): string {
+    const ref = item.ref?.trim() ?? '';
+    return ref && item.title?.trim() && item.kind !== 'routine' ? ref : '';
+}
+
 /** "READY TO DEV · 20m" - the column it sits in and how long it has waited; a blocked one says why first. */
 const STATUS_WORD: Record<string, string> = { needs_input: 'needs you', working: 'working', done: 'done', stale: 'idle', limited: 'limit' };
 
 export function itemDetail(item: InboxItem, now: number): string {
-    const bits = [kindLabel(item)];
+    const bits = [refShown(item), kindLabel(item)];
     if (item.blocked) {
         bits.push(`blocked: ${item.blocked}`);
     } else if (item.handed) {

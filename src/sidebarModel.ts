@@ -1,6 +1,6 @@
 import { Board, BoardAccount, BoardLeft, BoardStalled, BoardRunSpend, BoardGroup, BoardSession, Bot, botTitle, changesLine, formatElapsed, formatTokens, hideWorkspaces, isCrossing, isDrifting, limitLine, liveSessions, overlapLine, resumeWord, sessionName, spendLine, statusRank, statusWord, testsLine } from './agentBoard';
 import { epicRef, IdeaListEntry, ideaCounts, ideaStatusLabel, typeLabel } from './idea';
-import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, openableUrl } from './watchInbox';
+import { InboxItem, elapsed, groupByWorkspace, itemDetail, itemName, itemTitle, openableUrl } from './watchInbox';
 
 /**
  * Everything the sidebar page shows, decided here so the page only draws.
@@ -373,9 +373,9 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
     }
     return {
         key: item.key,
-        name: itemName(item),
+        name: itemTitle(item),
         detail,
-        tooltip: [item.title || itemName(item), item.author && item.body ? `${item.author}: ${item.body}` : '', item.blocked ? `blocked: ${item.blocked}` : ''].filter(Boolean).join('\n'),
+        tooltip: [item.title ? `${itemName(item)} · ${item.title}` : itemName(item), item.author && item.body ? `${item.author}: ${item.body}` : '', item.blocked ? `blocked: ${item.blocked}` : ''].filter(Boolean).join('\n'),
         elapsed: waited,
         tone: item.blocked ? 'bad' : item.session ? 'ask' : 'quiet',
         url,
