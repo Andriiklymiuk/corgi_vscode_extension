@@ -60,7 +60,7 @@ export interface KanbanCard {
     fix?: { running?: boolean; outcome?: string; prs?: string[] };
     standing?: { word?: string };
     now?: { doing?: string; model?: string; agent?: string };
-    cost?: { tokens?: number; usd?: number; runs?: number; sessions?: number; models?: string[]; agents?: string[] };
+    cost?: { tokens?: number; usd?: number; runs?: number; sessions?: number; minutes?: number; models?: string[]; agents?: string[] };
     feature?: { ref?: string; title?: string };
     after?: string[];
 }
@@ -395,6 +395,11 @@ export function costClause(cost: KanbanCard['cost']): string {
     const bits = [tok >= 1_000_000 ? `${(tok / 1_000_000).toFixed(1)}M tok` : tok >= 1000 ? `${Math.round(tok / 1000)}k tok` : tok ? `${tok} tok` : ''];
     if (cost.usd) {
         bits.push(`$${cost.usd.toFixed(2)}`);
+    }
+    if (cost.minutes && cost.minutes >= 1) {
+        const hours = Math.floor(cost.minutes / 60);
+        const rest = cost.minutes % 60;
+        bits.push(hours ? (rest ? `${hours}h ${rest}m` : `${hours}h`) : `${rest}m`);
     }
     if (cost.models?.length) {
         bits.push(cost.models.join(', '));
