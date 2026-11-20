@@ -198,6 +198,25 @@ describe('sidebarModel', () => {
     });
 });
 
+describe('a card says its plan', () => {
+    it('shows owner, priority, due date, blockers, triage, cycle and links', () => {
+        const [group] = boardGroups([{
+            ref: 'TASK-3', key: 'task:3', title: 'Ship the limits', column: 'Inbox', owner: 'anna', priority: 'urgent', due: '2026-12-01',
+            overdue: true, waitsFor: ['TASK-1'], triage: true, cycle: '2026-W47', unreviewed: 'no review for 2 days',
+            links: [{ url: 'https://acme.atlassian.net/browse/ABC-12', source: 'jira', label: 'ABC-12' }, { url: 'javascript:alert(1)', label: 'bad' }],
+        }], Date.now());
+        const row = group.rows[0];
+        assert.strictEqual(row.detail, 'waits for your yes · urgent · @anna · late 2026-12-01 · waits for TASK-1 · no review for 2 days · 2026-W47 · ABC-12');
+        assert.strictEqual(row.tone, 'bad');
+    });
+
+    it('stays quiet for a plain card', () => {
+        const [group] = boardGroups([{ ref: 'TASK-4', key: 'task:4', column: 'Inbox' }], Date.now());
+        assert.strictEqual(group.rows[0].detail, '');
+        assert.strictEqual(group.rows[0].tone, 'quiet');
+    });
+});
+
 describe('your turn', () => {
     const now = new Date('2026-10-23T12:00:00Z');
     const board: Board = {

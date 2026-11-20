@@ -63,6 +63,15 @@ export interface KanbanCard {
     cost?: { tokens?: number; usd?: number; runs?: number; sessions?: number; minutes?: number; models?: string[]; agents?: string[] };
     feature?: { ref?: string; title?: string };
     after?: string[];
+    owner?: string;
+    priority?: string;
+    due?: string;
+    overdue?: boolean;
+    waitsFor?: string[];
+    triage?: boolean;
+    cycle?: string;
+    unreviewed?: string;
+    links?: { url?: string; source?: string; label?: string }[];
 }
 
 export interface KanbanFeature {
@@ -387,6 +396,37 @@ export function inboxRow(item: InboxItem, now: number): InboxRow {
 /** The kanban's column order; anything else lands after these. */
 export const boardColumns = ['Features', 'Inbox', 'Ready', 'Running', 'Blocked', 'Review', 'Done'];
 
+export function planClause(c: KanbanCard): string {
+    const bits: string[] = [];
+    if (c.triage) {
+        bits.push('waits for your yes');
+    }
+    if (c.priority) {
+        bits.push(c.priority);
+    }
+    if (c.owner) {
+        bits.push(`@${c.owner}`);
+    }
+    if (c.due) {
+        bits.push(`${c.overdue ? 'late' : 'due'} ${c.due}`);
+    }
+    if (c.waitsFor?.length) {
+        bits.push(`waits for ${c.waitsFor.join(', ')}`);
+    }
+    if (c.unreviewed) {
+        bits.push(c.unreviewed);
+    }
+    if (c.cycle) {
+        bits.push(c.cycle);
+    }
+    for (const l of c.links ?? []) {
+        if (l.label && /^https?:\/\//.test(l.url ?? '')) {
+            bits.push(l.label);
+        }
+    }
+    return bits.join(' · ');
+}
+
 export function costClause(cost: KanbanCard['cost']): string {
     if (!cost || !(cost.tokens || cost.usd)) {
         return '';
@@ -437,10 +477,10 @@ export function boardGroups(cards: KanbanCard[], now: number, shown: ReadonlySet
         }
         const column = c.column || 'Inbox';
         const running = !!c.fix?.running || column === 'Running';
-        const tone: Tone = column === 'Blocked' ? 'bad' : running ? 'live' : column === 'Ready' ? 'ask' : 'quiet';
+        const tone: Tone = column === 'Blocked' || c.overdue ? 'bad' : running ? 'live' : column === 'Ready' || c.triage || c.unreviewed ? 'ask' : 'quiet';
         const live = c.now?.doing ? `now: ${[c.now.doing, c.now.model, c.now.agent && c.now.agent !== 'claude' ? c.now.agent : ''].filter(Boolean).join(' · ')}` : '';
         const part = c.feature?.ref ? `part of ${c.feature.ref}${c.after?.length ? ` · after ${c.after.join(', ')}` : ''}` : '';
-        const detail = [c.workspace, live || c.why || c.standing?.word, c.fix?.running ? 'fix running' : c.fix?.prs?.length ? `PR ${c.fix.prs[c.fix.prs.length - 1]}` : '', part, costClause(c.cost)].filter(Boolean).join(' · ');
+        const detail = [c.workspace, live || c.why || c.standing?.word, c.fix?.running ? 'fix running' : c.fix?.prs?.length ? `PR ${c.fix.prs[c.fix.prs.length - 1]}` : '', part, planClause(c), costClause(c.cost)].filter(Boolean).join(' · ');
         const url = c.url && /^https:\/\//.test(c.url) ? c.url : undefined;
         groups.set(column, [...(groups.get(column) ?? []), { key: c.key || c.ref!, title: c.ref ? `${c.ref}  ${c.title ?? ''}`.trim() : c.title ?? '', detail, elapsed: elapsed(c.updatedAt, now), tone, url }]);
     }
